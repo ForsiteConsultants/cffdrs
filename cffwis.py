@@ -592,9 +592,9 @@ def dailyBUI(_dmc: Union[int, float, np.ndarray],
              _dc: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
     """
     Function to calculate daily Build Up Index values per Van Wagner (1987).
-    :param _dmc: int, float or numpy ndarray; current DMC value (unitless code)
-    :param _dc: int, float or numpy ndarray; current DC value (unitless code)
-    :return: float or numpy ndarray; current BUI value (unitless code)
+    :param _dmc: current DMC value (unitless code)
+    :param _dc: current DC value (unitless code)
+    :return: current BUI value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
     if any(isinstance(data, np.ndarray) for data in [_dmc, _dc]):
