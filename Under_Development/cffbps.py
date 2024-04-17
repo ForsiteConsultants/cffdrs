@@ -10,7 +10,7 @@ import numpy as np
 from datetime import datetime as dt
 
 
-### Lists for CFFBPS Crown Fire Metric variables
+# ### Lists for CFFBPS Crown Fire Metric variables
 csfiVarList = ['cbh', 'fmc']
 rsoVarList = ['csfi', 'sfc']
 cfbVarList = ['cfros', 'rso']

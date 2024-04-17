@@ -4,9 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added testing function to CFFBPS_.py">
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised .gitignore">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Under_Development/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/Under_Development/cffbps.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -115,8 +116,27 @@
       <option name="project" value="LOCAL" />
       <updated>1713392280752</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="Revised .gitignore">
+      <option name="closed" value="true" />
+      <created>1713395649440</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1713395649440</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Initial Commit" />
@@ -124,6 +144,7 @@
     <MESSAGE value="Added CFFBPS_ code to repository" />
     <MESSAGE value="Added .gitignore" />
     <MESSAGE value="Added testing function to CFFBPS_.py" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added testing function to CFFBPS_.py" />
+    <MESSAGE value="Revised .gitignore" />
+    <option name="LAST_COMMIT_MESSAGE" value="Revised .gitignore" />
   </component>
 </project>
