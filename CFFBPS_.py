@@ -1263,5 +1263,5 @@ def testCFFBPS():
                              out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']))
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     testCFFBPS()
