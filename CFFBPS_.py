@@ -709,14 +709,14 @@ class CFFBPS:
         return self.ffc, self.wfc, self.sfc
 
     def calcFMC(self,
-                wxDate: str = None,
+                wxDate: int = None,
                 lat: float = None,
                 long: float = None,
                 elevation: float = None) -> tuple[float, float]:
         """
         Function returns a tuple of foliar moisture content (FMC) and foliar moisture effect (FME).\n
         # Not recommended for conifers other than boreal pine or spruce.
-        :param wxDate: string representing date of weather observation (YYYYMMDD)
+        :param wxDate: date of weather observation (YYYYMMDD)
         :param lat: site latitude (decimal degrees)
         :param long: site longitude (decimal degrees)
         :param elevation: site elevation (meters)
@@ -1101,7 +1101,7 @@ class CFFBPS:
 
     def getFBP(self,
                fuel_type: str | int,
-               wxDate: str,
+               wxDate: int,
                lat: float,
                long: float,
                elevation: float,
@@ -1138,7 +1138,7 @@ class CFFBPS:
             Model 16: S-1 fuel type ROS model
             Model 17: S-2 fuel type ROS model
             Model 18: S-3 fuel type ROS model
-        :param wxDate: String representing date of weather observation (to model fire for) (YYYYMMDD)
+        :param wxDate: Date of weather observation (to model fire for) (YYYYMMDD)
         :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
         :param long: Longitude of area being modelled (Decimal Degrees, floating point)
         :param elevation: Elevation of area being modelled (m)
@@ -1252,3 +1252,16 @@ class CFFBPS:
         self.calcHFI()
 
         return self.getOutputs(out_request)
+
+
+def testCFFBPS():
+    fbp = CFFBPS()
+    for ft in ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'D1', 'D2', 'M1', 'M2', 'M3', 'M4', 'O1a', 'O1b', 'S1', 'S2',
+               'S3']:
+        print(ft, fbp.getFBP(fuel_type=ft, wxDate=20170616, lat=52.1152209277778, long=121.911361891667,
+                             elevation=779.613, slope=0, aspect=156, ws=18, wd=189.7, ffmc=93.5, bui=70.00987167,
+                             out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']))
+
+
+if __name__ == "__main__":
+    testCFFBPS()
