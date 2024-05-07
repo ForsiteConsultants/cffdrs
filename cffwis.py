@@ -435,7 +435,7 @@ def dailyDMC(_dmc0: Union[int, float, np.ndarray],
                       (244.72 - 43.43 * np.log(mr - 20)) + 100 * k,
                       _dmc0 + 100 * k)
 
-    # Ensure DMC > 0
+    # Ensure DMC >= 0
     dmc[dmc < 0] = 0
 
     if return_array:
@@ -544,7 +544,7 @@ def dailyDC(_dc0: Union[int, float, np.ndarray],
                      _dc0 + 0.5 * v)
     np.seterr(divide='warn')
 
-    # Ensure DC > 0
+    # Ensure DC >= 0
     dc[dc < 0] = 0
 
     if return_array:
