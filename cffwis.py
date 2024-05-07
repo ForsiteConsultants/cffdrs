@@ -178,6 +178,10 @@ def hourlyFFMC(_ffmc0: Union[int, float, np.ndarray],
     else:
         ffmc = 59.5 * (250 - m) / (147.2 + m)
 
+    # Restrict FFMC values to range between 0 and 101
+    ffmc[ffmc > 101] = 101
+    ffmc[ffmc < 0] = 0
+
     if return_array:
         return ffmc.data
     else:
@@ -300,6 +304,11 @@ def dailyFFMC(_ffmc0: Union[int, float, np.ndarray],
 
     # ### RETURN FINAL FFMC VALUE
     ffmc = 59.5 * (250 - m) / (147.2 + m)
+
+    # Restrict FFMC values to range between 0 and 101
+    ffmc[ffmc > 101] = 101
+    ffmc[ffmc < 0] = 0
+
     if return_array:
         return ffmc.data
     else:
@@ -425,7 +434,10 @@ def dailyDMC(_dmc0: Union[int, float, np.ndarray],
     dmc = np.ma.where(_precip > 1.5,
                       (244.72 - 43.43 * np.log(mr - 20)) + 100 * k,
                       _dmc0 + 100 * k)
+
+    # Ensure DMC > 0
     dmc[dmc < 0] = 0
+
     if return_array:
         return dmc.data
     else:
@@ -527,14 +539,18 @@ def dailyDC(_dc0: Union[int, float, np.ndarray],
 
     # ### RETURN FINAL DMC VALUES
     np.seterr(divide='ignore')
-    dmc = np.ma.where(_precip > 2.8,
-                      400 * np.log(800 / qr) + 0.5 * v,
-                      _dc0 + 0.5 * v)
+    dc = np.ma.where(_precip > 2.8,
+                     400 * np.log(800 / qr) + 0.5 * v,
+                     _dc0 + 0.5 * v)
     np.seterr(divide='warn')
+
+    # Ensure DC > 0
+    dc[dc < 0] = 0
+
     if return_array:
-        return dmc.data
+        return dc.data
     else:
-        return dmc.data[0]
+        return dc.data[0]
 
 
 def dailyISI(_wind: Union[int, float, np.ndarray],
