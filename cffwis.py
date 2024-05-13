@@ -10,6 +10,35 @@ import numpy as np
 from typing import Union
 
 
+# ### DRYING PHASE
+dc_daylength_dict = {
+    'January': -1.6,
+    'February': -1.6,
+    'March': -1.6,
+    'April': 0.9,
+    'May': 3.8,
+    'June': 5.8,
+    'July': 6.4,
+    'August': 5,
+    'September': 2.4,
+    'October': 0.4,
+    'November': -1.6,
+    'December': -1.6,
+    '01': -1.6,
+    '02': -1.6,
+    '03': -1.6,
+    '04': 0.9,
+    '05': 3.8,
+    '06': 5.8,
+    '07': 6.4,
+    '08': 5,
+    '09': 2.4,
+    '10': 0.4,
+    '11': -1.6,
+    '12': -1.6,
+}
+
+
 """
 The diurnalFFMC function is still under development...
 """
@@ -496,33 +525,6 @@ def dailyDC(_dc0: Union[int, float, np.ndarray],
     # ### YESTERDAYS MOISTURE EQUIVALENT VALUE
     q0 = 800 / np.exp(_dc0 / 400)
 
-    # ### DRYING PHASE
-    dc_daylength_dict = {
-        'January': -1.6,
-        'February': -1.6,
-        'March': -1.6,
-        'April': 0.9,
-        'May': 3.8,
-        'June': 5.8,
-        'July': 6.4,
-        'August': 5,
-        'September': 2.4,
-        'October': 0.4,
-        'November': -1.6,
-        'December': -1.6,
-        '01': -1.6,
-        '02': -1.6,
-        '03': -1.6,
-        '04': 0.9,
-        '05': 3.8,
-        '06': 5.8,
-        '07': 6.4,
-        '08': 5,
-        '09': 2.4,
-        '10': 0.4,
-        '11': -1.6,
-        '12': -1.6,
-    }
     # Potential Evapotranspiration (v)
     lf = dc_daylength_dict.get(_month, None)
     if lf is None:
@@ -730,3 +732,95 @@ def dailyDSR(_fwi: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
         return dsr.data
     else:
         return dsr.data[0]
+
+
+def startupDC(dc_f: Union[int, float, np.ndarray],
+              moist_f: Union[int, float, np.ndarray],
+              moist_s: Union[int, float, np.ndarray],
+              precip_ow: Union[int, float, np.ndarray],
+              temp: Union[int, float, np.ndarray],
+              month: Union[int, str]) -> Union[float, np.ndarray]:
+    """
+    Function to calculate the DC startup values after overwintering.\n
+    This function implements new procedures outlined in Hanes and Wotton (2024).
+    :param dc_f: DC value of the last day of FWI System calculation from the previous fall (unitless code)
+    :param moist_f: moisture  of the last day of FWI System calculation from the previous fall ()
+    :param moist_s: moisture value for the first day of FWI System calculation from the current spring ()
+    :param precip_ow: total precipitation between the DC overwinter and startup date (mm)
+    :param temp: today's temperature value (C)
+    :param month: the current month (e.g., 9, '09', 'September')
+    :return: startup DC value (unitless code)
+    """
+    # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
+    if any(isinstance(data, np.ndarray) for data in [dc_f, moist_f, moist_s, precip_ow]):
+        return_array = True
+    else:
+        return_array = False
+
+    # ### CONVERT ALL INPUTS TO MASKED NUMPY ARRAYS
+    # Verify dc_f
+    if not isinstance(dc_f, (int, float, np.ndarray)):
+        raise TypeError('dc_f must be either int, float or numpy ndarray data types')
+    elif isinstance(dc_f, np.ndarray):
+        moist_f = np.ma.array(dc_f, mask=np.isnan(dc_f))
+    else:
+        dc_f = np.ma.array([dc_f], mask=np.isnan([dc_f]))
+
+    # Verify moist_f
+    if not isinstance(moist_f, (int, float, np.ndarray)):
+        raise TypeError('moist_f must be either int, float or numpy ndarray data types')
+    elif isinstance(moist_f, np.ndarray):
+        moist_f = np.ma.array(moist_f, mask=np.isnan(moist_f))
+    else:
+        moist_f = np.ma.array([moist_f], mask=np.isnan([moist_f]))
+
+    # Verify m_s
+    if not isinstance(moist_s, (int, float, np.ndarray)):
+        raise TypeError('moist_f must be either int, float or numpy ndarray data types')
+    elif isinstance(moist_s, np.ndarray):
+        moist_f = np.ma.array(moist_s, mask=np.isnan(moist_s))
+    else:
+        moist_f = np.ma.array([moist_s], mask=np.isnan([moist_s]))
+
+    # Verify precip_ow
+    if not isinstance(precip_ow, (int, float, np.ndarray)):
+        raise TypeError('p_ow must be either int, float or numpy ndarray data types')
+    elif isinstance(precip_ow, np.ndarray):
+        p_ow = np.ma.array(precip_ow, mask=np.isnan(precip_ow))
+    else:
+        p_ow = np.ma.array([precip_ow], mask=np.isnan([precip_ow]))
+
+    # Potential Evapotranspiration (v)
+    lf = dc_daylength_dict.get(month, None)
+    if lf is None:
+        raise ValueError(f'Month value is invalid: {month}')
+    v = 0.36 * (temp + 2.8) + lf
+
+    # Carryover fraction of the fall moisture deficit
+    # New approach: a is always 1 to remove a potential source of error
+    # on the front end of the overwinter calculation
+    a = 1
+
+    # Fraction of winter precipitation effective at recharging depleted moisture reserves in spring
+    b = np.ma.where(moist_s < moist_f,
+                    0,
+                    (moist_s - moist_f) / moist_f)
+
+    # Final fall moisture equivalent
+    q_f = 800 * np.exp(-dc_f / 400)
+
+    # Starting spring moisture equivalent
+    q_s = a * q_f + b * (3.94 * p_ow)
+
+    # ### RETURN DC STARTUP VALUE
+    np.seterr(divide='ignore')
+    dc_start = 400 * np.log(800 / q_s) + 0.5 * v
+    np.seterr(divide='warn')
+
+    # Ensure DC >= 0
+    dc_start[dc_start < 0] = 0
+
+    if return_array:
+        return dc_start.data
+    else:
+        return dc_start.data[0]
