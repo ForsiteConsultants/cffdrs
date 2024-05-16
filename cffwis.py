@@ -774,13 +774,13 @@ def startupDC(dc_f: Union[int, float, np.ndarray],
     else:
         moist_f = np.ma.array([moist_f], mask=np.isnan([moist_f]))
 
-    # Verify m_s
+    # Verify moist_s
     if not isinstance(moist_s, (int, float, np.ndarray)):
-        raise TypeError('moist_f must be either int, float or numpy ndarray data types')
+        raise TypeError('moist_s must be either int, float or numpy ndarray data types')
     elif isinstance(moist_s, np.ndarray):
-        moist_f = np.ma.array(moist_s, mask=np.isnan(moist_s))
+        moist_s = np.ma.array(moist_s, mask=np.isnan(moist_s))
     else:
-        moist_f = np.ma.array([moist_s], mask=np.isnan([moist_s]))
+        moist_s = np.ma.array([moist_s], mask=np.isnan([moist_s]))
 
     # Verify precip_ow
     if not isinstance(precip_ow, (int, float, np.ndarray)):
@@ -810,7 +810,7 @@ def startupDC(dc_f: Union[int, float, np.ndarray],
     q_f = 800 * np.exp(-dc_f / 400)
 
     # Starting spring moisture equivalent
-    q_s = a * q_f + b * (3.94 * p_ow)
+    q_s = a * q_f + b * (3.937 * p_ow)
 
     # ### RETURN DC STARTUP VALUE
     np.seterr(divide='ignore')
