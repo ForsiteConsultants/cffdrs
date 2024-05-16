@@ -762,7 +762,7 @@ def startupDC(dc_f: Union[int, float, np.ndarray],
     if not isinstance(dc_f, (int, float, np.ndarray)):
         raise TypeError('dc_f must be either int, float or numpy ndarray data types')
     elif isinstance(dc_f, np.ndarray):
-        moist_f = np.ma.array(dc_f, mask=np.isnan(dc_f))
+        dc_f = np.ma.array(dc_f, mask=np.isnan(dc_f))
     else:
         dc_f = np.ma.array([dc_f], mask=np.isnan([dc_f]))
 
@@ -786,9 +786,9 @@ def startupDC(dc_f: Union[int, float, np.ndarray],
     if not isinstance(precip_ow, (int, float, np.ndarray)):
         raise TypeError('p_ow must be either int, float or numpy ndarray data types')
     elif isinstance(precip_ow, np.ndarray):
-        p_ow = np.ma.array(precip_ow, mask=np.isnan(precip_ow))
+        precip_ow = np.ma.array(precip_ow, mask=np.isnan(precip_ow))
     else:
-        p_ow = np.ma.array([precip_ow], mask=np.isnan([precip_ow]))
+        precip_ow = np.ma.array([precip_ow], mask=np.isnan([precip_ow]))
 
     # Potential Evapotranspiration (v)
     lf = dc_daylength_dict.get(month, None)
@@ -810,7 +810,7 @@ def startupDC(dc_f: Union[int, float, np.ndarray],
     q_f = 800 * np.exp(-dc_f / 400)
 
     # Starting spring moisture equivalent
-    q_s = a * q_f + b * (3.937 * p_ow)
+    q_s = a * q_f + b * (3.937 * precip_ow)
 
     # ### RETURN DC STARTUP VALUE
     np.seterr(divide='ignore')
