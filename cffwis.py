@@ -734,53 +734,53 @@ def dailyDSR(_fwi: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
         return dsr.data[0]
 
 
-def startupDC(dc_f: Union[int, float, np.ndarray],
-              moist_f: Union[int, float, np.ndarray],
-              moist_s: Union[int, float, np.ndarray],
+def startupDC(dc_stop: Union[int, float, np.ndarray],
+              moist_stop: Union[int, float, np.ndarray],
+              moist_start: Union[int, float, np.ndarray],
               precip_ow: Union[int, float, np.ndarray],
               temp: Union[int, float, np.ndarray],
               month: Union[int, str]) -> Union[float, np.ndarray]:
     """
     Function to calculate the DC startup values after overwintering.\n
     This function implements new procedures outlined in Hanes and Wotton (2024).
-    :param dc_f: DC value of the last day of FWI System calculation from the previous fall (unitless code)
-    :param moist_f: moisture  of the last day of FWI System calculation from the previous fall ()
-    :param moist_s: moisture value for the first day of FWI System calculation from the current spring ()
-    :param precip_ow: total precipitation between the DC overwinter and startup date (mm)
+    :param dc_stop: DC value of the last day of FWI System calculation prior to overwintering (unitless code)
+    :param moist_stop: moisture value from the last day of FWI system calculations prior to overwintering (%)
+    :param moist_start: moisture value for the first day of FWI System calculations since overwintering (%)
+    :param precip_ow: total precipitation throughout the overwintering period (mm)
     :param temp: today's temperature value (C)
     :param month: the current month (e.g., 9, '09', 'September')
     :return: startup DC value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
-    if any(isinstance(data, np.ndarray) for data in [dc_f, moist_f, moist_s, precip_ow]):
+    if any(isinstance(data, np.ndarray) for data in [dc_stop, moist_stop, moist_start, precip_ow]):
         return_array = True
     else:
         return_array = False
 
     # ### CONVERT ALL INPUTS TO MASKED NUMPY ARRAYS
-    # Verify dc_f
-    if not isinstance(dc_f, (int, float, np.ndarray)):
-        raise TypeError('dc_f must be either int, float or numpy ndarray data types')
-    elif isinstance(dc_f, np.ndarray):
-        dc_f = np.ma.array(dc_f, mask=np.isnan(dc_f))
+    # Verify dc_stop
+    if not isinstance(dc_stop, (int, float, np.ndarray)):
+        raise TypeError('dc_stop must be either int, float or numpy ndarray data types')
+    elif isinstance(dc_stop, np.ndarray):
+        dc_stop = np.ma.array(dc_stop, mask=np.isnan(dc_stop))
     else:
-        dc_f = np.ma.array([dc_f], mask=np.isnan([dc_f]))
+        dc_stop = np.ma.array([dc_stop], mask=np.isnan([dc_stop]))
 
-    # Verify moist_f
-    if not isinstance(moist_f, (int, float, np.ndarray)):
-        raise TypeError('moist_f must be either int, float or numpy ndarray data types')
-    elif isinstance(moist_f, np.ndarray):
-        moist_f = np.ma.array(moist_f, mask=np.isnan(moist_f))
+    # Verify moist_stop
+    if not isinstance(moist_stop, (int, float, np.ndarray)):
+        raise TypeError('moist_stop must be either int, float or numpy ndarray data types')
+    elif isinstance(moist_stop, np.ndarray):
+        moist_stop = np.ma.array(moist_stop, mask=np.isnan(moist_stop))
     else:
-        moist_f = np.ma.array([moist_f], mask=np.isnan([moist_f]))
+        moist_stop = np.ma.array([moist_stop], mask=np.isnan([moist_stop]))
 
-    # Verify moist_s
-    if not isinstance(moist_s, (int, float, np.ndarray)):
-        raise TypeError('moist_s must be either int, float or numpy ndarray data types')
-    elif isinstance(moist_s, np.ndarray):
-        moist_s = np.ma.array(moist_s, mask=np.isnan(moist_s))
+    # Verify moist_start
+    if not isinstance(moist_start, (int, float, np.ndarray)):
+        raise TypeError('moist_start must be either int, float or numpy ndarray data types')
+    elif isinstance(moist_start, np.ndarray):
+        moist_start = np.ma.array(moist_start, mask=np.isnan(moist_start))
     else:
-        moist_s = np.ma.array([moist_s], mask=np.isnan([moist_s]))
+        moist_start = np.ma.array([moist_start], mask=np.isnan([moist_start]))
 
     # Verify precip_ow
     if not isinstance(precip_ow, (int, float, np.ndarray)):
@@ -802,12 +802,12 @@ def startupDC(dc_f: Union[int, float, np.ndarray],
     a = 1
 
     # Fraction of winter precipitation effective at recharging depleted moisture reserves in spring
-    b = np.ma.where(moist_s < moist_f,
+    b = np.ma.where(moist_start < moist_stop,
                     0,
-                    (moist_s - moist_f) / moist_f)
+                    (moist_start - moist_stop) / moist_stop)
 
     # Final fall moisture equivalent
-    q_f = 800 * np.exp(-dc_f / 400)
+    q_f = 800 * np.exp(-dc_stop / 400)
 
     # Starting spring moisture equivalent
     q_s = a * q_f + b * (3.937 * precip_ow)
