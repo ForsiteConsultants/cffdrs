@@ -35,7 +35,7 @@ dc_daylength_dict = {
     '09': 2.4,
     '10': 0.4,
     '11': -1.6,
-    '12': -1.6,
+    '12': -1.6
 }
 
 
@@ -734,67 +734,81 @@ def dailyDSR(_fwi: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
         return dsr.data[0]
 
 
-def startupDC(dc_stop: Union[int, float, np.ndarray],
-              moist_stop: Union[int, float, np.ndarray],
-              moist_start: Union[int, float, np.ndarray],
-              precip_ow: Union[int, float, np.ndarray],
-              temp: Union[int, float, np.ndarray],
-              month: Union[int, str]) -> Union[float, np.ndarray]:
+def startupDC(_dc_stop: Union[int, float, np.ndarray],
+              _moist_stop: Union[int, float, np.ndarray],
+              _moist_start: Union[int, float, np.ndarray],
+              _precip_ow: Union[int, float, np.ndarray],
+              _temp: Union[int, float, np.ndarray],
+              _month: Union[int, str]) -> Union[float, np.ndarray]:
     """
     Function to calculate the DC startup values after overwintering.\n
     This function implements new procedures outlined in Hanes and Wotton (2024).
-    :param dc_stop: DC value of the last day of FWI System calculation prior to overwintering (unitless code)
-    :param moist_stop: moisture value from the last day of FWI system calculations prior to overwintering (%)
-    :param moist_start: moisture value for the first day of FWI System calculations since overwintering (%)
-    :param precip_ow: total precipitation throughout the overwintering period (mm)
-    :param temp: today's temperature value (C)
-    :param month: the current month (e.g., 9, '09', 'September')
+    :param _dc_stop: DC value of the last day of FWI System calculation prior to overwintering (unitless code)
+    :param _moist_stop: moisture value from the last day of FWI system calculations prior to overwintering (%)
+    :param _moist_start: moisture value for the first day of FWI System calculations since overwintering (%)
+    :param _precip_ow: total precipitation throughout the overwintering period (mm)
+    :param _temp: today's temperature value (C)
+    :param _month: the current month (e.g., 9, '09', 'September')
     :return: startup DC value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
-    if any(isinstance(data, np.ndarray) for data in [dc_stop, moist_stop, moist_start, precip_ow]):
+    if any(isinstance(data, np.ndarray) for data in [_dc_stop, _moist_stop, _moist_start, _precip_ow]):
         return_array = True
     else:
         return_array = False
 
     # ### CONVERT ALL INPUTS TO MASKED NUMPY ARRAYS
-    # Verify dc_stop
-    if not isinstance(dc_stop, (int, float, np.ndarray)):
-        raise TypeError('dc_stop must be either int, float or numpy ndarray data types')
-    elif isinstance(dc_stop, np.ndarray):
-        dc_stop = np.ma.array(dc_stop, mask=np.isnan(dc_stop))
+    # Verify _dc_stop
+    if not isinstance(_dc_stop, (int, float, np.ndarray)):
+        raise TypeError('_dc_stop must be either int, float or numpy ndarray data types')
+    elif isinstance(_dc_stop, np.ndarray):
+        _dc_stop = np.ma.array(_dc_stop, mask=np.isnan(_dc_stop))
     else:
-        dc_stop = np.ma.array([dc_stop], mask=np.isnan([dc_stop]))
+        _dc_stop = np.ma.array([_dc_stop], mask=np.isnan([_dc_stop]))
 
-    # Verify moist_stop
-    if not isinstance(moist_stop, (int, float, np.ndarray)):
-        raise TypeError('moist_stop must be either int, float or numpy ndarray data types')
-    elif isinstance(moist_stop, np.ndarray):
-        moist_stop = np.ma.array(moist_stop, mask=np.isnan(moist_stop))
+    # Verify _moist_stop
+    if not isinstance(_moist_stop, (int, float, np.ndarray)):
+        raise TypeError('_moist_stop must be either int, float or numpy ndarray data types')
+    elif isinstance(_moist_stop, np.ndarray):
+        _moist_stop = np.ma.array(_moist_stop, mask=np.isnan(_moist_stop))
     else:
-        moist_stop = np.ma.array([moist_stop], mask=np.isnan([moist_stop]))
+        _moist_stop = np.ma.array([_moist_stop], mask=np.isnan([_moist_stop]))
 
-    # Verify moist_start
-    if not isinstance(moist_start, (int, float, np.ndarray)):
+    # Verify _moist_start
+    if not isinstance(_moist_start, (int, float, np.ndarray)):
         raise TypeError('moist_start must be either int, float or numpy ndarray data types')
-    elif isinstance(moist_start, np.ndarray):
-        moist_start = np.ma.array(moist_start, mask=np.isnan(moist_start))
+    elif isinstance(_moist_start, np.ndarray):
+        _moist_start = np.ma.array(_moist_start, mask=np.isnan(_moist_start))
     else:
-        moist_start = np.ma.array([moist_start], mask=np.isnan([moist_start]))
+        _moist_start = np.ma.array([_moist_start], mask=np.isnan([_moist_start]))
 
-    # Verify precip_ow
-    if not isinstance(precip_ow, (int, float, np.ndarray)):
+    # Verify _precip_ow
+    if not isinstance(_precip_ow, (int, float, np.ndarray)):
         raise TypeError('p_ow must be either int, float or numpy ndarray data types')
-    elif isinstance(precip_ow, np.ndarray):
-        precip_ow = np.ma.array(precip_ow, mask=np.isnan(precip_ow))
+    elif isinstance(_precip_ow, np.ndarray):
+        _precip_ow = np.ma.array(_precip_ow, mask=np.isnan(_precip_ow))
     else:
-        precip_ow = np.ma.array([precip_ow], mask=np.isnan([precip_ow]))
+        _precip_ow = np.ma.array([_precip_ow], mask=np.isnan([_precip_ow]))
+
+    # Verify _temp
+    if not isinstance(_temp, (int, float, np.ndarray)):
+        raise TypeError('_temp must be either int, float or numpy ndarray data types')
+    elif isinstance(_temp, np.ndarray):
+        _temp = np.ma.array(_temp, mask=np.isnan(_temp))
+    else:
+        _temp = np.ma.array([_temp], mask=np.isnan([_temp]))
+
+    # Verify _month
+    if not isinstance(_month, (int, str)):
+        raise TypeError('_month must be either int or string data types')
+    elif isinstance(_month, int):
+        _month = str(_month).zfill(2)
 
     # Potential Evapotranspiration (v)
-    lf = dc_daylength_dict.get(month, None)
+    lf = dc_daylength_dict.get(_month, None)
     if lf is None:
-        raise ValueError(f'Month value is invalid: {month}')
-    v = 0.36 * (temp + 2.8) + lf
+        raise ValueError(f'Month value is invalid: {_month}')
+    v = 0.36 * (_temp + 2.8) + lf
 
     # Carryover fraction of the fall moisture deficit
     # New approach: a is always 1 to remove a potential source of error
@@ -802,15 +816,15 @@ def startupDC(dc_stop: Union[int, float, np.ndarray],
     a = 1
 
     # Fraction of winter precipitation effective at recharging depleted moisture reserves in spring
-    b = np.ma.where(moist_start < moist_stop,
+    b = np.ma.where(_moist_start < _moist_stop,
                     0,
-                    (moist_start - moist_stop) / moist_stop)
+                    (_moist_start - _moist_stop) / _moist_stop)
 
     # Final fall moisture equivalent
-    q_f = 800 * np.exp(-dc_stop / 400)
+    q_f = 800 * np.exp(-_dc_stop / 400)
 
     # Starting spring moisture equivalent
-    q_s = a * q_f + b * (3.937 * precip_ow)
+    q_s = a * q_f + b * (3.937 * _precip_ow)
 
     # ### RETURN DC STARTUP VALUE
     np.seterr(divide='ignore')
