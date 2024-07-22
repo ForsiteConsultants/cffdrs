@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised .gitignore">
+      <change afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/cffdrs.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cffdrs.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
@@ -30,12 +31,12 @@
     &quot;assignee&quot;: &quot;gagreene&quot;
   }
 }</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;https://github.com/gagreene/cffdrs.git&quot;,
-    &quot;accountId&quot;: &quot;acfbdfa7-eb1e-4ac7-90c1-f0ccb7a9c083&quot;
+  <component name="GithubPullRequestsUISettings"><![CDATA[{
+  "selectedUrlAndAccountId": {
+    "url": "https://github.com/gagreene/cffdrs.git",
+    "accountId": "9c985129-a871-4af7-92b6-8e843cdfe2e8"
   }
-}</component>
+}]]></component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -69,7 +70,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-babbdf50b680-746f403e7f0c-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.15989.155" />
+        <option value="bundled-python-sdk-975db3bf15a3-31b6be0877a2-com.jetbrains.pycharm.community.sharedIndexes.bundled-PC-241.18034.82" />
       </set>
     </attachedChunks>
   </component>
