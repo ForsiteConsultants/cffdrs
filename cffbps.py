@@ -1272,26 +1272,31 @@ class FBP:
         return self.getOutputs(self.out_request)
 
 
-def testFBP():
+def testFBP(convertGridCodes: bool = False) -> None:
+    """
+    Function to test the cffbps module with various input types
+    :param convertGridCodes: Convert from cffdrs R fuel type grid codes to codes used in this module (default: False)
+    :return: None
+    """
     import ProcessRasters as pr
 
     fuel_type_list = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'D1', 'D2', 'M1', 'M2', 'M3', 'M4',
                       'O1a', 'O1b', 'S1', 'S2', 'S3']
     _wx_date = 20160516
-    # # ### Test non-raster modelling
-    # for ft in fuel_type_list:
-    #     print(ft, FBP(fuel_type=fbpFTCode_AlphaToNum_LUT.get(ft),
-    #                   wx_date=_wx_date, lat=62.245544, long=-133.839203,
-    #                   elevation=1176, slope=7, aspect=53, ws=24, wd=266, ffmc=92, bui=31,
-    #                   pc=0, pdf=0, gfl=0, gcf=60,
-    #                   out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
+    # ### Test non-raster modelling
+    for ft in fuel_type_list:
+        print(ft, FBP(fuel_type=fbpFTCode_AlphaToNum_LUT.get(ft),
+                      wx_date=_wx_date, lat=62.245544, long=-133.839203,
+                      elevation=1176, slope=7, aspect=53, ws=24, wd=266, ffmc=92, bui=31,
+                      pc=50, pdf=50, gfl=0.35, gcf=80,
+                      out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
 
-    # # ### Test array modelling
-    # print(FBP(fuel_type=np.array(fuel_type_list),
-    #           wx_date=_wx_date, lat=52.1152209277778, long=121.911361891667,
-    #           elevation=779.613, slope=0, aspect=156, ws=18, wd=189.7, ffmc=93.5, bui=70.00987167,
-    #           out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
-    #
+    # ### Test array modelling
+    print(FBP(fuel_type=np.array(fuel_type_list),
+              wx_date=_wx_date, lat=52.1152209277778, long=121.911361891667,
+              elevation=779.613, slope=0, aspect=156, ws=18, wd=189.7, ffmc=93.5, bui=70.00987167,
+              out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
+
     # ### Test raster modelling
     # Get test folders
     input_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Inputs')
@@ -1332,19 +1337,21 @@ def testFBP():
     gfl_array = pr.getRaster(gfl_path).read()
     gcf_array = pr.getRaster(gcf_path).read()
 
-    fuel_type_array = np.where(fuel_type_array == 19,
-                               20,
-                               np.where(fuel_type_array == 13,
-                                        19,
-                                        np.where(fuel_type_array == 12,
-                                                 13,
-                                                 np.where(fuel_type_array == 11,
-                                                          12,
-                                                          np.where(fuel_type_array == 10,
-                                                                   11,
-                                                                   np.where(fuel_type_array == 9,
-                                                                            10,
-                                                                            fuel_type_array))))))
+    # This code is only needed if converting from cffdrs R fuel type grid codes to the grid codes used in this module
+    if convertGridCodes:
+        fuel_type_array = np.where(fuel_type_array == 19,
+                                   20,
+                                   np.where(fuel_type_array == 13,
+                                            19,
+                                            np.where(fuel_type_array == 12,
+                                                     13,
+                                                     np.where(fuel_type_array == 11,
+                                                              12,
+                                                              np.where(fuel_type_array == 10,
+                                                                       11,
+                                                                       np.where(fuel_type_array == 9,
+                                                                                10,
+                                                                                fuel_type_array))))))
 
     wsv, raz, fire_type, hfros, hfi, ffc, wfc, sfc = FBP(
         fuel_type=fuel_type_array, wx_date=_wx_date, lat=lat_array, long=long_array,
@@ -1383,4 +1390,5 @@ def testFBP():
 
 
 if __name__ == '__main__':
-    testFBP()
+    _convertGridCodes = False
+    testFBP(convertGridCodes=_convertGridCodes)
