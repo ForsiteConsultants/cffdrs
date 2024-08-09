@@ -14,50 +14,50 @@ from datetime import datetime as dt
 
 # CFFBPS Fuel Type Numeric-Alphanumeric Code Lookup Table
 fbpFTCode_NumToAlpha_LUT = {
-    1: 'C1',    # C-1
-    2: 'C2',    # C-2
-    3: 'C3',    # C-3
-    4: 'C4',    # C-4
-    5: 'C5',    # C-5
-    6: 'C6',    # C-6
-    7: 'C7',    # C-7
-    8: 'D1',    # D-1
-    9: 'D2',    # D-2
-    10: 'M1',   # M-1
-    11: 'M2',   # M-2
-    12: 'M3',   # M-3
-    13: 'M4',   # M-4
+    1: 'C1',  # C-1
+    2: 'C2',  # C-2
+    3: 'C3',  # C-3
+    4: 'C4',  # C-4
+    5: 'C5',  # C-5
+    6: 'C6',  # C-6
+    7: 'C7',  # C-7
+    8: 'D1',  # D-1
+    9: 'D2',  # D-2
+    10: 'M1',  # M-1
+    11: 'M2',  # M-2
+    12: 'M3',  # M-3
+    13: 'M4',  # M-4
     14: 'O1a',  # O-1a
     15: 'O1b',  # O-1b
-    16: 'S1',   # S-1
-    17: 'S2',   # S-2
-    18: 'S3',   # S-3
-    19: 'NF',   # NF (non-fuel)
-    20: 'WA'    # WA (water)
+    16: 'S1',  # S-1
+    17: 'S2',  # S-2
+    18: 'S3',  # S-3
+    19: 'NF',  # NF (non-fuel)
+    20: 'WA'  # WA (water)
 }
 
 # CFFBPS Fuel Type Alphanumeric-Numeric Code Lookup Table
 fbpFTCode_AlphaToNum_LUT = {
-    'C1': 1,    # C-1
-    'C2': 2,    # C-2
-    'C3': 3,    # C-3
-    'C4': 4,    # C-4
-    'C5': 5,    # C-5
-    'C6': 6,    # C-6
-    'C7': 7,    # C-7
-    'D1': 8,    # D-1
-    'D2': 9,    # D-2
-    'M1': 10,   # M-1
-    'M2': 11,   # M-2
-    'M3': 12,   # M-3
-    'M4': 13,   # M-4
+    'C1': 1,  # C-1
+    'C2': 2,  # C-2
+    'C3': 3,  # C-3
+    'C4': 4,  # C-4
+    'C5': 5,  # C-5
+    'C6': 6,  # C-6
+    'C7': 7,  # C-7
+    'D1': 8,  # D-1
+    'D2': 9,  # D-2
+    'M1': 10,  # M-1
+    'M2': 11,  # M-2
+    'M3': 12,  # M-3
+    'M4': 13,  # M-4
     'O1a': 14,  # O-1a
     'O1b': 15,  # O-1b
-    'S1': 16,   # S-1
-    'S2': 17,   # S-2
-    'S3': 18,   # S-3
-    'NF': 19,   # NF (non-fuel)
-    'WA': 20,   # WA (water)
+    'S1': 16,  # S-1
+    'S2': 17,  # S-2
+    'S3': 18,  # S-3
+    'NF': 19,  # NF (non-fuel)
+    'WA': 20,  # WA (water)
 }
 
 
@@ -1272,35 +1272,130 @@ class FBP:
         return self.getOutputs(self.out_request)
 
 
-def testFBP(convertGridCodes: bool = False) -> None:
+def _testFBP(wx_date: int,
+             lat: Union[float, int, np.ndarray],
+             long: Union[float, int, np.ndarray],
+             elevation: Union[float, int, np.ndarray],
+             slope: Union[float, int, np.ndarray],
+             aspect: Union[float, int, np.ndarray],
+             ws: Union[float, int, np.ndarray],
+             wd: Union[float, int, np.ndarray],
+             ffmc: Union[float, int, np.ndarray],
+             bui: Union[float, int, np.ndarray],
+             pc: Optional[Union[float, int, np.ndarray]] = 50,
+             pdf: Optional[Union[float, int, np.ndarray]] = 35,
+             gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
+             gcf: Optional[Union[float, int, np.ndarray]] = 80,
+             out_request: Optional[list[str]] = None,
+             out_folder: Optional[str] = None,
+             convertGridCodes: bool = False) -> None:
     """
     Function to test the cffbps module with various input types
+    :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
+    :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
+    :param long: Longitude of area being modelled (Decimal Degrees, floating point)
+    :param elevation: Elevation of area being modelled (m)
+    :param slope: Ground slope angle/tilt of area being modelled (%)
+    :param aspect: Ground slope aspect/azimuth of area (degrees)
+    :param ws: Wind speed (km/h @ 10m height)
+    :param wd: Wind direction (degrees, direction wind is coming from)
+    :param ffmc: CFFWIS Fine Fuel Moisture Code
+    :param bui: CFFWIS Buildup Index
+    :param pc: Percent conifer (%, value from 0-100)
+    :param pdf: Percent dead fir (%, value from 0-100)
+    :param gfl: Grass fuel load (kg/m^2)
+    :param gcf: Grass curing factor (%, value from 0-100)
+    :param out_request: Tuple or list of CFFBPS output variables
+        # Default output variables
+        fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
+        hfros = Head fire rate of spread (m/min)
+        hfi = head fire intensity (kW/m)
+
+        # Weather variables
+        ws = Observed wind speed (km/h)
+        wd = Wind azimuth/direction (degrees)
+        m = Moisture content equivalent of the FFMC (%, value from 0-100+)
+        fF = Fine fuel moisture function in the ISI
+        fW = Wind function in the ISI
+        isi = Final ISI, accounting for wind and slope
+
+        # Slope + wind effect variables
+        a = Rate of spread equation coefficient
+        b = Rate of spread equation coefficient
+        c = Rate of spread equation coefficient
+        RSZ = Surface spread rate with zero wind on level terrain
+        SF = Slope factor
+        RSF = spread rate with zero wind, upslope
+        ISF = ISI, with zero wind upslope
+        RSI = Initial spread rate without BUI effect
+        WSE1 = Original slope equivalent wind speed value
+        WSE2 = New slope equivalent sind speed value for cases where WSE1 > 40 (capped at max of 112.45)
+        WSE = Slope equivalent wind speed
+        WSX = Net vectorized wind speed in the x-direction
+        WSY = Net vectorized wind speed in the y-direction
+        WSV = (aka: slope-adjusted wind speed) Net vectorized wind speed (km/h)
+        RAZ = (aka: slope-adjusted wind direction) Net vectorized wind direction (degrees)
+
+        # BUI effect variables
+        q = Proportion of maximum rate of spread at BUI equal to 50
+        bui0 = Average BUI for each fuel type
+        BE = Buildup effect on spread rate
+        be_max = Maximum allowable BE value
+
+        # Surface fuel variables
+        ffc = Estimated forest floor consumption
+        wfc = Estimated woody fuel consumption
+        sfc = Estimated total surface fuel consumption
+
+        # Foliar moisture content variables
+        latn = Normalized latitude
+        d0 = Julian date of minimum foliar moisture content
+        nd = number of days between modelled fire date and d0
+        fmc = foliar moisture content
+        fme = foliar moisture effect
+
+        # Critical crown fire threshold variables
+        csfi = critical intensity (kW/m)
+        rso = critical rate of spread (m/min)
+
+        # Crown fuel parameters
+        cbh = Height to live crown base (m)
+        cfb = Crown fraction burned (proportion, value ranging from 0-1)
+        cfl = Crown fuel load (kg/m^2)
+        cfc = Crown fuel consumed
+    :param out_folder: Location to save test rasters (Default: <location of script>\Test_Data\Outputs)
     :param convertGridCodes: Convert from cffdrs R fuel type grid codes to codes used in this module (default: False)
     :return: None
     """
     import ProcessRasters as pr
+    import generate_test_fbp_rasters as genras
 
+    # Create fuel type list
     fuel_type_list = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'D1', 'D2', 'M1', 'M2', 'M3', 'M4',
                       'O1a', 'O1b', 'S1', 'S2', 'S3']
-    _wx_date = 20160516
+
+    # Put inputs into list
+    input_data = [wx_date, lat, long,
+                  elevation, slope, aspect, ws, wd, ffmc, bui,
+                  pc, pdf, gfl, gcf, out_request]
+
     # ### Test non-raster modelling
     for ft in fuel_type_list:
-        print(ft, FBP(fuel_type=fbpFTCode_AlphaToNum_LUT.get(ft),
-                      wx_date=_wx_date, lat=62.245544, long=-133.839203,
-                      elevation=1176, slope=7, aspect=53, ws=24, wd=266, ffmc=92, bui=31,
-                      pc=50, pdf=50, gfl=0.35, gcf=80,
-                      out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
+        print(ft, FBP(*([fbpFTCode_AlphaToNum_LUT.get(ft)] + input_data)).runFBP())
 
     # ### Test array modelling
-    print(FBP(fuel_type=np.array(fuel_type_list),
-              wx_date=_wx_date, lat=52.1152209277778, long=121.911361891667,
-              elevation=779.613, slope=0, aspect=156, ws=18, wd=189.7, ffmc=93.5, bui=70.00987167,
-              out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
+    print(FBP(*([np.array(fuel_type_list)] + input_data)).runFBP())
 
     # ### Test raster modelling
     # Get test folders
     input_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Inputs')
-    output_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Outputs')
+    if out_folder is None:
+        output_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Outputs')
+    else:
+        output_folder = out_folder
+
+    # Generate test raster datasets using user-provided input values
+    genras.gen_test_data(*input_data[1:-2])
 
     # Get input dataset paths
     fuel_type_path = os.path.join(input_folder, 'FuelType.tif')
@@ -1390,5 +1485,30 @@ def testFBP(convertGridCodes: bool = False) -> None:
 
 
 if __name__ == '__main__':
+    _wx_date = 20160516
+    _lat = 62.245533
+    _long = -133.840363
+    _elevation = 1176
+    _slope = 8
+    _aspect = 60
+    _ws = 24
+    _wd = 266
+    _ffmc = 92
+    _bui = 31
+    _dj = 137
+    _pc = 0
+    _pdf = 0
+    _gfl = 0
+    _gcf = 60
+    _out_request = ['WSV', 'RAZ', 'ffc', 'wfc', 'sfc', 'hfros', 'hfi', 'fire_type']
+    _out_folder = None
     _convertGridCodes = False
-    testFBP(convertGridCodes=_convertGridCodes)
+
+    # Test the FBP functions
+    _testFBP(wx_date=_wx_date, lat=_lat, long=_long,
+             elevation=_elevation, slope=_slope, aspect=_aspect,
+             ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
+             pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf,
+             out_request=_out_request,
+             out_folder=_out_folder,
+             convertGridCodes=_convertGridCodes)
