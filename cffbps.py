@@ -14,50 +14,50 @@ from datetime import datetime as dt
 
 # CFFBPS Fuel Type Numeric-Alphanumeric Code Lookup Table
 fbpFTCode_NumToAlpha_LUT = {
-    1: 'C1',  # C-1
-    2: 'C2',  # C-2
-    3: 'C3',  # C-3
-    4: 'C4',  # C-4
-    5: 'C5',  # C-5
-    6: 'C6',  # C-6
-    7: 'C7',  # C-7
-    8: 'D1',  # D-1
-    9: 'D2',  # D-2
-    10: 'M1',  # M-1
-    11: 'M2',  # M-2
-    12: 'M3',  # M-3
-    13: 'M4',  # M-4
+    1: 'C1',    # C-1
+    2: 'C2',    # C-2
+    3: 'C3',    # C-3
+    4: 'C4',    # C-4
+    5: 'C5',    # C-5
+    6: 'C6',    # C-6
+    7: 'C7',    # C-7
+    8: 'D1',    # D-1
+    9: 'D2',    # D-2
+    10: 'M1',   # M-1
+    11: 'M2',   # M-2
+    12: 'M3',   # M-3
+    13: 'M4',   # M-4
     14: 'O1a',  # O-1a
     15: 'O1b',  # O-1b
-    16: 'S1',  # S-1
-    17: 'S2',  # S-2
-    18: 'S3',  # S-3
-    19: 'NF',  # NF (non-fuel)
-    20: 'WA'  # WA (water)
+    16: 'S1',   # S-1
+    17: 'S2',   # S-2
+    18: 'S3',   # S-3
+    19: 'NF',   # NF (non-fuel)
+    20: 'WA'    # WA (water)
 }
 
 # CFFBPS Fuel Type Alphanumeric-Numeric Code Lookup Table
 fbpFTCode_AlphaToNum_LUT = {
-    'C1': 1,  # C-1
-    'C2': 2,  # C-2
-    'C3': 3,  # C-3
-    'C4': 4,  # C-4
-    'C5': 5,  # C-5
-    'C6': 6,  # C-6
-    'C7': 7,  # C-7
-    'D1': 8,  # D-1
-    'D2': 9,  # D-2
-    'M1': 10,  # M-1
-    'M2': 11,  # M-2
-    'M3': 12,  # M-3
-    'M4': 13,  # M-4
+    'C1': 1,    # C-1
+    'C2': 2,    # C-2
+    'C3': 3,    # C-3
+    'C4': 4,    # C-4
+    'C5': 5,    # C-5
+    'C6': 6,    # C-6
+    'C7': 7,    # C-7
+    'D1': 8,    # D-1
+    'D2': 9,    # D-2
+    'M1': 10,   # M-1
+    'M2': 11,   # M-2
+    'M3': 12,   # M-3
+    'M4': 13,   # M-4
     'O1a': 14,  # O-1a
     'O1b': 15,  # O-1b
-    'S1': 16,  # S-1
-    'S2': 17,  # S-2
-    'S3': 18,  # S-3
-    'NF': 19,  # NF (non-fuel)
-    'WA': 20,  # WA (water)
+    'S1': 16,   # S-1
+    'S2': 17,   # S-2
+    'S3': 18,   # S-3
+    'NF': 19,   # NF (non-fuel)
+    'WA': 20,   # WA (water)
 }
 
 
@@ -158,9 +158,6 @@ class FBP:
         cfb = Crown fraction burned (proportion, value ranging from 0-1)
         cfl = Crown fuel load (kg/m^2)
         cfc = Crown fuel consumed
-    :param subFT_with: Tuple or list of fuel type substitutions (inFT, subFT)
-        inFT = fuel type to be changed
-        subFT = fuel type replacing inFT
     :returns:
         Tuple of values requested through out_request parameter. Default values are fire_type, hfros, and hfi.
     """
