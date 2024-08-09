@@ -324,11 +324,6 @@ class FBP:
             18: (55, 0.0829, 3.2, 0.75, 31, 1.590)  # S-3
         }
 
-    def _get_var_name(self, var):
-        for name, value in locals().items():
-            if value is var:
-                return name
-
     def _checkArray(self) -> None:
         """
         Function to check if any of the input parameters are numpy arrays.
@@ -1239,44 +1234,44 @@ class FBP:
         Function to automatically run CFFBPS modelling
         """
         # Model fire behavior with CFFBPS
-        print('Inverting wind direction and aspect')
+        # print('Inverting wind direction and aspect')
         self.invertWindAspect()
-        print('Calculating slope factor')
+        # print('Calculating slope factor')
         self.calcSF()
-        print('Calculating zero slope & wind ISI')
+        # print('Calculating zero slope & wind ISI')
         self.calcISZ()
-        print('Calculating foliar moisture content')
+        # print('Calculating foliar moisture content')
         self.calcFMC()
         for self.ftype in [ftype for ftype in np.unique(self.fuel_type)
                            if ftype in list(self.rosParams.keys())]:
-            print(f'Processing {fbpFTCode_NumToAlpha_LUT.get(self.ftype)} fuel type')
-            print('\tCalculating ROS')
+            # print(f'Processing {fbpFTCode_NumToAlpha_LUT.get(self.ftype)} fuel type')
+            # print('\tCalculating ROS')
             self.calcROS()
-            print('\tCalculating surface fuel consumption')
+            # print('\tCalculating surface fuel consumption')
             self.calcSFC()
-            print('\tCalculating canopy base height and canopy fuel load')
+            # print('\tCalculating canopy base height and canopy fuel load')
             self.getCBH_CFL()
-        print('Calculating critical surface fire intensity')
+        # print('Calculating critical surface fire intensity')
         self.calcCSFI()
-        print('Calculating critical surface fire rate of spread')
+        # print('Calculating critical surface fire rate of spread')
         self.calcRSO()
-        print(f'Calculating crown fraction burned')
+        # print(f'Calculating crown fraction burned')
         for self.ftype in [ftype for ftype in np.unique(self.fuel_type)
                            if ftype in list(self.rosParams.keys())]:
-            print(f'\tProcessing {fbpFTCode_NumToAlpha_LUT.get(self.ftype)} fuel type')
+            # print(f'\tProcessing {fbpFTCode_NumToAlpha_LUT.get(self.ftype)} fuel type')
             self.calcCFB()
-        print('Calculating fire type')
+        # print('Calculating fire type')
         self.calcFireType()
-        print('Calculating crown fuel consumed')
+        # print('Calculating crown fuel consumed')
         self.calcCFC()
-        print('Calculating C6 head fire rate of spread')
+        # print('Calculating C6 head fire rate of spread')
         self.calcC6hfros()
-        print('Calculating total fuel consumption')
+        # print('Calculating total fuel consumption')
         self.calcTFC()
-        print('Calculating head fire intensity')
+        # print('Calculating head fire intensity')
         self.calcHFI()
 
-        print('<< Returning requested values >>\n')
+        # print('<< Returning requested values >>\n')
         return self.getOutputs(self.out_request)
 
 
@@ -1285,20 +1280,21 @@ def testFBP():
 
     fuel_type_list = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'D1', 'D2', 'M1', 'M2', 'M3', 'M4',
                       'O1a', 'O1b', 'S1', 'S2', 'S3']
-    _wx_date = 20170616
-    # ### Test non-raster modelling
-    for ft in fuel_type_list:
-        print(ft, FBP(fuel_type=fbpFTCode_AlphaToNum_LUT.get(ft),
-                      wx_date=_wx_date, lat=52.1152209277778, long=121.911361891667,
-                      elevation=779.613, slope=0, aspect=156, ws=18, wd=189.7, ffmc=93.5, bui=70.00987167,
-                      out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
+    _wx_date = 20160516
+    # # ### Test non-raster modelling
+    # for ft in fuel_type_list:
+    #     print(ft, FBP(fuel_type=fbpFTCode_AlphaToNum_LUT.get(ft),
+    #                   wx_date=_wx_date, lat=62.245544, long=-133.839203,
+    #                   elevation=1176, slope=7, aspect=53, ws=24, wd=266, ffmc=92, bui=31,
+    #                   pc=0, pdf=0, gfl=0, gcf=60,
+    #                   out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
 
-    # ### Test array modelling
-    print(FBP(fuel_type=np.array(fuel_type_list),
-              wx_date=_wx_date, lat=52.1152209277778, long=121.911361891667,
-              elevation=779.613, slope=0, aspect=156, ws=18, wd=189.7, ffmc=93.5, bui=70.00987167,
-              out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
-
+    # # ### Test array modelling
+    # print(FBP(fuel_type=np.array(fuel_type_list),
+    #           wx_date=_wx_date, lat=52.1152209277778, long=121.911361891667,
+    #           elevation=779.613, slope=0, aspect=156, ws=18, wd=189.7, ffmc=93.5, bui=70.00987167,
+    #           out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP())
+    #
     # ### Test raster modelling
     # Get test folders
     input_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Inputs')
@@ -1311,14 +1307,14 @@ def testFBP():
     elev_path = os.path.join(input_folder, 'ELV.tif')
     slope_path = os.path.join(input_folder, 'GS.tif')
     aspect_path = os.path.join(input_folder, 'Aspect.tif')
-    ws_path = os.path.join(input_folder, 'ws_summer_95_20160516_270.tif')
-    wd_path = os.path.join(input_folder, 'wd_summer_95_20160516_270.tif')
-    ffmc_path = os.path.join(input_folder, 'ffmc_summer_95_20160516.tif')
-    bui_path = os.path.join(input_folder, 'bui_summer_95_20160516.tif')
+    ws_path = os.path.join(input_folder, 'WS.tif')
+    wd_path = os.path.join(input_folder, 'WD.tif')
+    ffmc_path = os.path.join(input_folder, 'FFMC.tif')
+    bui_path = os.path.join(input_folder, 'BUI.tif')
     pc_path = os.path.join(input_folder, 'PC.tif')
     pdf_path = os.path.join(input_folder, 'PDF.tif')
     gfl_path = os.path.join(input_folder, 'GFL.tif')
-    gcf_path = os.path.join(input_folder, 'GCF.tif')
+    gcf_path = os.path.join(input_folder, 'cc.tif')
 
     # Create a reference raster profile for final raster outputs
     ref_ras_profile = pr.getRaster(gfl_path).profile

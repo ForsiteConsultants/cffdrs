@@ -4,11 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Removed underscores from parameter names">
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added raster testing code to the testFBP() function;&#10;Added temporary print statements to the runFBP() function for progress checking (these will likely be removed after troubleshooting)">
+      <change afterPath="$PROJECT_DIR$/generate_testRasters.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/cffdrs.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cffdrs.iml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
     </list>
@@ -54,11 +53,12 @@
     "Python.FWI_Analysis.executor": "Run",
     "Python.Fix_NRCAN_Datasets.executor": "Run",
     "Python.cffbps.executor": "Run",
+    "Python.generate_testRasters.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "git-widget-placeholder": "master",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "C:/Users/ggreene/PycharmProjects/ProcessGeospatial",
+    "last_opened_file_path": "C:/Users/ggreene/PycharmProjects/CFFBPS_Tool",
     "settings.editor.selected.configurable": "com.intellij.pycharm.community.ide.impl.configuration.PythonContentEntriesConfigurable"
   }
 }]]></component>
@@ -142,7 +142,15 @@
       <option name="project" value="LOCAL" />
       <updated>1722988923428</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Added raster testing code to the testFBP() function;&#10;Added temporary print statements to the runFBP() function for progress checking (these will likely be removed after troubleshooting)">
+      <option name="closed" value="true" />
+      <created>1723136509318</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1723136509318</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -164,7 +172,8 @@
     <MESSAGE value="Added testing function to CFFBPS_.py" />
     <MESSAGE value="Revised .gitignore" />
     <MESSAGE value="Removed underscores from parameter names" />
-    <option name="LAST_COMMIT_MESSAGE" value="Removed underscores from parameter names" />
+    <MESSAGE value="Added raster testing code to the testFBP() function;&#10;Added temporary print statements to the runFBP() function for progress checking (these will likely be removed after troubleshooting)" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added raster testing code to the testFBP() function;&#10;Added temporary print statements to the runFBP() function for progress checking (these will likely be removed after troubleshooting)" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -173,71 +182,6 @@
           <url>file://$PROJECT_DIR$/../FWI_Analysis/Display_FWI_Curve.py</url>
           <line>76</line>
           <option name="timeStamp" value="17" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1244</line>
-          <option name="timeStamp" value="24" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1246</line>
-          <option name="timeStamp" value="25" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1248</line>
-          <option name="timeStamp" value="26" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1259</line>
-          <option name="timeStamp" value="29" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1261</line>
-          <option name="timeStamp" value="30" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1268</line>
-          <option name="timeStamp" value="32" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1270</line>
-          <option name="timeStamp" value="33" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1266</line>
-          <option name="timeStamp" value="34" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1253</line>
-          <option name="timeStamp" value="35" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1255</line>
-          <option name="timeStamp" value="36" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1257</line>
-          <option name="timeStamp" value="37" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1242</line>
-          <option name="timeStamp" value="38" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1341</line>
-          <option name="timeStamp" value="39" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
