@@ -4,13 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised script creation date">
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised _testFBP() function and test datasets">
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/Dj.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/Dj.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif.vat.cpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif.vat.dbf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/GFL.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/GFL.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/LAT.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/LAT.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/LONG.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/LONG.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/cc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/cc.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/generate_test_fbp_rasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/generate_test_fbp_rasters.py" afterDir="false" />
     </list>
@@ -57,6 +59,7 @@
     "Python.Fix_NRCAN_Datasets.executor": "Run",
     "Python.cffbps.executor": "Run",
     "Python.generate_testRasters.executor": "Run",
+    "Python.generate_test_fbp_rasters.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "git-widget-placeholder": "master",
@@ -217,7 +220,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723217774488</updated>
     </task>
-    <option name="localTasksCounter" value="17" />
+    <task id="LOCAL-00017" summary="Revised _testFBP() function and test datasets">
+      <option name="closed" value="true" />
+      <created>1723224206928</created>
+      <option name="number" value="00017" />
+      <option name="presentableId" value="LOCAL-00017" />
+      <option name="project" value="LOCAL" />
+      <updated>1723224206928</updated>
+    </task>
+    <option name="localTasksCounter" value="18" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -248,7 +259,8 @@
     <MESSAGE value="Revised FBP class description" />
     <MESSAGE value="Revised testFBP() function to allow option to convert from cffdrs R grid codes to the codes used in this module" />
     <MESSAGE value="Revised script creation date" />
-    <option name="LAST_COMMIT_MESSAGE" value="Revised script creation date" />
+    <MESSAGE value="Revised _testFBP() function and test datasets" />
+    <option name="LAST_COMMIT_MESSAGE" value="Revised _testFBP() function and test datasets" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

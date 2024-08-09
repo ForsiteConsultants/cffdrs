@@ -22,7 +22,8 @@ fuel_type_profile = fuel_type_ras.profile
 fuel_type_array = fuel_type_ras.read()
 
 
-def gen_test_data(lat: Union[float, int],
+def gen_test_data(dj: int,
+                  lat: Union[float, int],
                   long: Union[float, int],
                   elevation: Union[float, int],
                   slope: Union[float, int],
@@ -31,13 +32,13 @@ def gen_test_data(lat: Union[float, int],
                   wd: Union[float, int],
                   ffmc: Union[float, int],
                   bui: Union[float, int],
-                  dj: int,
                   pc: Optional[Union[float, int]] = 50,
                   pdf: Optional[Union[float, int]] = 35,
                   gfl: Optional[Union[float, int]] = 0.35,
                   gcf: Optional[Union[float, int]] = 80):
     # Generate output dataset dictionary
     data_dict = {
+        'Dj': dj,
         'LAT': lat,
         'LONG': long,
         'ELV': elevation,
@@ -47,7 +48,6 @@ def gen_test_data(lat: Union[float, int],
         'WD': wd,
         'FFMC': ffmc,
         'BUI': bui,
-        'Dj': dj,
         'PC': pc,
         'PDF': pdf,
         'GFL': gfl,
@@ -64,22 +64,23 @@ def gen_test_data(lat: Union[float, int],
 
 
 if __name__ == '__main__':
-    _lat = 62.245544
-    _long = -133.839203
-    _elevation = 1176
-    _slope = 7
-    _aspect = 53
+    _dj = 137
+    _lat = 62.245533
+    _long = -133.840363
+    _elevation = 1180
+    _slope = 8
+    _aspect = 60
     _ws = 24
     _wd = 266
     _ffmc = 92
     _bui = 31
-    _pc = 50
-    _pdf = 50
-    _gfl = 0.35
-    _gcf = 80
+    _pc = 0
+    _pdf = 0
+    _gfl = 0
+    _gcf = 60
 
     # Generate FBP rasters
-    gen_test_data(lat=_lat, long=_long,
+    gen_test_data(dj=_dj, lat=_lat, long=_long,
                   elevation=_elevation, slope=_slope, aspect=_aspect,
                   ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
                   pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf)

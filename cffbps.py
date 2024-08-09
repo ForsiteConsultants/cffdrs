@@ -1292,6 +1292,7 @@ def _testFBP(wx_date: int,
     """
     Function to test the cffbps module with various input types
     :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
+    :param dj: Julian date of weather observation (used for fmc calculation)
     :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
     :param long: Longitude of area being modelled (Decimal Degrees, floating point)
     :param elevation: Elevation of area being modelled (m)
@@ -1449,7 +1450,7 @@ def _testFBP(wx_date: int,
                                                                                 fuel_type_array))))))
 
     wsv, raz, fire_type, hfros, hfi, ffc, wfc, sfc = FBP(
-        fuel_type=fuel_type_array, wx_date=_wx_date, lat=lat_array, long=long_array,
+        fuel_type=fuel_type_array, wx_date=wx_date, dj=dj_array, lat=lat_array, long=long_array,
         elevation=elev_array, slope=slope_array, aspect=aspect_array,
         ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
         pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
@@ -1486,16 +1487,16 @@ def _testFBP(wx_date: int,
 
 if __name__ == '__main__':
     _wx_date = 20160516
+    _dj = 137
     _lat = 62.245533
     _long = -133.840363
-    _elevation = 1176
+    _elevation = 1180
     _slope = 8
     _aspect = 60
     _ws = 24
     _wd = 266
     _ffmc = 92
     _bui = 31
-    _dj = 137
     _pc = 0
     _pdf = 0
     _gfl = 0
@@ -1505,7 +1506,7 @@ if __name__ == '__main__':
     _convertGridCodes = False
 
     # Test the FBP functions
-    _testFBP(wx_date=_wx_date, lat=_lat, long=_long,
+    _testFBP(wx_date=_wx_date, dj=_dj, lat=_lat, long=_long,
              elevation=_elevation, slope=_slope, aspect=_aspect,
              ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
              pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf,
