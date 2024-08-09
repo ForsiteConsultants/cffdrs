@@ -4,12 +4,26 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added raster testing code to the testFBP() function;&#10;Added temporary print statements to the runFBP() function for progress checking (these will likely be removed after troubleshooting)">
-      <change afterPath="$PROJECT_DIR$/generate_testRasters.py" afterDir="false" />
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added code to generate test raster datsets;&#10;Removed the _get_var_name() function;&#10;Added raster testing dataset to repo">
+      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tfw" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.aux.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.vat.cpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.vat.dbf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/ffc.tif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif.vat.cpg" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif.vat.dbf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/raz.tif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/wfc.tif" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/wsv.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/generate_testRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/generate_testRasters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -150,7 +164,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723136509318</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Added code to generate test raster datsets;&#10;Removed the _get_var_name() function;&#10;Added raster testing dataset to repo">
+      <option name="closed" value="true" />
+      <created>1723163994841</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1723163994841</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -173,7 +195,8 @@
     <MESSAGE value="Revised .gitignore" />
     <MESSAGE value="Removed underscores from parameter names" />
     <MESSAGE value="Added raster testing code to the testFBP() function;&#10;Added temporary print statements to the runFBP() function for progress checking (these will likely be removed after troubleshooting)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added raster testing code to the testFBP() function;&#10;Added temporary print statements to the runFBP() function for progress checking (these will likely be removed after troubleshooting)" />
+    <MESSAGE value="Added code to generate test raster datsets;&#10;Removed the _get_var_name() function;&#10;Added raster testing dataset to repo" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added code to generate test raster datsets;&#10;Removed the _get_var_name() function;&#10;Added raster testing dataset to repo" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
