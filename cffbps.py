@@ -361,7 +361,7 @@ class FBP:
         Function to check if any of the input parameters are numpy arrays.
         :return: None
         """
-        # ### CONVERT ALL INPUTS TO MASKED NUMPY ARRAYS
+        # ### VERIFY ALL INPUTS AND CONVERT TO MASKED NUMPY ARRAYS
         # Verify fuel_type
         if not isinstance(self.fuel_type, (int, str, np.ndarray)):
             raise TypeError('fuel_type must be either int, string, or numpy ndarray data types')
@@ -376,6 +376,11 @@ class FBP:
         # Verify wx_date
         if not isinstance(self.wx_date, int):
             raise TypeError('wx_date must be either int or numpy ndarray data types')
+        try:
+            date_string = str(self.wx_date)
+            dt.fromisoformat(f'{date_string[:4]}-{date_string[4:6]}-{date_string[6:]}')
+        except ValueError:
+            raise ValueError('wx_date must be formatted as: YYYYMMDD')
 
         # Verify lat
         if not isinstance(self.lat, (int, float, np.ndarray)):
@@ -392,6 +397,8 @@ class FBP:
             self.long = mask.array(self.long, mask=np.isnan(self.long))
         else:
             self.long = mask.array([self.long], mask=np.isnan([self.long]))
+        # Get absolute longitude values
+        self.long = np.absolute(self.long)
 
         # Verify elevation
         if not isinstance(self.elevation, (int, float, np.ndarray)):
@@ -534,30 +541,30 @@ class FBP:
         Function to calculate foliar moisture content (FMC) and foliar moisture effect (FME).
         :return: None
         """
-        self.latn = mask.where(self.elevation > 0,
+        # Calculate date of minimum foliar moisture content (D0)
+        self.latn = mask.where((self.elevation is not None) & (self.elevation > 0),
                                43 + (33.7 * np.exp(-0.0351 * (150 - np.abs(self.long)))),
                                46 + (23.4 * (np.exp(-0.036 * (150 - np.abs(self.long))))))
-        self.d0 = mask.where(self.elevation > 0,
+        self.d0 = mask.where((self.elevation is not None) & (self.elevation > 0),
                              142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
                              151 * (self.lat / self.latn))
 
-        try:
-            self.dj = dt.strptime(str(self.wx_date), '%Y%m%d%H').timetuple().tm_yday
-        except:
-            try:
-                self.dj = dt.strptime(str(self.wx_date), '%Y%m%d').timetuple().tm_yday
-            except:
-                raise ValueError('Invalid Weather Date format')
+        # Calculate Julian date (Dj)
+        self.dj = mask.where(np.isfinite(self.latn),
+                             dt.strptime(str(self.wx_date), '%Y%m%d').timetuple().tm_yday,
+                             0)
 
-        # Number of days between current date and day 0
+        # Number of days between Dj and D0 (ND)
         self.nd = np.absolute(self.dj - self.d0)
 
+        # Calculate foliar moisture content (FMC)
         self.fmc = mask.where(self.nd < 30,
-                              85 + (0.0189 * self.nd ** 2),
+                              85 + (0.0189 * (self.nd**2)),
                               mask.where(self.nd < 50,
-                                         32.9 + (3.17 * self.nd) - (0.0288 * self.nd ** 2),
+                                         32.9 + (3.17 * self.nd) - (0.0288 * (self.nd**2)),
                                          120))
 
+        # Calculate foliar moisture effect (FME)
         self.fme = 1000 * np.power(1.5 - (0.00275 * self.fmc), 4) / (460 + (25.9 * self.fmc))
 
         return
@@ -1222,9 +1229,11 @@ class FBP:
         }
 
         if self.return_array:
-            return [fbp_params.get(var, 'Invalid output variable').data for var in out_request]
+            return [fbp_params.get(var).data if fbp_params.get(var, None) is not None
+                    else 'Invalid output variable' for var in out_request]
         else:
-            return [fbp_params.get(var, 'Invalid output variable').data[0] for var in out_request]
+            return [fbp_params.get(var).data[0] if fbp_params.get(var, None) is not None
+                    else 'Invalid output variable' for var in out_request]
 
     def runFBP(self) -> list[any]:
         """
@@ -1501,7 +1510,7 @@ if __name__ == '__main__':
     _pdf = 0
     _gfl = 0
     _gcf = 60
-    _out_request = ['WSV', 'RAZ', 'ffc', 'wfc', 'sfc', 'hfros', 'hfi', 'fire_type']
+    _out_request = ['latn', 'd0', 'dj', 'nd', 'fmc', 'fme', 'csfi', 'rso', 'hfros', 'hfi']
     _out_folder = None
     _convertGridCodes = False
 

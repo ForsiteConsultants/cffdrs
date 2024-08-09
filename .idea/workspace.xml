@@ -8,6 +8,7 @@
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/generate_test_fbp_rasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/generate_test_fbp_rasters.py" afterDir="false" />
     </list>
@@ -231,7 +232,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723224566966</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Revised _testFBP() function and test datasets">
+      <option name="closed" value="true" />
+      <created>1723224981209</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1723224981209</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
