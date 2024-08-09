@@ -37,9 +37,71 @@ def gen_test_data(wx_date: int,
                   pdf: Optional[Union[float, int]] = 35,
                   gfl: Optional[Union[float, int]] = 0.35,
                   gcf: Optional[Union[float, int]] = 80):
+    # ### VERIFY ALL INPUTS
+    # Verify wx_date
+    if not isinstance(wx_date, int):
+        raise TypeError('wx_date must be either int or numpy ndarray data types')
+    try:
+        date_string = str(wx_date)
+        dt.fromisoformat(f'{date_string[:4]}-{date_string[4:6]}-{date_string[6:]}')
+    except ValueError:
+        raise ValueError('wx_date must be formatted as: YYYYMMDD')
+
+    # Verify lat
+    if not isinstance(lat, (int, float)):
+        raise TypeError('lat must be either int or float data types')
+
+    # Verify long
+    if not isinstance(long, (int, float)):
+        raise TypeError('long must be either int or float data types')
+
+    # Verify elevation
+    if not isinstance(elevation, (int, float)):
+        raise TypeError('elevation must be either int or float data types')
+
+    # Verify slope
+    if not isinstance(slope, (int, float)):
+        raise TypeError('slope must be either int or float data types')
+
+    # Verify aspect
+    if not isinstance(aspect, (int, float)):
+        raise TypeError('aspect must be either int or float data types')
+
+    # Verify ws
+    if not isinstance(ws, (int, float)):
+        raise TypeError('ws must be either int or float data types')
+
+    # Verify wd
+    if not isinstance(wd, (int, float)):
+        raise TypeError('wd must be either int or float data types')
+
+    # Verify ffmc
+    if not isinstance(ffmc, (int, float)):
+        raise TypeError('ffmc must be either int or float data types')
+
+    # Verify bui
+    if not isinstance(bui, (int, float)):
+        raise TypeError('bui must be either int or float data types')
+
+    # Verify pc
+    if not isinstance(pc, (int, float)):
+        raise TypeError('pc must be either int or float data types')
+
+    # Verify pdf
+    if not isinstance(pdf, (int, float)):
+        raise TypeError('pdf must be either int or float data types')
+
+    # Verify gfl
+    if not isinstance(gfl, (int, float)):
+        raise TypeError('gfl must be either int or float data types')
+
+    # Verify gcf
+    if not isinstance(gcf, (int, float)):
+        raise TypeError('gcf must be either int or float data types')
+
     # Generate output dataset dictionary
     data_dict = {
-        'Dj': dt.strptime(str(wx_date), '%Y%m%d%H').timetuple().tm_yday,
+        'Dj': dt.strptime(str(wx_date), '%Y%m%d').timetuple().tm_yday,
         'LAT': lat,
         'LONG': long,
         'ELV': elevation,
