@@ -20,16 +20,6 @@ fuel_type_ras = pr.getRaster(fuel_type_path)
 fuel_type_profile = fuel_type_ras.profile
 fuel_type_array = fuel_type_ras.read()
 
-# Get output dataset paths
-wsv_out = os.path.join(input_folder, 'wsv.tif')
-raz_out = os.path.join(input_folder, 'raz.tif')
-fire_type_out = os.path.join(input_folder, 'fire_type.tif')
-hfros_out = os.path.join(input_folder, 'hfros.tif')
-hfi_out = os.path.join(input_folder, 'hfi.tif')
-ffc_out = os.path.join(input_folder, 'ffc.tif')
-wfc_out = os.path.join(input_folder, 'wfc.tif')
-sfc_out = os.path.join(input_folder, 'sfc.tif')
-
 # Generate output dataset dictionary
 data_dict = {
     'LAT': 62.245544,
