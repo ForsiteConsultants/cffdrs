@@ -4,26 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added code to generate test raster datsets;&#10;Removed the _get_var_name() function;&#10;Added raster testing dataset to repo">
-      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tfw" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.aux.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.vat.cpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.vat.dbf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/ffc.tif" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif.vat.cpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif.vat.dbf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/raz.tif" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/wfc.tif" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Test_Data/Outputs/wsv.tif" afterDir="false" />
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added output test datasets to repo">
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/generate_testRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/generate_testRasters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -172,7 +155,23 @@
       <option name="project" value="LOCAL" />
       <updated>1723163994841</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Removed unneeded code from generate_testRasters.py">
+      <option name="closed" value="true" />
+      <created>1723164104662</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1723164104662</updated>
+    </task>
+    <task id="LOCAL-00011" summary="Added output test datasets to repo">
+      <option name="closed" value="true" />
+      <created>1723164189558</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1723164189558</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -196,7 +195,9 @@
     <MESSAGE value="Removed underscores from parameter names" />
     <MESSAGE value="Added raster testing code to the testFBP() function;&#10;Added temporary print statements to the runFBP() function for progress checking (these will likely be removed after troubleshooting)" />
     <MESSAGE value="Added code to generate test raster datsets;&#10;Removed the _get_var_name() function;&#10;Added raster testing dataset to repo" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added code to generate test raster datsets;&#10;Removed the _get_var_name() function;&#10;Added raster testing dataset to repo" />
+    <MESSAGE value="Removed unneeded code from generate_testRasters.py" />
+    <MESSAGE value="Added output test datasets to repo" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added output test datasets to repo" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
