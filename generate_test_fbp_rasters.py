@@ -8,6 +8,7 @@ Created on Thur Aug 8 17:30:00 2024
 import os
 import ProcessRasters as pr
 from numpy import float64 as f64
+from datetime import datetime as dt
 from typing import Union, Optional
 
 # Get input folder
@@ -22,7 +23,7 @@ fuel_type_profile = fuel_type_ras.profile
 fuel_type_array = fuel_type_ras.read()
 
 
-def gen_test_data(dj: int,
+def gen_test_data(wx_date: int,
                   lat: Union[float, int],
                   long: Union[float, int],
                   elevation: Union[float, int],
@@ -38,7 +39,7 @@ def gen_test_data(dj: int,
                   gcf: Optional[Union[float, int]] = 80):
     # Generate output dataset dictionary
     data_dict = {
-        'Dj': dj,
+        'Dj': dt.strptime(str(wx_date), '%Y%m%d%H').timetuple().tm_yday,
         'LAT': lat,
         'LONG': long,
         'ELV': elevation,
@@ -64,7 +65,7 @@ def gen_test_data(dj: int,
 
 
 if __name__ == '__main__':
-    _dj = 137
+    _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
     _elevation = 1180
@@ -80,7 +81,7 @@ if __name__ == '__main__':
     _gcf = 60
 
     # Generate FBP rasters
-    gen_test_data(dj=_dj, lat=_lat, long=_long,
+    gen_test_data(wx_date=_wx_date, lat=_lat, long=_long,
                   elevation=_elevation, slope=_slope, aspect=_aspect,
                   ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
                   pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf)

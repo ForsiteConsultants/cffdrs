@@ -1396,7 +1396,8 @@ def _testFBP(wx_date: int,
         output_folder = out_folder
 
     # Generate test raster datasets using user-provided input values
-    genras.gen_test_data(*input_data[1:-2])
+
+    genras.gen_test_data(*input_data[:-2])
 
     # Get input dataset paths
     fuel_type_path = os.path.join(input_folder, 'FuelType.tif')
@@ -1450,7 +1451,7 @@ def _testFBP(wx_date: int,
                                                                                 fuel_type_array))))))
 
     wsv, raz, fire_type, hfros, hfi, ffc, wfc, sfc = FBP(
-        fuel_type=fuel_type_array, wx_date=wx_date, dj=dj_array, lat=lat_array, long=long_array,
+        fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
         elevation=elev_array, slope=slope_array, aspect=aspect_array,
         ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
         pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
@@ -1487,7 +1488,6 @@ def _testFBP(wx_date: int,
 
 if __name__ == '__main__':
     _wx_date = 20160516
-    _dj = 137
     _lat = 62.245533
     _long = -133.840363
     _elevation = 1180
@@ -1506,7 +1506,7 @@ if __name__ == '__main__':
     _convertGridCodes = False
 
     # Test the FBP functions
-    _testFBP(wx_date=_wx_date, dj=_dj, lat=_lat, long=_long,
+    _testFBP(wx_date=_wx_date, lat=_lat, long=_long,
              elevation=_elevation, slope=_slope, aspect=_aspect,
              ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
              pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf,
