@@ -4,24 +4,11 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised FBP class description">
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised testFBP() function to allow option to convert from cffdrs R grid codes to the codes used in this module">
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tfw" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.aux.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.vat.cpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.vat.dbf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/FuelType.tif.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/ffc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/ffc.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/raz.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/raz.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/wfc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/wfc.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/wsv.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/wsv.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/generate_test_fbp_rasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/generate_test_fbp_rasters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -210,7 +197,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723165184565</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Revised testFBP() function to allow option to convert from cffdrs R grid codes to the codes used in this module">
+      <option name="closed" value="true" />
+      <created>1723166521344</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1723166521344</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -239,7 +234,8 @@
     <MESSAGE value="Removed the CFFBPS_.py from repo" />
     <MESSAGE value="Renamed generate_testRasters.py to generate_test_fbp_rasters.py" />
     <MESSAGE value="Revised FBP class description" />
-    <option name="LAST_COMMIT_MESSAGE" value="Revised FBP class description" />
+    <MESSAGE value="Revised testFBP() function to allow option to convert from cffdrs R grid codes to the codes used in this module" />
+    <option name="LAST_COMMIT_MESSAGE" value="Revised testFBP() function to allow option to convert from cffdrs R grid codes to the codes used in this module" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -248,11 +244,6 @@
           <url>file://$PROJECT_DIR$/../FWI_Analysis/Display_FWI_Curve.py</url>
           <line>76</line>
           <option name="timeStamp" value="17" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1301</line>
-          <option name="timeStamp" value="43" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
