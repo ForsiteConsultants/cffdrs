@@ -4,13 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised _testFBP() function and test datasets">
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added input parameter data type verifications to gen_test_data() function">
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/Dj.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/Dj.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/GFL.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/GFL.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/generate_test_fbp_rasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/generate_test_fbp_rasters.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -240,7 +244,23 @@
       <option name="project" value="LOCAL" />
       <updated>1723224981209</updated>
     </task>
-    <option name="localTasksCounter" value="20" />
+    <task id="LOCAL-00020" summary="Revised calcFMC() and getOutputs() functions">
+      <option name="closed" value="true" />
+      <created>1723229609186</created>
+      <option name="number" value="00020" />
+      <option name="presentableId" value="LOCAL-00020" />
+      <option name="project" value="LOCAL" />
+      <updated>1723229609186</updated>
+    </task>
+    <task id="LOCAL-00021" summary="Added input parameter data type verifications to gen_test_data() function">
+      <option name="closed" value="true" />
+      <created>1723229655357</created>
+      <option name="number" value="00021" />
+      <option name="presentableId" value="LOCAL-00021" />
+      <option name="project" value="LOCAL" />
+      <updated>1723229655357</updated>
+    </task>
+    <option name="localTasksCounter" value="22" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -272,7 +292,9 @@
     <MESSAGE value="Revised testFBP() function to allow option to convert from cffdrs R grid codes to the codes used in this module" />
     <MESSAGE value="Revised script creation date" />
     <MESSAGE value="Revised _testFBP() function and test datasets" />
-    <option name="LAST_COMMIT_MESSAGE" value="Revised _testFBP() function and test datasets" />
+    <MESSAGE value="Revised calcFMC() and getOutputs() functions" />
+    <MESSAGE value="Added input parameter data type verifications to gen_test_data() function" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added input parameter data type verifications to gen_test_data() function" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

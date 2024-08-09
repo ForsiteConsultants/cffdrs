@@ -541,13 +541,16 @@ class FBP:
         Function to calculate foliar moisture content (FMC) and foliar moisture effect (FME).
         :return: None
         """
-        # Calculate date of minimum foliar moisture content (D0)
+        # Calculate normalized latitude
         self.latn = mask.where((self.elevation is not None) & (self.elevation > 0),
                                43 + (33.7 * np.exp(-0.0351 * (150 - np.abs(self.long)))),
                                46 + (23.4 * (np.exp(-0.036 * (150 - np.abs(self.long))))))
-        self.d0 = mask.where((self.elevation is not None) & (self.elevation > 0),
-                             142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
-                             151 * (self.lat / self.latn))
+        # Calculate date of minimum foliar moisture content (D0)
+        # This value is rounded to mimic the approach used in the cffdrs R package.
+        self.d0 = mask.round(mask.where((self.elevation is not None) & (self.elevation > 0),
+                                        142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
+                                        151 * (self.lat / self.latn)),
+                             0)
 
         # Calculate Julian date (Dj)
         self.dj = mask.where(np.isfinite(self.latn),
@@ -559,9 +562,9 @@ class FBP:
 
         # Calculate foliar moisture content (FMC)
         self.fmc = mask.where(self.nd < 30,
-                              85 + (0.0189 * (self.nd**2)),
+                              85 + (0.0189 * (self.nd ** 2)),
                               mask.where(self.nd < 50,
-                                         32.9 + (3.17 * self.nd) - (0.0288 * (self.nd**2)),
+                                         32.9 + (3.17 * self.nd) - (0.0288 * (self.nd ** 2)),
                                          120))
 
         # Calculate foliar moisture effect (FME)
@@ -932,7 +935,9 @@ class FBP:
             if self.ftype == 9:
                 # D2 fuel type
                 self.hfros = mask.where(self.fuel_type == self.ftype,
-                                        self.hfros * 0.2,
+                                        mask.where(self.bui < 70,
+                                                   0,
+                                                   self.hfros * 0.2),
                                         self.hfros)
 
         return
@@ -1508,7 +1513,7 @@ if __name__ == '__main__':
     _bui = 31
     _pc = 0
     _pdf = 0
-    _gfl = 0
+    _gfl = 0.35
     _gcf = 60
     _out_request = ['latn', 'd0', 'dj', 'nd', 'fmc', 'fme', 'csfi', 'rso', 'hfros', 'hfi']
     _out_folder = None
