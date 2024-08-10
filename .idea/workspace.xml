@@ -4,16 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added input parameter data type verifications to gen_test_data() function">
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added convert_fuel_type_codes parameter to the FBP class to allow users to convert arrays">
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/Dj.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/Dj.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/GFL.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/GFL.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/PC.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/PC.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/PDF.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/PDF.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/raz.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/raz.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/wsv.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/wsv.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -260,7 +262,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723229655357</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="Added rounding function to D0 calculation in calcFMC() function;&#10;Corrected hfros calculation for D2 fuel type by assigning hfros as 0 when BUI &lt; 70;">
+      <option name="closed" value="true" />
+      <created>1723244162392</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1723244162392</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -294,7 +304,8 @@
     <MESSAGE value="Revised _testFBP() function and test datasets" />
     <MESSAGE value="Revised calcFMC() and getOutputs() functions" />
     <MESSAGE value="Added input parameter data type verifications to gen_test_data() function" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added input parameter data type verifications to gen_test_data() function" />
+    <MESSAGE value="Added rounding function to D0 calculation in calcFMC() function;&#10;Corrected hfros calculation for D2 fuel type by assigning hfros as 0 when BUI &lt; 70;" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added rounding function to D0 calculation in calcFMC() function;&#10;Corrected hfros calculation for D2 fuel type by assigning hfros as 0 when BUI &lt; 70;" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>

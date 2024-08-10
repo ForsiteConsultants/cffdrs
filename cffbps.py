@@ -61,6 +61,28 @@ fbpFTCode_AlphaToNum_LUT = {
 }
 
 
+def convert_grid_codes(fuel_type_array: np.ndarray) -> np.ndarray:
+    """
+    Function to convert array grid code values from the CFS cffdrs R version to the version used in this module
+    :param fuel_type_array: CFFBPS fuel type array, containing the CFS cffdrs R version of grid codes
+    :return: modified fuel_type_array
+    """
+    fuel_type_array = mask.where(fuel_type_array == 19,
+                                 20,
+                                 mask.where(fuel_type_array == 13,
+                                            19,
+                                            mask.where(fuel_type_array == 12,
+                                                       13,
+                                                       mask.where(fuel_type_array == 11,
+                                                                  12,
+                                                                  mask.where(fuel_type_array == 10,
+                                                                             11,
+                                                                             mask.where(fuel_type_array == 9,
+                                                                                        10,
+                                                                                        fuel_type_array))))))
+    return fuel_type_array
+
+
 ##################################################################################################
 # #### CLASS FOR CANADIAN FOREST FIRE BEHAVIOR PREDICTION SYSTEM (CFFBPS) MODELLING ####
 ##################################################################################################
@@ -158,6 +180,8 @@ class FBP:
         cfb = Crown fraction burned (proportion, value ranging from 0-1)
         cfl = Crown fuel load (kg/m^2)
         cfc = Crown fuel consumed
+    : param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
+        to the grid codes used in this module
     :returns:
         Tuple of values requested through out_request parameter. Default values are fire_type, hfros, and hfi.
     """
@@ -178,7 +202,8 @@ class FBP:
                  pdf: Optional[Union[float, int, np.ndarray]] = 35,
                  gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
                  gcf: Optional[Union[float, int, np.ndarray]] = 80,
-                 out_request: Optional[list[str]] = None):
+                 out_request: Optional[list[str]] = None,
+                 convert_fuel_type_codes: Optional[bool] = False):
 
         # Initialize CFFBPS input parameters
         self.fuel_type = fuel_type
@@ -197,6 +222,7 @@ class FBP:
         self.gfl = gfl
         self.gcf = gcf
         self.out_request = out_request
+        self.convert_fuel_type_codes = convert_fuel_type_codes
 
         # Array verification parameter
         self.return_array = None
@@ -372,6 +398,9 @@ class FBP:
                                         mask=np.isnan([fbpFTCode_AlphaToNum_LUT.get(self.fuel_type)]))
         else:
             self.fuel_type = mask.array([self.fuel_type], mask=np.isnan([self.fuel_type]))
+        # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
+        if self.convert_fuel_type_codes:
+            self.fuel_type = convert_grid_codes(self.fuel_type)
 
         # Verify wx_date
         if not isinstance(self.wx_date, int):
@@ -526,7 +555,7 @@ class FBP:
         :return: None
         """
         # Calculate fine fuel moisture content in percent (default CFFBPS equation)
-        self.m = (147.2 * (101 - self.ffmc)) / (59.5 + self.ffmc)
+        self.m = (250 * (59.5 / 101) * (101 - self.ffmc)) / (59.5 + self.ffmc)
 
         # Calculate the FFMC function from ISI equation (fF)
         self.fF = (91.9 * np.exp(-0.1386 * self.m)) * (1 + (np.power(self.m, 5.31) / (4.93 * np.power(10, 7))))
@@ -547,10 +576,10 @@ class FBP:
                                46 + (23.4 * (np.exp(-0.036 * (150 - np.abs(self.long))))))
         # Calculate date of minimum foliar moisture content (D0)
         # This value is rounded to mimic the approach used in the cffdrs R package.
-        self.d0 = mask.round(mask.where((self.elevation is not None) & (self.elevation > 0),
-                                        142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
-                                        151 * (self.lat / self.latn)),
-                             0)
+        self.d0 = mask.MaskedArray.round(mask.where((self.elevation is not None) & (self.elevation > 0),
+                                                    142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
+                                                    151 * (self.lat / self.latn)),
+                                         0)
 
         # Calculate Julian date (Dj)
         self.dj = mask.where(np.isfinite(self.latn),
@@ -696,18 +725,9 @@ class FBP:
                                     0)
 
                 # Calculate no slope/no wind rate of spread
-                if self.ftype == 13:
-                    self.rsz = mask.where(self.fuel_type == self.ftype,
-                                          ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isz),
-                                                                                self.c) +
-                                           0.2 * (1 - self.pdf / 100) * rsz_d1),
-                                          self.rsz)
-                else:
-                    self.rsz = mask.where(self.fuel_type == self.ftype,
-                                          ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isz),
-                                                                                self.c) +
-                                           (1 - self.pdf / 100) * rsz_d1),
-                                          self.rsz)
+                self.rsz = mask.where(self.fuel_type == self.ftype,
+                                      self.a * np.power(1 - np.exp(-self.b * self.isz), self.c),
+                                      self.rsz)
 
                 # Calculate rate of spread with slope effect
                 self.rsf = mask.where(self.fuel_type == self.ftype,
@@ -726,9 +746,11 @@ class FBP:
 
                 # Calculate ISI and for D1
                 # Calculate the slope equivalent wind speed (for lower wind speeds)
+                np.seterr(divide='ignore')
                 wse1_d1 = mask.where(self.fuel_type == self.ftype,
                                      (1 / 0.05039) * np.log(isf_d1 / (0.208 * self.fF)),
                                      0)
+                np.seterr(divide='warn')
 
                 # Calculate the slope equivalent wind speed (for higher wind speeds)
                 wse2_d1 = mask.where(self.fuel_type == self.ftype,
@@ -776,18 +798,20 @@ class FBP:
                                    0)
 
                 # Calculate the new ISI with slope and wind effects
-                isi_d1 = mask.where(self.fuel_type == self.ftype,
-                                    0.208 * fw_d1 * self.fF,
-                                    0)
-
-                # Calculate rate of spread with slope and wind effects for D1
-                # Get D1 RSZ and ISF
-                rsi_d1 = mask.where(self.fuel_type == self.ftype,
-                                    a_d1 * np.power(1 - np.exp(-b_d1 * isi_d1), c_d1),
-                                    0)
+                # isi_d1 = mask.where(self.fuel_type == self.ftype,
+                #                     0.208 * fw_d1 * self.fF,
+                #                     0)
 
                 # Calculate slope effects on wind and ISI
                 _calcISI_slopeWind()
+
+                # Calculate rate of spread with slope and wind effects for D1
+                # Get D1 RSZ and ISF
+                # TODO Verify that ISI here should be the M3/4 ISI, rather than the D1 ISI
+                #  The CFS cffdrs R code uses the M3/4 (100% dead fir) ISI to calculate RSI for D1, which seems odd
+                rsi_d1 = mask.where(self.fuel_type == self.ftype,
+                                    a_d1 * np.power(1 - np.exp(-b_d1 * self.isi), c_d1),
+                                    0)
 
                 # Calculate rate of spread with slope and wind effects
                 if self.ftype == 13:
@@ -826,11 +850,13 @@ class FBP:
                 isf_numer = mask.where(self.fuel_type == self.ftype,
                                        (1 - np.power(self.rsf / self.a, 1 / self.c)),
                                        0)
+                np.seterr(divide='ignore')
                 self.isf = mask.where(self.fuel_type == self.ftype,
                                       mask.where(isf_numer >= 0.01,
                                                  np.log(isf_numer) / -self.b,
                                                  np.log(0.01) / -self.b),
                                       self.isf)
+                np.seterr(divide='warn')
 
                 # Calculate slope effects on wind and ISI
                 _calcISI_slopeWind()
@@ -1039,11 +1065,11 @@ class FBP:
         canopy fuel load (CFL) values for a specified fuel type.
         :return: None
         """
-        # Get CBH for fuel type
+        # Get canopy base height (CBH) for fuel type
         self.cbh = mask.where(self.fuel_type == self.ftype,
                               self.fbpCBH_CFL_HT_LUT.get(self.ftype)[0],
                               self.cbh)
-        # Get CFL for fuel type
+        # Get canopy fuel load (CFL) for fuel type
         self.cfl = mask.where(self.fuel_type == self.ftype,
                               self.fbpCBH_CFL_HT_LUT.get(self.ftype)[1],
                               self.cbh)
@@ -1055,8 +1081,8 @@ class FBP:
         Function to calculate the critical surface fire intensity (CSFI).
         :return: None
         """
-        # Calculate critical surface fire intensity
-        self.csfi = mask.where(self.fuel_type != 19,
+        # Calculate critical surface fire intensity (CSFI)
+        self.csfi = mask.where(self.fuel_type < 19,
                                np.power(0.01 * self.cbh * (460 + (25.9 * self.fmc)), 1.5),
                                0)
 
@@ -1067,7 +1093,7 @@ class FBP:
         Function to calculate the critical surface fire rate of spread (RSO).
         :return: None
         """
-        # Calculate critical surface fire rate of spread
+        # Calculate critical surface fire rate of spread (RSO)
         self.rso = mask.where(self.sfc > 0,
                               self.csfi / (300.0 * self.sfc),
                               0)
@@ -1080,15 +1106,15 @@ class FBP:
         :return: None
         """
         if self.ftype == 6:
+            # For C-6 fuel type
             self.cfb = mask.where(self.fuel_type == self.ftype,
-                                  # For C-6 fuel type
                                   mask.where((self.sfros - self.rso) < -3086,
                                              0,
                                              1 - np.exp(-0.23 * (self.sfros - self.rso))),
                                   self.cfb)
         else:
+            # For all other fuel types
             self.cfb = mask.where(self.fuel_type == self.ftype,
-                                  # For all other fuel types
                                   mask.where((self.hfros - self.rso) < -3086,
                                              0,
                                              1 - np.exp((-0.23 * (self.hfros - self.rso)).astype(np.float32))),
@@ -1249,7 +1275,7 @@ class FBP:
         self.invertWindAspect()
         # print('Calculating slope factor')
         self.calcSF()
-        # print('Calculating zero slope & wind ISI')
+        # print('Calculating zero slope & zero wind ISI')
         self.calcISZ()
         # print('Calculating foliar moisture content')
         self.calcFMC()
@@ -1306,7 +1332,6 @@ def _testFBP(wx_date: int,
     """
     Function to test the cffbps module with various input types
     :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
-    :param dj: Julian date of weather observation (used for fmc calculation)
     :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
     :param long: Longitude of area being modelled (Decimal Degrees, floating point)
     :param elevation: Elevation of area being modelled (m)
@@ -1330,8 +1355,8 @@ def _testFBP(wx_date: int,
         ws = Observed wind speed (km/h)
         wd = Wind azimuth/direction (degrees)
         m = Moisture content equivalent of the FFMC (%, value from 0-100+)
-        fF = Fine fuel moisture function in the ISI
-        fW = Wind function in the ISI
+        fF = Fine fuel moisture function in the ISI equation
+        fW = Wind function in the ISI equation
         isi = Final ISI, accounting for wind and slope
 
         # Slope + wind effect variables
@@ -1410,7 +1435,6 @@ def _testFBP(wx_date: int,
         output_folder = out_folder
 
     # Generate test raster datasets using user-provided input values
-
     genras.gen_test_data(*input_data[:-2])
 
     # Get input dataset paths
@@ -1448,21 +1472,9 @@ def _testFBP(wx_date: int,
     gfl_array = pr.getRaster(gfl_path).read()
     gcf_array = pr.getRaster(gcf_path).read()
 
-    # This code is only needed if converting from cffdrs R fuel type grid codes to the grid codes used in this module
+    # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
     if convertGridCodes:
-        fuel_type_array = np.where(fuel_type_array == 19,
-                                   20,
-                                   np.where(fuel_type_array == 13,
-                                            19,
-                                            np.where(fuel_type_array == 12,
-                                                     13,
-                                                     np.where(fuel_type_array == 11,
-                                                              12,
-                                                              np.where(fuel_type_array == 10,
-                                                                       11,
-                                                                       np.where(fuel_type_array == 9,
-                                                                                10,
-                                                                                fuel_type_array))))))
+        fuel_type_array = convert_grid_codes(fuel_type_array)
 
     wsv, raz, fire_type, hfros, hfi, ffc, wfc, sfc = FBP(
         fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
@@ -1511,10 +1523,10 @@ if __name__ == '__main__':
     _wd = 266
     _ffmc = 92
     _bui = 31
-    _pc = 0
-    _pdf = 0
+    _pc = 50
+    _pdf = 50
     _gfl = 0.35
-    _gcf = 60
+    _gcf = 80
     _out_request = ['latn', 'd0', 'dj', 'nd', 'fmc', 'fme', 'csfi', 'rso', 'hfros', 'hfi']
     _out_folder = None
     _convertGridCodes = False
