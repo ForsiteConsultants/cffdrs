@@ -1934,7 +1934,7 @@ def _testFBP(test_functions: list,
 
 if __name__ == '__main__':
     # _test_functions options: ['all', 'numeric', 'array', 'raster', 'raster_multiprocessing']
-    _test_functions = ['numeric']
+    _test_functions = ['all']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
