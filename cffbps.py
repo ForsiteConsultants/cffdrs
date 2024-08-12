@@ -1849,7 +1849,6 @@ def _testFBP(test_functions: list,
         gcf_array = pr.getRaster(gcf_path).read()
 
         # Run the FBP multiprocessing
-        # if num_processors > 1:
         fbp_multiprocess_result = fbpMultiprocessArray(
             fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
             elevation=elev_array, slope=slope_array, aspect=aspect_array,
@@ -1860,15 +1859,6 @@ def _testFBP(test_functions: list,
             num_processors=num_processors,
             block_size=block_size
         )
-        # else:
-        #     fbp_multiprocess_result = FBP(
-        #         fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
-        #         elevation=elev_array, slope=slope_array, aspect=aspect_array,
-        #         ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
-        #         pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
-        #         out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc'],
-        #         convert_fuel_type_codes=True
-        #     ).runFBP()
 
         # Get output dataset paths
         wsv_out = os.path.join(output_folder, 'wsv.tif')
