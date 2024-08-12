@@ -1747,7 +1747,7 @@ def _testFBP(test_functions: list,
 
     # Create fuel type list
     fuel_type_list = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'D1', 'D2', 'M1', 'M2', 'M3', 'M4',
-                      'O1a', 'O1b', 'S1', 'S2', 'S3']
+                      'O1a', 'O1b', 'S1', 'S2', 'S3', 'NF', 'WA']
 
     # Put inputs into list
     input_data = [wx_date, lat, long,
@@ -1934,7 +1934,7 @@ def _testFBP(test_functions: list,
 
 if __name__ == '__main__':
     # _test_functions options: ['all', 'numeric', 'array', 'raster', 'raster_multiprocessing']
-    _test_functions = ['all']
+    _test_functions = ['numeric']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
