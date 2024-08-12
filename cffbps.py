@@ -1663,7 +1663,8 @@ def _testFBP(test_functions: list,
              block_size: Optional[int] = None) -> None:
     """
     Function to test the cffbps module with various input types
-    :param test_functions: List of functions to test (options: ['numeric', 'array', 'raster', 'raster_multi']
+    :param test_functions: List of functions to test
+        (options: ['numeric', 'array', 'raster', 'raster_multiprocessing'])
     :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
     :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
     :param long: Longitude of area being modelled (Decimal Degrees, floating point)
@@ -1754,13 +1755,13 @@ def _testFBP(test_functions: list,
                   pc, pdf, gfl, gcf, out_request]
 
     # ### Test non-raster modelling
-    if 'numeric' in test_functions:
+    if any(var in test_functions for var in ['numeric', 'all']):
         print('Testing non-raster modelling')
         for ft in fuel_type_list:
             print('\t' + ft, FBP(*([fbpFTCode_AlphaToNum_LUT.get(ft)] + input_data)).runFBP())
 
     # ### Test array modelling
-    if 'array' in test_functions:
+    if any(var in test_functions for var in ['array', 'all']):
         print('Testing array modelling')
         print('\t', FBP(*([np.array(fuel_type_list)] + input_data)).runFBP())
 
@@ -1773,7 +1774,7 @@ def _testFBP(test_functions: list,
         output_folder = out_folder
 
     # ### Test raster modelling
-    if 'raster' in test_functions:
+    if any(var in test_functions for var in ['raster', 'all']):
         print('Testing raster modelling')
         # Generate test raster datasets using user-provided input values
         genras.gen_test_data(*input_data[:-2])
@@ -1852,7 +1853,7 @@ def _testFBP(test_functions: list,
                              data_type=np.float64)
 
     # ### Test raster multiprocessing
-    if 'raster_multi' in test_functions:
+    if any(var in test_functions for var in ['raster_multiprocessing', 'all']):
         print('Testing raster multiprocessing')
         # Get input dataset paths
         fuel_type_path = os.path.join(multiprocess_folder, 'FuelType.tif')
@@ -1902,14 +1903,14 @@ def _testFBP(test_functions: list,
         )
 
         # Get output dataset paths
-        wsv_out = os.path.join(output_folder, 'wsv.tif')
-        raz_out = os.path.join(output_folder, 'raz.tif')
-        fire_type_out = os.path.join(output_folder, 'fire_type.tif')
-        hfros_out = os.path.join(output_folder, 'hfros.tif')
-        hfi_out = os.path.join(output_folder, 'hfi.tif')
-        ffc_out = os.path.join(output_folder, 'ffc.tif')
-        wfc_out = os.path.join(output_folder, 'wfc.tif')
-        sfc_out = os.path.join(output_folder, 'sfc.tif')
+        wsv_out = os.path.join(output_folder, 'Multiprocessing', 'wsv.tif')
+        raz_out = os.path.join(output_folder, 'Multiprocessing', 'raz.tif')
+        fire_type_out = os.path.join(output_folder, 'Multiprocessing', 'fire_type.tif')
+        hfros_out = os.path.join(output_folder, 'Multiprocessing', 'hfros.tif')
+        hfi_out = os.path.join(output_folder, 'Multiprocessing', 'hfi.tif')
+        ffc_out = os.path.join(output_folder, 'Multiprocessing', 'ffc.tif')
+        wfc_out = os.path.join(output_folder, 'Multiprocessing', 'wfc.tif')
+        sfc_out = os.path.join(output_folder, 'Multiprocessing', 'sfc.tif')
 
         # Generate list of output paths
         out_path_list = [
@@ -1932,7 +1933,8 @@ def _testFBP(test_functions: list,
 
 
 if __name__ == '__main__':
-    _test_functions = ['raster_multi']
+    # _test_functions options: ['all', 'numeric', 'array', 'raster', 'raster_multiprocessing']
+    _test_functions = ['all']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
