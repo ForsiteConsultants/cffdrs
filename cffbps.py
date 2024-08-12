@@ -87,6 +87,47 @@ def convert_grid_codes(fuel_type_array: np.ndarray) -> np.ndarray:
     return fuel_type_array
 
 
+# Grass curing values by season
+def getSeasonGrassCuring(season, province, subregion=None):
+    """
+    Function returns a default grass curing code based on season, province, and subregion
+    :param season: annual season ("spring", "summer", "fall", "winter")
+    :param province: province being assessed ("AB", "BC")
+    :param subregion: British Columbia subregions ("southeast", "other")
+    :return: grass curing percent (%); "None" is returned if season or province are invalid
+    """
+    if province == 'AB':
+        # Default seasonal grass curing values for Alberta
+        # These curing rates are recommended by Neal McLoughlin to align with Alberta Wildfire knowledge and practices
+        gc_dict = {
+            'spring': 75,
+            'summer': 40,
+            'fall': 60,
+            'winter': 100
+        }
+    elif province == 'BC':
+        if subregion == 'southeast':
+            # Default seasonal grass curing values for southeastern British Columbia
+            gc_dict = {
+                'spring': 100,
+                'summer': 90,
+                'fall': 90,
+                'winter': 100
+            }
+        else:
+            # Default seasonal grass curing values for British Columbia
+            gc_dict = {
+                'spring': 100,
+                'summer': 60,
+                'fall': 85,
+                'winter': 100
+            }
+    else:
+        gc_dict = {}
+
+    return gc_dict.get(season.lower(), None)
+
+
 ##################################################################################################
 # #### CLASS FOR CANADIAN FOREST FIRE BEHAVIOR PREDICTION SYSTEM (CFFBPS) MODELLING ####
 ##################################################################################################
@@ -1821,13 +1862,13 @@ def _testFBP(test_functions: list,
         slope_path = os.path.join(multiprocess_folder, 'GS.tif')
         aspect_path = os.path.join(multiprocess_folder, 'Aspect.tif')
         ws_path = os.path.join(multiprocess_folder, 'WS.tif')
-        wd_path = os.path.join(multiprocess_folder, 'WD.tif')
+        # wd_path = os.path.join(multiprocess_folder, 'WD.tif')
         ffmc_path = os.path.join(multiprocess_folder, 'FFMC.tif')
         bui_path = os.path.join(multiprocess_folder, 'BUI.tif')
         pc_path = os.path.join(multiprocess_folder, 'PC.tif')
         pdf_path = os.path.join(multiprocess_folder, 'PDF.tif')
         gfl_path = os.path.join(multiprocess_folder, 'GFL.tif')
-        gcf_path = os.path.join(multiprocess_folder, 'cc.tif')
+        # gcf_path = os.path.join(multiprocess_folder, 'cc.tif')
 
         # Create a reference raster profile for final raster outputs
         ref_ras_profile = pr.getRaster(gfl_path).profile
@@ -1840,20 +1881,20 @@ def _testFBP(test_functions: list,
         slope_array = pr.getRaster(slope_path).read()
         aspect_array = pr.getRaster(aspect_path).read()
         ws_array = pr.getRaster(ws_path).read()
-        wd_array = pr.getRaster(wd_path).read()
+        # wd_array = pr.getRaster(wd_path).read()
         ffmc_array = pr.getRaster(ffmc_path).read()
         bui_array = pr.getRaster(bui_path).read()
         pc_array = pr.getRaster(pc_path).read()
         pdf_array = pr.getRaster(pdf_path).read()
         gfl_array = pr.getRaster(gfl_path).read()
-        gcf_array = pr.getRaster(gcf_path).read()
+        # gcf_array = pr.getRaster(gcf_path).read()
 
         # Run the FBP multiprocessing
         fbp_multiprocess_result = fbpMultiprocessArray(
             fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
             elevation=elev_array, slope=slope_array, aspect=aspect_array,
-            ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
-            pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
+            ws=ws_array, wd=wd, ffmc=ffmc_array, bui=bui_array,
+            pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=getSeasonGrassCuring(season='summer', province='BC'),
             out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc'],
             convert_fuel_type_codes=True,
             num_processors=num_processors,
@@ -1891,7 +1932,7 @@ def _testFBP(test_functions: list,
 
 
 if __name__ == '__main__':
-    _test_functions = ['raster']
+    _test_functions = ['raster_multi']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
