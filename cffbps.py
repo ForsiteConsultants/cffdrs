@@ -8,9 +8,13 @@ __author__ = ['Gregory A. Greene, map.n.trowel@gmail.com']
 
 import os
 from typing import Union, Optional
+from operator import itemgetter
 import numpy as np
 from numpy import ma as mask
 from datetime import datetime as dt
+from multiprocessing import current_process
+from multiprocessing import Pool
+import psutil
 
 # CFFBPS Fuel Type Numeric-Alphanumeric Code Lookup Table
 fbpFTCode_NumToAlpha_LUT = {
@@ -89,7 +93,7 @@ def convert_grid_codes(fuel_type_array: np.ndarray) -> np.ndarray:
 class FBP:
     """
     Class to model fire type, head fire rate of spread, and head fire intensity with CFFBPS
-    :param fuel_type: CFFBPS fuel type (numeric code: 1-18)
+    :param fuel_type: CFFBPS fuel type (numeric code: 1-20)
         Model 1: C-1 fuel type ROS model
         Model 2: C-2 fuel type ROS model
         Model 3: C-3 fuel type ROS model
@@ -108,6 +112,8 @@ class FBP:
         Model 16: S-1 fuel type ROS model
         Model 17: S-2 fuel type ROS model
         Model 18: S-3 fuel type ROS model
+        Model 19: Non-fuel (NF)
+        Model 20: Water (WA)
     :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
     :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
     :param long: Longitude of area being modelled (Decimal Degrees, floating point)
@@ -231,6 +237,9 @@ class FBP:
         # Verify input parameters
         self._checkArray()
         self._verifyInputs()
+
+        # Initialize multiprocessing block variable
+        self.block = None
 
         # Initialize weather parameters
         self.isi = self.ref_array
@@ -360,12 +369,22 @@ class FBP:
             self.pc, self.pdf,
             self.gfl, self.gcf
         ]
+
         if any(isinstance(data, np.ndarray) for data in input_list):
             self.return_array = True
 
             # Get indices of input parameters that are arrays
             array_indices = [i for i in range(len(input_list)) if isinstance(input_list[i], np.ndarray)]
-            # Get first input parameter array as a masked array
+
+            # If more than one array, verify they are all the same shape
+            if len(array_indices) > 1:
+                # Verify all arrays have the same shape
+                shapes = {arr.shape for arr in list(itemgetter(*array_indices)(input_list))}
+                if len(shapes) > 1:
+                    raise ValueError(f'All arrays must have the same dimensions. '
+                                     f'The following range of dimensions exists: {shapes}')
+
+            # Get first input array as a masked array
             first_array = input_list[array_indices[0]]
             if (array_indices[0] == 0) and ('<U' in str(first_array.dtype)):
                 for ftype in np.unique(self.fuel_type):
@@ -388,6 +407,14 @@ class FBP:
         :return: None
         """
         # ### VERIFY ALL INPUTS AND CONVERT TO MASKED NUMPY ARRAYS
+        input_list = [
+            self.fuel_type, self.lat, self.long,
+            self.elevation, self.slope, self.aspect,
+            self.ws, self.wd, self.ffmc, self.bui,
+            self.pc, self.pdf,
+            self.gfl, self.gcf
+        ]
+
         # Verify fuel_type
         if not isinstance(self.fuel_type, (int, str, np.ndarray)):
             raise TypeError('fuel_type must be either int, string, or numpy ndarray data types')
@@ -1266,10 +1293,12 @@ class FBP:
             return [fbp_params.get(var).data[0] if fbp_params.get(var, None) is not None
                     else 'Invalid output variable' for var in out_request]
 
-    def runFBP(self) -> list[any]:
+    def runFBP(self, block: Optional[np.ndarray] = None) -> list[any]:
         """
         Function to automatically run CFFBPS modelling
         """
+        if block is not None:
+            self.block = block
         # Model fire behavior with CFFBPS
         # print('Inverting wind direction and aspect')
         self.invertWindAspect()
@@ -1312,7 +1341,268 @@ class FBP:
         return self.getOutputs(self.out_request)
 
 
-def _testFBP(wx_date: int,
+def _estimate_optimal_block_size(array_shape, num_processors, memory_fraction=0.8):
+    # Total available memory
+    available_memory = psutil.virtual_memory().available * memory_fraction
+
+    # Estimate memory needed for one block
+    element_size = np.dtype(np.float32).itemsize  # Assuming float32 data type
+
+    # Calculate the maximum possible block size based on available memory and the number of processors
+    max_block_size = int(np.sqrt(available_memory / (element_size * array_shape[0] * num_processors)))
+
+    # Ensure block size is practical and does not exceed array dimensions
+    block_size = min(max_block_size, array_shape[1], array_shape[2])
+
+    # If block size exceeds a reasonable portion of the array, reduce it further
+    while block_size > 0 and block_size > array_shape[1] // 4 and block_size > array_shape[2] // 4:
+        block_size //= 2
+
+    return block_size
+
+
+def _gen_blocks(array: np.ndarray, block_size: int, stride: int) -> tuple:
+    blocks = []
+    block_positions = []
+    layers, rows, cols = array.shape
+
+    for i in range(0, rows, stride):
+        for j in range(0, cols, stride):
+            # Adjust block size for edge cases
+            end_i = min(i + block_size, rows)
+            end_j = min(j + block_size, cols)
+
+            # Extract the block, keeping all layers
+            block = array[:, i:end_i, j:end_j]
+            blocks.append(block)
+            block_positions.append((i, j))  # Save the top-left position of each block
+
+    return blocks, block_positions
+
+
+def _process_block(block: tuple, position: tuple) -> tuple:
+    # Get ID of the multiprocessing Pool Worker
+    process_id = current_process().name
+    print(f'\t\t[{process_id}] Processing Block at Cell {position}')
+
+    # Get top-left cell position
+    row, col = position
+
+    # Initialize FBP class with parameters
+    fbp_instance = FBP(*block)
+    # Process the block and return results
+    result = fbp_instance.runFBP()
+    return result, (row, col)
+
+
+def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
+                         wx_date: int,
+                         lat: Union[float, int, np.ndarray],
+                         long: Union[float, int, np.ndarray],
+                         elevation: Union[float, int, np.ndarray],
+                         slope: Union[float, int, np.ndarray],
+                         aspect: Union[float, int, np.ndarray],
+                         ws: Union[float, int, np.ndarray],
+                         wd: Union[float, int, np.ndarray],
+                         ffmc: Union[float, int, np.ndarray],
+                         bui: Union[float, int, np.ndarray],
+                         pc: Optional[Union[float, int, np.ndarray]] = 50,
+                         pdf: Optional[Union[float, int, np.ndarray]] = 35,
+                         gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
+                         gcf: Optional[Union[float, int, np.ndarray]] = 80,
+                         out_request: Optional[list[str]] = None,
+                         convert_fuel_type_codes: Optional[bool] = False,
+                         num_processors: int = 2,
+                         block_size: int = None) -> list:
+    """
+    Function breaks input arrays into blocks and processes each block with a different worker/processor.
+    Uses the runFBP function in the FBP class.
+    :param num_processors: Number of cores for multiprocessing
+    :param block_size: Size of blocks (# raster cells) for multiprocessing.
+        If block_size is None, an optimal block size will be estimated automatically.
+    :param fuel_type: CFFBPS fuel type (numeric code: 1-20)
+        Model 1: C-1 fuel type ROS model
+        Model 2: C-2 fuel type ROS model
+        Model 3: C-3 fuel type ROS model
+        Model 4: C-4 fuel type ROS model
+        Model 5: C-5 fuel type ROS model
+        Model 6: C-6 fuel type ROS model
+        Model 7: C-7 fuel type ROS model
+        Model 8: D-1 fuel type ROS model
+        Model 9: D-2 fuel type ROS model
+        Model 10: M-1 fuel type ROS model
+        Model 11: M-2 fuel type ROS model
+        Model 12: M-3 fuel type ROS model
+        Model 13: M-4 fuel type ROS model
+        Model 14: O-1a fuel type ROS model
+        Model 15: O-1b fuel type ROS model
+        Model 16: S-1 fuel type ROS model
+        Model 17: S-2 fuel type ROS model
+        Model 18: S-3 fuel type ROS model
+        Model 19: Non-fuel (NF)
+        Model 20: Water (WA)
+    :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
+    :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
+    :param long: Longitude of area being modelled (Decimal Degrees, floating point)
+    :param elevation: Elevation of area being modelled (m)
+    :param slope: Ground slope angle/tilt of area being modelled (%)
+    :param aspect: Ground slope aspect/azimuth of area (degrees)
+    :param ws: Wind speed (km/h @ 10m height)
+    :param wd: Wind direction (degrees, direction wind is coming from)
+    :param ffmc: CFFWIS Fine Fuel Moisture Code
+    :param bui: CFFWIS Buildup Index
+    :param pc: Percent conifer (%, value from 0-100)
+    :param pdf: Percent dead fir (%, value from 0-100)
+    :param gfl: Grass fuel load (kg/m^2)
+    :param gcf: Grass curing factor (%, value from 0-100)
+    :param out_request: Tuple or list of CFFBPS output variables
+        # Default output variables
+        fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
+        hfros = Head fire rate of spread (m/min)
+        hfi = head fire intensity (kW/m)
+
+        # Weather variables
+        ws = Observed wind speed (km/h)
+        wd = Wind azimuth/direction (degrees)
+        m = Moisture content equivalent of the FFMC (%, value from 0-100+)
+        fF = Fine fuel moisture function in the ISI equation
+        fW = Wind function in the ISI equation
+        isi = Final ISI, accounting for wind and slope
+
+        # Slope + wind effect variables
+        a = Rate of spread equation coefficient
+        b = Rate of spread equation coefficient
+        c = Rate of spread equation coefficient
+        RSZ = Surface spread rate with zero wind on level terrain
+        SF = Slope factor
+        RSF = spread rate with zero wind, upslope
+        ISF = ISI, with zero wind upslope
+        RSI = Initial spread rate without BUI effect
+        WSE1 = Original slope equivalent wind speed value
+        WSE2 = New slope equivalent sind speed value for cases where WSE1 > 40 (capped at max of 112.45)
+        WSE = Slope equivalent wind speed
+        WSX = Net vectorized wind speed in the x-direction
+        WSY = Net vectorized wind speed in the y-direction
+        WSV = (aka: slope-adjusted wind speed) Net vectorized wind speed (km/h)
+        RAZ = (aka: slope-adjusted wind direction) Net vectorized wind direction (degrees)
+
+        # BUI effect variables
+        q = Proportion of maximum rate of spread at BUI equal to 50
+        bui0 = Average BUI for each fuel type
+        BE = Buildup effect on spread rate
+        be_max = Maximum allowable BE value
+
+        # Surface fuel variables
+        ffc = Estimated forest floor consumption
+        wfc = Estimated woody fuel consumption
+        sfc = Estimated total surface fuel consumption
+
+        # Foliar moisture content variables
+        latn = Normalized latitude
+        d0 = Julian date of minimum foliar moisture content
+        nd = number of days between modelled fire date and d0
+        fmc = foliar moisture content
+        fme = foliar moisture effect
+
+        # Critical crown fire threshold variables
+        csfi = critical intensity (kW/m)
+        rso = critical rate of spread (m/min)
+
+        # Crown fuel parameters
+        cbh = Height to live crown base (m)
+        cfb = Crown fraction burned (proportion, value ranging from 0-1)
+        cfl = Crown fuel load (kg/m^2)
+        cfc = Crown fuel consumed
+    :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
+        to the grid codes used in this module
+    :return: Concatenated output array from all workers
+    """
+    # Add input parameters to list
+    input_list = [fuel_type, wx_date, lat, long, elevation, slope, aspect,
+                  ws, wd, ffmc, bui, pc, pdf, gfl, gcf, out_request,
+                  convert_fuel_type_codes]
+
+    # Split input arrays into chunks for each worker
+    array_indices = [i for i in range(len(input_list)) if isinstance(input_list[i], np.ndarray)]
+    nonarray_indices = [i for i in range(len(input_list)) if i not in array_indices]
+    array_list = list(itemgetter(*array_indices)(input_list))
+
+    # Verify there is at least one input array
+    if len(array_indices) == 0:
+        raise ValueError('Unable to use the multiprocessing function. There are no arrays in the inputs')
+
+    # If more than one array, verify they are all the same shape
+    if len(array_indices) > 1:
+        shapes = {arr.shape for arr in array_list}
+        if len(shapes) > 1:
+            raise ValueError(f'All arrays must have the same dimensions. '
+                             f'The following range of dimensions exists: {shapes}')
+
+    # Verify num_processors is greater than 1
+    if num_processors < 2:
+        num_processors = 2
+        raise UserWarning('Multiprocessing requires at least two cores.\n'
+                          'Defaulting num_cores to 2 for this run')
+
+    # Verify block size
+    if block_size is None:
+        block_size = _estimate_optimal_block_size(array_shape=array_list[0].shape,
+                                                  num_processors=num_processors)
+
+    # Split input arrays into blocks and track their positions
+    array_blocks = []
+    block_positions = None  # Will hold the block positions from the first array
+
+    for array in array_list:
+        blocks, positions = _gen_blocks(array=array, block_size=block_size, stride=block_size)
+        array_blocks.append(blocks)
+        if block_positions is None:
+            block_positions = positions
+
+    # Generate final input_block list for multiprocessing
+    input_blocks = []
+    num_blocks = len(array_blocks[0])  # Number of blocks should be the same for all arrays
+
+    for idx in range(num_blocks):
+        block_set = [array_blocks[i][idx] for i in range(len(array_blocks))]
+        row = [None] * len(input_list)
+
+        # Assign blocks to the correct indices
+        for i, block in zip(array_indices, block_set):
+            row[i] = block
+
+        # Assign non-array inputs
+        for i in nonarray_indices:
+            row[i] = input_list[i]
+
+        input_blocks.append((row, block_positions[idx]))  # Attach the position to each block
+
+    del array_list
+
+    output_arrays = []
+    for _ in out_request:
+        output_arrays.append(np.zeros(input_list[array_indices[0]].shape, dtype=np.float32))
+
+    # Initialize a multiprocessing pool
+    with Pool(num_processors) as pool:
+        print('\tStarting FBP multiprocessing...')
+        # Process each block using runFBP in parallel
+        results = pool.starmap(_process_block, input_blocks)
+
+    # Place the processed blocks back into the output array
+    for result, (i, j) in results:
+        for idx, _ in enumerate(out_request):
+            result_shape = result[idx].shape
+            slice_i_end = i + result_shape[1]
+            slice_j_end = j + result_shape[2]
+
+            output_arrays[idx][:, i:slice_i_end, j:slice_j_end] = result[idx]
+
+    return output_arrays
+
+
+def _testFBP(test_functions: list,
+             wx_date: int,
              lat: Union[float, int, np.ndarray],
              long: Union[float, int, np.ndarray],
              elevation: Union[float, int, np.ndarray],
@@ -1328,9 +1618,11 @@ def _testFBP(wx_date: int,
              gcf: Optional[Union[float, int, np.ndarray]] = 80,
              out_request: Optional[list[str]] = None,
              out_folder: Optional[str] = None,
-             convertGridCodes: bool = False) -> None:
+             num_processors: int = 2,
+             block_size: Optional[int] = None) -> None:
     """
     Function to test the cffbps module with various input types
+    :param test_functions: List of functions to test (options: ['numeric', 'array', 'raster', 'raster_multi']
     :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
     :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
     :param long: Longitude of area being modelled (Decimal Degrees, floating point)
@@ -1404,7 +1696,8 @@ def _testFBP(wx_date: int,
         cfl = Crown fuel load (kg/m^2)
         cfc = Crown fuel consumed
     :param out_folder: Location to save test rasters (Default: <location of script>\Test_Data\Outputs)
-    :param convertGridCodes: Convert from cffdrs R fuel type grid codes to codes used in this module (default: False)
+    :param num_processors: Number of cores for multiprocessing
+    :param block_size: Size of blocks (# raster cells) for multiprocessing
     :return: None
     """
     import ProcessRasters as pr
@@ -1420,99 +1713,195 @@ def _testFBP(wx_date: int,
                   pc, pdf, gfl, gcf, out_request]
 
     # ### Test non-raster modelling
-    for ft in fuel_type_list:
-        print(ft, FBP(*([fbpFTCode_AlphaToNum_LUT.get(ft)] + input_data)).runFBP())
+    if 'numeric' in test_functions:
+        print('Testing non-raster modelling')
+        for ft in fuel_type_list:
+            print('\t' + ft, FBP(*([fbpFTCode_AlphaToNum_LUT.get(ft)] + input_data)).runFBP())
 
     # ### Test array modelling
-    print(FBP(*([np.array(fuel_type_list)] + input_data)).runFBP())
+    if 'array' in test_functions:
+        print('Testing array modelling')
+        print('\t', FBP(*([np.array(fuel_type_list)] + input_data)).runFBP())
 
-    # ### Test raster modelling
     # Get test folders
     input_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Inputs')
+    multiprocess_folder = os.path.join(input_folder, 'Multiprocessing')
     if out_folder is None:
         output_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Outputs')
     else:
         output_folder = out_folder
 
-    # Generate test raster datasets using user-provided input values
-    genras.gen_test_data(*input_data[:-2])
+    # ### Test raster modelling
+    if 'raster' in test_functions:
+        print('Testing raster modelling')
+        # Generate test raster datasets using user-provided input values
+        genras.gen_test_data(*input_data[:-2])
 
-    # Get input dataset paths
-    fuel_type_path = os.path.join(input_folder, 'FuelType.tif')
-    lat_path = os.path.join(input_folder, 'LAT.tif')
-    long_path = os.path.join(input_folder, 'LONG.tif')
-    elev_path = os.path.join(input_folder, 'ELV.tif')
-    slope_path = os.path.join(input_folder, 'GS.tif')
-    aspect_path = os.path.join(input_folder, 'Aspect.tif')
-    ws_path = os.path.join(input_folder, 'WS.tif')
-    wd_path = os.path.join(input_folder, 'WD.tif')
-    ffmc_path = os.path.join(input_folder, 'FFMC.tif')
-    bui_path = os.path.join(input_folder, 'BUI.tif')
-    pc_path = os.path.join(input_folder, 'PC.tif')
-    pdf_path = os.path.join(input_folder, 'PDF.tif')
-    gfl_path = os.path.join(input_folder, 'GFL.tif')
-    gcf_path = os.path.join(input_folder, 'cc.tif')
+        # Get input dataset paths
+        fuel_type_path = os.path.join(input_folder, 'FuelType.tif')
+        lat_path = os.path.join(input_folder, 'LAT.tif')
+        long_path = os.path.join(input_folder, 'LONG.tif')
+        elev_path = os.path.join(input_folder, 'ELV.tif')
+        slope_path = os.path.join(input_folder, 'GS.tif')
+        aspect_path = os.path.join(input_folder, 'Aspect.tif')
+        ws_path = os.path.join(input_folder, 'WS.tif')
+        wd_path = os.path.join(input_folder, 'WD.tif')
+        ffmc_path = os.path.join(input_folder, 'FFMC.tif')
+        bui_path = os.path.join(input_folder, 'BUI.tif')
+        pc_path = os.path.join(input_folder, 'PC.tif')
+        pdf_path = os.path.join(input_folder, 'PDF.tif')
+        gfl_path = os.path.join(input_folder, 'GFL.tif')
+        gcf_path = os.path.join(input_folder, 'cc.tif')
 
-    # Create a reference raster profile for final raster outputs
-    ref_ras_profile = pr.getRaster(gfl_path).profile
+        # Create a reference raster profile for final raster outputs
+        ref_ras_profile = pr.getRaster(gfl_path).profile
 
-    # Get input dataset arrays
-    fuel_type_array = pr.getRaster(fuel_type_path).read()
-    lat_array = pr.getRaster(lat_path).read()
-    long_array = pr.getRaster(long_path).read()
-    elev_array = pr.getRaster(elev_path).read()
-    slope_array = pr.getRaster(slope_path).read()
-    aspect_array = pr.getRaster(aspect_path).read()
-    ws_array = pr.getRaster(ws_path).read()
-    wd_array = pr.getRaster(wd_path).read()
-    ffmc_array = pr.getRaster(ffmc_path).read()
-    bui_array = pr.getRaster(bui_path).read()
-    pc_array = pr.getRaster(pc_path).read()
-    pdf_array = pr.getRaster(pdf_path).read()
-    gfl_array = pr.getRaster(gfl_path).read()
-    gcf_array = pr.getRaster(gcf_path).read()
+        # Get input dataset arrays
+        fuel_type_array = pr.getRaster(fuel_type_path).read()
+        lat_array = pr.getRaster(lat_path).read()
+        long_array = pr.getRaster(long_path).read()
+        elev_array = pr.getRaster(elev_path).read()
+        slope_array = pr.getRaster(slope_path).read()
+        aspect_array = pr.getRaster(aspect_path).read()
+        ws_array = pr.getRaster(ws_path).read()
+        wd_array = pr.getRaster(wd_path).read()
+        ffmc_array = pr.getRaster(ffmc_path).read()
+        bui_array = pr.getRaster(bui_path).read()
+        pc_array = pr.getRaster(pc_path).read()
+        pdf_array = pr.getRaster(pdf_path).read()
+        gfl_array = pr.getRaster(gfl_path).read()
+        gcf_array = pr.getRaster(gcf_path).read()
 
-    # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
-    if convertGridCodes:
-        fuel_type_array = convert_grid_codes(fuel_type_array)
+        # Run the FBP modelling
+        fbp_result = FBP(
+            fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
+            elevation=elev_array, slope=slope_array, aspect=aspect_array,
+            ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
+            pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
+            out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc'],
+            convert_fuel_type_codes=False).runFBP()
 
-    wsv, raz, fire_type, hfros, hfi, ffc, wfc, sfc = FBP(
-        fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
-        elevation=elev_array, slope=slope_array, aspect=aspect_array,
-        ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
-        pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
-        out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc']).runFBP()
+        # Get output dataset paths
+        wsv_out = os.path.join(output_folder, 'wsv.tif')
+        raz_out = os.path.join(output_folder, 'raz.tif')
+        fire_type_out = os.path.join(output_folder, 'fire_type.tif')
+        hfros_out = os.path.join(output_folder, 'hfros.tif')
+        hfi_out = os.path.join(output_folder, 'hfi.tif')
+        ffc_out = os.path.join(output_folder, 'ffc.tif')
+        wfc_out = os.path.join(output_folder, 'wfc.tif')
+        sfc_out = os.path.join(output_folder, 'sfc.tif')
 
-    # Get output dataset paths
-    wsv_out = os.path.join(output_folder, 'wsv.tif')
-    raz_out = os.path.join(output_folder, 'raz.tif')
-    fire_type_out = os.path.join(output_folder, 'fire_type.tif')
-    hfros_out = os.path.join(output_folder, 'hfros.tif')
-    hfi_out = os.path.join(output_folder, 'hfi.tif')
-    ffc_out = os.path.join(output_folder, 'ffc.tif')
-    wfc_out = os.path.join(output_folder, 'wfc.tif')
-    sfc_out = os.path.join(output_folder, 'sfc.tif')
+        # Generate list of output paths
+        out_path_list = [
+            wsv_out,
+            raz_out,
+            fire_type_out,
+            hfros_out,
+            hfi_out,
+            ffc_out,
+            wfc_out,
+            sfc_out,
+        ]
 
-    output_list = [
-        (wsv, wsv_out),
-        (raz, raz_out),
-        (fire_type, fire_type_out),
-        (hfros, hfros_out),
-        (hfi, hfi_out),
-        (ffc, ffc_out),
-        (wfc, wfc_out),
-        (sfc, sfc_out),
-    ]
+        for dset, path in zip(fbp_result, out_path_list):
+            # Save output datasets
+            pr.arrayToRaster(array=dset,
+                             out_file=path,
+                             ras_profile=ref_ras_profile,
+                             data_type=np.float64)
 
-    for dset, path in output_list:
-        # Save output datasets
-        pr.arrayToRaster(array=dset,
-                         out_file=path,
-                         ras_profile=ref_ras_profile,
-                         data_type=np.float64)
+    # ### Test raster multiprocessing
+    if 'raster_multi' in test_functions:
+        print('Testing raster multiprocessing')
+        # Get input dataset paths
+        fuel_type_path = os.path.join(multiprocess_folder, 'FuelType.tif')
+        lat_path = os.path.join(multiprocess_folder, 'LAT.tif')
+        long_path = os.path.join(multiprocess_folder, 'LONG.tif')
+        elev_path = os.path.join(multiprocess_folder, 'ELV.tif')
+        slope_path = os.path.join(multiprocess_folder, 'GS.tif')
+        aspect_path = os.path.join(multiprocess_folder, 'Aspect.tif')
+        ws_path = os.path.join(multiprocess_folder, 'WS.tif')
+        wd_path = os.path.join(multiprocess_folder, 'WD.tif')
+        ffmc_path = os.path.join(multiprocess_folder, 'FFMC.tif')
+        bui_path = os.path.join(multiprocess_folder, 'BUI.tif')
+        pc_path = os.path.join(multiprocess_folder, 'PC.tif')
+        pdf_path = os.path.join(multiprocess_folder, 'PDF.tif')
+        gfl_path = os.path.join(multiprocess_folder, 'GFL.tif')
+        gcf_path = os.path.join(multiprocess_folder, 'cc.tif')
+
+        # Create a reference raster profile for final raster outputs
+        ref_ras_profile = pr.getRaster(gfl_path).profile
+
+        # Get input dataset arrays
+        fuel_type_array = pr.getRaster(fuel_type_path).read()
+        lat_array = pr.getRaster(lat_path).read()
+        long_array = pr.getRaster(long_path).read()
+        elev_array = pr.getRaster(elev_path).read()
+        slope_array = pr.getRaster(slope_path).read()
+        aspect_array = pr.getRaster(aspect_path).read()
+        ws_array = pr.getRaster(ws_path).read()
+        wd_array = pr.getRaster(wd_path).read()
+        ffmc_array = pr.getRaster(ffmc_path).read()
+        bui_array = pr.getRaster(bui_path).read()
+        pc_array = pr.getRaster(pc_path).read()
+        pdf_array = pr.getRaster(pdf_path).read()
+        gfl_array = pr.getRaster(gfl_path).read()
+        gcf_array = pr.getRaster(gcf_path).read()
+
+        # Run the FBP multiprocessing
+        # if num_processors > 1:
+        fbp_multiprocess_result = fbpMultiprocessArray(
+            fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
+            elevation=elev_array, slope=slope_array, aspect=aspect_array,
+            ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
+            pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
+            out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc'],
+            convert_fuel_type_codes=True,
+            num_processors=num_processors,
+            block_size=block_size
+        )
+        # else:
+        #     fbp_multiprocess_result = FBP(
+        #         fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
+        #         elevation=elev_array, slope=slope_array, aspect=aspect_array,
+        #         ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
+        #         pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
+        #         out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc'],
+        #         convert_fuel_type_codes=True
+        #     ).runFBP()
+
+        # Get output dataset paths
+        wsv_out = os.path.join(output_folder, 'wsv.tif')
+        raz_out = os.path.join(output_folder, 'raz.tif')
+        fire_type_out = os.path.join(output_folder, 'fire_type.tif')
+        hfros_out = os.path.join(output_folder, 'hfros.tif')
+        hfi_out = os.path.join(output_folder, 'hfi.tif')
+        ffc_out = os.path.join(output_folder, 'ffc.tif')
+        wfc_out = os.path.join(output_folder, 'wfc.tif')
+        sfc_out = os.path.join(output_folder, 'sfc.tif')
+
+        # Generate list of output paths
+        out_path_list = [
+            wsv_out,
+            raz_out,
+            fire_type_out,
+            hfros_out,
+            hfi_out,
+            ffc_out,
+            wfc_out,
+            sfc_out,
+        ]
+
+        for dset, path in zip(fbp_multiprocess_result, out_path_list):
+            # Save output datasets
+            pr.arrayToRaster(array=dset,
+                             out_file=path,
+                             ras_profile=ref_ras_profile,
+                             data_type=np.float64)
 
 
 if __name__ == '__main__':
+    _test_functions = ['raster']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
@@ -1529,13 +1918,16 @@ if __name__ == '__main__':
     _gcf = 80
     _out_request = ['latn', 'd0', 'dj', 'nd', 'fmc', 'fme', 'csfi', 'rso', 'hfros', 'hfi']
     _out_folder = None
-    _convertGridCodes = False
+    _num_processors = 14
+    _block_size = None
 
     # Test the FBP functions
-    _testFBP(wx_date=_wx_date, lat=_lat, long=_long,
+    _testFBP(test_functions=_test_functions,
+             wx_date=_wx_date, lat=_lat, long=_long,
              elevation=_elevation, slope=_slope, aspect=_aspect,
              ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
              pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf,
              out_request=_out_request,
              out_folder=_out_folder,
-             convertGridCodes=_convertGridCodes)
+             num_processors=_num_processors,
+             block_size=_block_size)

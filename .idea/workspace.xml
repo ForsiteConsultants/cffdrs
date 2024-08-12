@@ -4,17 +4,17 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added convert_fuel_type_codes parameter to the FBP class to allow users to convert arrays">
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised the fuel moisture content (m) calculation in the calcISZ() function;&#10;Revised the D1 RSI calculation for the M3/4 RSI calculation to follow the CFS cffdrs R package approach - added TODO to ensure we follow up with CFS to verify that approach makes sense">
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/PC.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/PC.tif" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Test_Data/Inputs/PDF.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Inputs/PDF.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/ffc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/ffc.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/fire_type.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfi.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/hfros.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/raz.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/raz.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/sfc.tif" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/wfc.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/wfc.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Test_Data/Outputs/wsv.tif" beforeDir="false" afterPath="$PROJECT_DIR$/Test_Data/Outputs/wsv.tif" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
     </list>
@@ -270,7 +270,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723244162392</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="Revised the fuel moisture content (m) calculation in the calcISZ() function;&#10;Revised the D1 RSI calculation for the M3/4 RSI calculation to follow the CFS cffdrs R package approach - added TODO to ensure we follow up with CFS to verify that approach makes sense">
+      <option name="closed" value="true" />
+      <created>1723253381027</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1723253381027</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -305,7 +313,8 @@
     <MESSAGE value="Revised calcFMC() and getOutputs() functions" />
     <MESSAGE value="Added input parameter data type verifications to gen_test_data() function" />
     <MESSAGE value="Added rounding function to D0 calculation in calcFMC() function;&#10;Corrected hfros calculation for D2 fuel type by assigning hfros as 0 when BUI &lt; 70;" />
-    <option name="LAST_COMMIT_MESSAGE" value="Added rounding function to D0 calculation in calcFMC() function;&#10;Corrected hfros calculation for D2 fuel type by assigning hfros as 0 when BUI &lt; 70;" />
+    <MESSAGE value="Revised the fuel moisture content (m) calculation in the calcISZ() function;&#10;Revised the D1 RSI calculation for the M3/4 RSI calculation to follow the CFS cffdrs R package approach - added TODO to ensure we follow up with CFS to verify that approach makes sense" />
+    <option name="LAST_COMMIT_MESSAGE" value="Revised the fuel moisture content (m) calculation in the calcISZ() function;&#10;Revised the D1 RSI calculation for the M3/4 RSI calculation to follow the CFS cffdrs R package approach - added TODO to ensure we follow up with CFS to verify that approach makes sense" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -314,6 +323,11 @@
           <url>file://$PROJECT_DIR$/../FWI_Analysis/Display_FWI_Curve.py</url>
           <line>76</line>
           <option name="timeStamp" value="17" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/cffbps.py</url>
+          <line>1360</line>
+          <option name="timeStamp" value="59" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
