@@ -135,8 +135,9 @@ def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
     # This equation has been revised from Van Wagner (1977) to match Van Wagner (1987)
     # Doing this uses the newer FF scale, over the old F scale (per Anderson 2009)
     if use_precise_values:
-        # This equation uses a more precise multiplier (147.27723 instead of 147.2) per Wang et al. (2017)
-        m0 = 147.27723 * (101 - ffmc0) / (59.5 + ffmc0)
+        # This equation uses a more precise multiplier (~147.27723 instead of 147.2) per Wang et al. (2017)
+        ffmc_coeff = 250.0 * 59.5 / 101.0
+        m0 = ffmc_coeff * (101 - ffmc0) / (59.5 + ffmc0)
     else:
         m0 = 147.2 * (101 - ffmc0) / (59.5 + ffmc0)
 
@@ -203,7 +204,8 @@ def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
     # Doing this uses the newer FF scale, over the old F scale (per Anderson 2009)
     if use_precise_values:
         # This equation uses a more precise multiplier (147.27723 instead of 147.2) per Wang et al. (2017)
-        ffmc = 59.5 * (250 - m) / (147.27723 + m)
+        ffmc_coeff = 250.0 * 59.5 / 101.0
+        ffmc = 59.5 * (250 - m) / (ffmc_coeff + m)
     else:
         ffmc = 59.5 * (250 - m) / (147.2 + m)
 

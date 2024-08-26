@@ -309,7 +309,15 @@
       <option name="project" value="LOCAL" />
       <updated>1723483981720</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="Added NF and WA as fuel types to the _testFBP() function">
+      <option name="closed" value="true" />
+      <created>1723484026175</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1723484026175</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -358,11 +366,6 @@
           <url>file://$PROJECT_DIR$/../FWI_Analysis/Display_FWI_Curve.py</url>
           <line>76</line>
           <option name="timeStamp" value="17" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/cffbps.py</url>
-          <line>1401</line>
-          <option name="timeStamp" value="59" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
