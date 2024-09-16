@@ -5,8 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Added NF and WA as fuel types to the _testFBP() function">
-      <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessFeatures.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" beforeDir="false" afterPath="$PROJECT_DIR$/../ProcessGeospatial/ProcessRasters.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/cffdrs.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/cffdrs.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
