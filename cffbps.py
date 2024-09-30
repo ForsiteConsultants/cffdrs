@@ -227,7 +227,7 @@ class FBP:
         cfb = Crown fraction burned (proportion, value ranging from 0-1)
         cfl = Crown fuel load (kg/m^2)
         cfc = Crown fuel consumed
-    : param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
+    :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
         to the grid codes used in this module
     :returns:
         Tuple of values requested through out_request parameter. Default values are fire_type, hfros, and hfi.
