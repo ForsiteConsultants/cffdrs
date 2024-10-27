@@ -88,7 +88,9 @@ def convert_grid_codes(fuel_type_array: np.ndarray) -> np.ndarray:
 
 
 # Grass curing values by season
-def getSeasonGrassCuring(season, province, subregion=None):
+def getSeasonGrassCuring(season: str,
+                         province: str,
+                         subregion: str = None) -> int:
     """
     Function returns a default grass curing code based on season, province, and subregion
     :param season: annual season ("spring", "summer", "fall", "winter")
@@ -778,121 +780,68 @@ class FBP:
 
             elif self.ftype in [12, 13]:
                 # ## Process M-3/4 fuel types...
-                # Get D1 RSZ and ISF
-                a_d1, b_d1, c_d1, q_d1, bui0_d1, be_max_d1 = self.rosParams[8]
-                rsz_d1 = mask.where(self.fuel_type == self.ftype,
-                                    a_d1 * np.power(1 - np.exp(-b_d1 * self.isz), c_d1),
-                                    0)
-                rsf_d1 = mask.where(self.fuel_type == self.ftype,
-                                    rsz_d1 * self.sf,
-                                    0)
-                isf_d1 = mask.where(self.fuel_type == self.ftype,
-                                    mask.where((1 - np.power(rsf_d1 / a_d1, 1 / c_d1)) >= 0.01,
-                                               np.log(1 - np.power(rsf_d1 / a_d1, 1 / c_d1)) / -b_d1,
-                                               np.log(0.01) / -b_d1),
-                                    0)
+                if self.ftype == 12:
+                    # Get D1 parameters
+                    a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[8]
+                else:
+                    # Get D2 parameters (technically the same as D1)
+                    a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[9]
+
+                # Get RSZ and ISF
+                rsz_d1_2 = mask.where(self.fuel_type == self.ftype,
+                                      a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isz), c_d1_2),
+                                      0)
+                rsf_d1_2 = mask.where(self.fuel_type == self.ftype,
+                                      rsz_d1_2 * self.sf,
+                                      0)
+                isf_d1_2 = mask.where(self.fuel_type == self.ftype,
+                                      mask.where((1 - np.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) >= 0.01,
+                                                 np.log(1 - np.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) / -b_d1_2,
+                                                 np.log(0.01) / -b_d1_2),
+                                      0)
 
                 # Calculate no slope/no wind rate of spread
                 self.rsz = mask.where(self.fuel_type == self.ftype,
                                       self.a * np.power(1 - np.exp(-self.b * self.isz), self.c),
                                       self.rsz)
 
-                # Calculate rate of spread with slope effect
+                # Calculate rate of spread with slope effect (no wind)
                 self.rsf = mask.where(self.fuel_type == self.ftype,
                                       self.rsz * self.sf,
                                       self.rsf)
 
-                # Calculate initial spread index with slope effect
+                # Calculate initial spread index with slope effect (no wind)
                 self.isf = mask.where(self.fuel_type == self.ftype,
                                       mask.where((1 - np.power(self.rsf / self.a, 1 / self.c)) >= 0.01,
                                                  (self.pdf / 100) *
                                                  (np.log(1 - np.power(self.rsf / self.a, 1 / self.c)) / -self.b) +
                                                  (1 - self.pdf / 100) *
-                                                 isf_d1,
+                                                 isf_d1_2,
                                                  np.log(0.01) / -self.b),
                                       self.isf)
 
-                # Calculate ISI and for D1
-                # Calculate the slope equivalent wind speed (for lower wind speeds)
-                np.seterr(divide='ignore')
-                wse1_d1 = mask.where(self.fuel_type == self.ftype,
-                                     (1 / 0.05039) * np.log(isf_d1 / (0.208 * self.fF)),
-                                     0)
-                np.seterr(divide='warn')
-
-                # Calculate the slope equivalent wind speed (for higher wind speeds)
-                wse2_d1 = mask.where(self.fuel_type == self.ftype,
-                                     mask.where(isf_d1 < (0.999 * 2.496 * self.fF),
-                                                28 - (1 / 0.0818) * np.log(1 - (isf_d1 / (2.496 * self.fF))),
-                                                112.45),
-                                     0)
-
-                # Assign slope equivalent wind speed
-                wse_d1 = mask.where(self.fuel_type == self.ftype,
-                                    mask.where(wse1_d1 <= 40,
-                                               wse1_d1,
-                                               wse2_d1),
-                                    0)
-
-                # Calculate vector magnitude in x-direction
-                wsx_d1 = mask.where(self.fuel_type == self.ftype,
-                                    ((self.ws * np.sin(np.radians(self.wd))) +
-                                     (wse_d1 * np.sin(np.radians(self.aspect)))),
-                                    0)
-
-                # Calculate vector magnitude in y-direction
-                wsy_d1 = mask.where(self.fuel_type == self.ftype,
-                                    ((self.ws * np.cos(np.radians(self.wd))) +
-                                     (wse_d1 * np.cos(np.radians(self.aspect)))),
-                                    0)
-
-                # Calculate the net effective wind speed
-                wsv_d1 = mask.where(self.fuel_type == self.ftype,
-                                    np.sqrt(np.power(wsx_d1, 2) + np.power(wsy_d1, 2)),
-                                    0)
-
-                # Calculate the net effective wind direction (RAZ)
-                # raz_d1 = mask.where(self.fuel_type == self.ftype,
-                #                     mask.where(wsx_d1 < 0,
-                #                                360 - np.degrees(np.arccos(wsy_d1 / wsv_d1)),
-                #                                np.degrees(np.arccos(wsy_d1 / wsv_d1))),
-                #                     0)
-
-                # Calculate the wind function of the ISI equation
-                fw_d1 = mask.where(self.fuel_type == self.ftype,
-                                   mask.where(wsv_d1 > 40,
-                                              12 * (1 - np.exp(-0.0818 * (wsv_d1 - 28))),
-                                              np.exp(0.05039 * wsv_d1)),
-                                   0)
-
-                # Calculate the new ISI with slope and wind effects
-                # isi_d1 = mask.where(self.fuel_type == self.ftype,
-                #                     0.208 * fw_d1 * self.fF,
-                #                     0)
-
-                # Calculate slope effects on wind and ISI
+                # Calculate ISI with slope and wind effects
                 _calcISI_slopeWind()
 
                 # Calculate rate of spread with slope and wind effects for D1
-                # Get D1 RSZ and ISF
-                # TODO Verify that ISI here should be the M3/4 ISI, rather than the D1 ISI
-                #  The CFS cffdrs R code uses the M3/4 (100% dead fir) ISI to calculate RSI for D1, which seems odd
                 rsi_d1 = mask.where(self.fuel_type == self.ftype,
-                                    a_d1 * np.power(1 - np.exp(-b_d1 * self.isi), c_d1),
+                                    a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isi), c_d1_2),
                                     0)
 
                 # Calculate rate of spread with slope and wind effects
                 if self.ftype == 13:
-                    self.rsi = mask.where(self.fuel_type == self.ftype,
-                                          ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi),
-                                                                                self.c) +
-                                           0.2 * (1 - self.pdf / 100) * rsi_d1),
-                                          self.rsi)
-                else:
+                    # D1 Fuel Type
                     self.rsi = mask.where(self.fuel_type == self.ftype,
                                           ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi),
                                                                                 self.c) +
                                            (1 - self.pdf / 100) * rsi_d1),
+                                          self.rsi)
+                else:
+                    # D2 Fuel Type
+                    self.rsi = mask.where(self.fuel_type == self.ftype,
+                                          ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi),
+                                                                                self.c) +
+                                           0.2 * (1 - self.pdf / 100) * rsi_d1),
                                           self.rsi)
 
                 # Calculate Buildup Effect (BE)
@@ -959,23 +908,30 @@ class FBP:
                                            np.log(1 - np.power(rsf_c2 / a_c2, 1 / c_c2)) / -b_c2,
                                            np.log(0.01) / -b_c2),
                                 0)
+            # Get parameters
+            if self.ftype == 10:
+                # Get D1 parameters
+                a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[8]
+            else:
+                # Get D2 parameters (technically the same as D1)
+                a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[9]
+
             # Get D1 RSZ and ISF
-            a_d1, b_d1, c_d1, q_d1, bui0_d1, be_max_d1 = self.rosParams[8]
-            rsz_d1 = mask.where(self.fuel_type == self.ftype,
-                                a_d1 * np.power(1 - np.exp(-b_d1 * self.isz), c_d1),
-                                0)
-            rsf_d1 = mask.where(self.fuel_type == self.ftype,
-                                rsz_d1 * self.sf,
-                                0)
-            isf_d1 = mask.where(self.fuel_type == self.ftype,
-                                mask.where((1 - np.power(rsf_d1 / a_d1, 1 / c_d1)) >= 0.01,
-                                           np.log(1 - np.power(rsf_d1 / a_d1, 1 / c_d1)) / -b_d1,
-                                           np.log(0.01) / -b_d1),
-                                0)
+            rsz_d1_2 = mask.where(self.fuel_type == self.ftype,
+                                  a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isz), c_d1_2),
+                                  0)
+            rsf_d1_2 = mask.where(self.fuel_type == self.ftype,
+                                  rsz_d1_2 * self.sf,
+                                  0)
+            isf_d1_2 = mask.where(self.fuel_type == self.ftype,
+                                  mask.where((1 - np.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) >= 0.01,
+                                             np.log(1 - np.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) / -b_d1_2,
+                                             np.log(0.01) / -b_d1_2),
+                                  0)
 
             # Calculate initial spread index with slope effects
             self.isf = mask.where(self.fuel_type == self.ftype,
-                                  (self.pc / 100) * isf_c2 + (1 - self.pc / 100) * isf_d1,
+                                  (self.pc / 100) * isf_c2 + (1 - self.pc / 100) * isf_d1_2,
                                   self.isf)
 
             # Calculate slope effects on wind and ISI
@@ -988,7 +944,7 @@ class FBP:
                                 0)
             # Get D1 RSZ and ISF
             rsi_d1 = mask.where(self.fuel_type == self.ftype,
-                                a_d1 * np.power(1 - np.exp(-b_d1 * self.isi), c_d1),
+                                a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isi), c_d1_2),
                                 0)
 
             # Calculate rate of spread with slope and wind effects (RSI)
