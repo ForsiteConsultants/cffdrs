@@ -1414,9 +1414,6 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
     """
     Function breaks input arrays into blocks and processes each block with a different worker/processor.
     Uses the runFBP function in the FBP class.
-    :param num_processors: Number of cores for multiprocessing
-    :param block_size: Size of blocks (# raster cells) for multiprocessing.
-        If block_size is None, an optimal block size will be estimated automatically.
     :param fuel_type: CFFBPS fuel type (numeric code: 1-20)
         Model 1: C-1 fuel type ROS model
         Model 2: C-2 fuel type ROS model
@@ -1512,6 +1509,9 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
         cfc = Crown fuel consumed
     :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
         to the grid codes used in this module
+    :param num_processors: Number of cores for multiprocessing
+    :param block_size: Size of blocks (# raster cells) for multiprocessing.
+        If block_size is None, an optimal block size will be estimated automatically.
     :return: Concatenated output array from all workers
     """
     # Add input parameters to list
@@ -1693,7 +1693,7 @@ def _testFBP(test_functions: list,
         cfb = Crown fraction burned (proportion, value ranging from 0-1)
         cfl = Crown fuel load (kg/m^2)
         cfc = Crown fuel consumed
-    :param out_folder: Location to save test rasters (Default: <location of script>\Test_Data\Outputs)
+    :param out_folder: Location to save test rasters (Default: <location of script>/Test_Data/Outputs)
     :param num_processors: Number of cores for multiprocessing
     :param block_size: Size of blocks (# raster cells) for multiprocessing
     :return: None
@@ -1806,11 +1806,14 @@ def _testFBP(test_functions: list,
             pr.arrayToRaster(array=dset,
                              out_file=path,
                              ras_profile=ref_ras_profile,
-                             data_type=np.float64)
+                             dtype=np.float64)
 
     # ### Test raster multiprocessing
     if any(var in test_functions for var in ['raster_multiprocessing', 'all']):
         print('Testing raster multiprocessing')
+        if not os.path.exists(os.path.join(output_folder, 'Multiprocessing')):
+            os.mkdir(os.path.join(output_folder, 'Multiprocessing'))
+
         # Get input dataset paths
         fuel_type_path = os.path.join(multiprocess_folder, 'FuelType.tif')
         lat_path = os.path.join(multiprocess_folder, 'LAT.tif')
@@ -1885,7 +1888,7 @@ def _testFBP(test_functions: list,
             pr.arrayToRaster(array=dset,
                              out_file=path,
                              ras_profile=ref_ras_profile,
-                             data_type=np.float64)
+                             dtype=np.float64)
 
 
 if __name__ == '__main__':
