@@ -635,11 +635,24 @@ class FBP:
 
         return
 
-    def calcFMC(self) -> None:
+    def calcFMC(self,
+                lat: Optional[float] = None,
+                long: Optional[float] = None,
+                elevation: Optional[float] = None,
+                wx_date: Optional[int] = None) -> None:
         """
         Function to calculate foliar moisture content (FMC) and foliar moisture effect (FME).
         :return: None
         """
+        if lat is not None:
+            self.lat = lat
+        if long is not None:
+            self.long = lat
+        if elevation is not None:
+            self.elevation = lat
+        if wx_date is not None:
+            self.wx_date = lat
+
         # Calculate normalized latitude
         self.latn = mask.where((self.elevation is not None) & (self.elevation > 0),
                                43 + (33.7 * np.exp(-0.0351 * (150 - np.abs(self.long)))),
@@ -1539,7 +1552,7 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
     if num_processors < 2:
         num_processors = 2
         raise UserWarning('Multiprocessing requires at least two cores.\n'
-                          'Defaulting num_cores to 2 for this run')
+                          'Defaulting num_processors to 2 for this run')
 
     # Verify block size
     if block_size is None:
