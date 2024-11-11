@@ -12,8 +12,7 @@ from operator import itemgetter
 import numpy as np
 from numpy import ma as mask
 from datetime import datetime as dt
-from multiprocessing import current_process
-from multiprocessing import Pool
+from multiprocessing import current_process, Pool
 import psutil
 
 # CFFBPS Fuel Type Numeric-Alphanumeric Code Lookup Table
