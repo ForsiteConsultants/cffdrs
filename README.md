@@ -1,7 +1,7 @@
 
 # cffdrs Package
 
-The `cffdrs` package provides tools for calculating Canadian Forest Fire Danger Rating System (CFFDRS) weather indices, 
+The `cffdrs` package provides tools for calculating Canadian Forest Fire Danger Rating System (CFFDRS) weather indices and 
 fire behavior, and for generating test rasters for Fire Behavior Prediction (FBP) analysis. 
 
 The package consists of three modules:
