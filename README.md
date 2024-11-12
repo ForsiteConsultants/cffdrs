@@ -1,19 +1,25 @@
 
-# Canadian Forest Fire Danger Rating System (CFFDRS)
+# cffdrs Package
 
-This project contains implementations for the Canadian Forest Fire Danger Rating System based on the 
-Canadian Forest Fire Behavior Prediction System (CFFBPS) and Weather Index System (CFFWIS). 
-The following instructions and function references help in utilizing the key scripts effectively.
+The `cffdrs` package provides tools for calculating Canadian Forest Fire Danger Rating System (CFFDRS) weather indices and 
+fire behavior, and for generating test rasters for Fire Behavior Prediction (FBP) analysis. 
 
-## Repository Contents
+The package consists of three modules:
 
-- **cffbps.py**: Main module implementing the `FBP` class for fire behavior modeling.
-- **cffwis.py**: Provides functions to calculate fire weather indices such as FFMC, DMC, DC, and ISI.
-- **generate_test_fbp_rasters.py**: Script to generate test rasters based on user-provided parameters.
+1. `cffbps.py`: Functions for calculating the Fire Behavior Prediction System (FBP) indices.
+2. `cffwis.py`: Functions for calculating the Fire Weather Index System (FWI) indices.
+3. `generate_test_fbp_rasters.py`: A script for generating test raster datasets for FBP calculations.
 
-## Modules Overview
+## Installation
 
-### 1. `cffbps.py` - Core Fire Behavior Prediction
+1. Clone the repository or download the package files.
+2. Ensure that you have Python 3.x installed.
+3. Install required dependencies:
+   ```bash
+   pip install numpy
+   ```
+
+## Modules
 
 #### Key Class: `FBP`
 The `FBP` class provides various methods to model fire behavior based on specified parameters. Initialize this class with parameters such as fuel type, weather conditions, and fuel moisture codes.
@@ -64,9 +70,9 @@ fbp_instance = FBP(
 results = fbp_instance.runFBP()
 ```
 
-### 2. `cffwis.py` - Fire Weather Index System
+### 2. `cffwis.py` - Fire Weather Index System (FWI) Calculations
 
-This module provides functions for calculating various weather indices in the Canadian Fire Weather Index (FWI) system, based on moisture and weather data.
+This module contains functions to calculate FWI values based on environmental factors. FWI indices are used for wildfire risk assessment.
 
 #### Key Functions
 - **`hourlyFFMC()`**: Computes hourly Fine Fuel Moisture Code (FFMC) values.
@@ -89,9 +95,9 @@ isi = dailyISI(wind=10, ffmc=ffmc)
 bui = dailyBUI(dmc=20, dc=30)
 ```
 
-### 3. `generate_test_fbp_rasters.py` - Test Raster Data Generation
+### 3. `generate_test_fbp_rasters.py` - Generate Test Raster Data for FBP
 
-The `generate_test_fbp_rasters.py` script generates test raster data based on specified parameters. This is useful for validating and visualizing the model output in a spatial format.
+This script generates test raster datasets for FBP analysis, useful for simulating fire behavior under different conditions. It requires an input folder with a `FuelType.tif` file.
 
 #### Key Function
 - **`gen_test_data()`**: Generates test raster files for various parameters, saved in the `Test_Data/Inputs` directory.
