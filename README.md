@@ -1,85 +1,145 @@
 
-# cffdrs Package
+# Canadian Forest Fire Danger Rating System (CFFDRS)
 
-The `cffdrs` package provides tools for calculating Canadian Forest Fire Danger Rating System (CFFDRS) weather indices, 
-fire behavior, and for generating test rasters for Fire Behavior Prediction (FBP) analysis. 
+This project contains implementations for the Canadian Forest Fire Danger Rating System based on the 
+Canadian Forest Fire Behavior Prediction System (CFFBPS) and Weather Index System (CFFWIS). 
+The following instructions and function references help in utilizing the key scripts effectively.
 
-The package consists of three modules:
+## Repository Contents
 
-1. `cffbps.py`: Functions for calculating the Fire Behavior Prediction System (FBP) indices.
-2. `cffwis.py`: Functions for calculating the Fire Weather Index System (FWI) indices.
-3. `generate_test_fbp_rasters.py`: A script for generating test raster datasets for FBP calculations.
+- **cffbps.py**: Main module implementing the `FBP` class for fire behavior modeling.
+- **cffwis.py**: Provides functions to calculate fire weather indices such as FFMC, DMC, DC, and ISI.
+- **generate_test_fbp_rasters.py**: Script to generate test rasters based on user-provided parameters.
 
-## Installation
+## Modules Overview
 
-1. Clone the repository or download the package files.
-2. Ensure that you have Python 3.x installed.
-3. Install required dependencies:
-   ```bash
-   pip install numpy
-   ```
+### 1. `cffbps.py` - Core Fire Behavior Prediction
 
-## Modules
+#### Key Class: `FBP`
+The `FBP` class provides various methods to model fire behavior based on specified parameters. Initialize this class with parameters such as fuel type, weather conditions, and fuel moisture codes.
 
-### 1. `cffbps.py` - Fire Behavior Prediction System (FBP) Calculations
+##### Key Functions
+- **`invertWindAspect()`**: Inverts the wind direction and aspect by 180°.
+- **`calcSF()`**: Calculates the slope factor.
+- **`calcISZ()`**: Calculates the initial spread index with no wind/no slope effects.
+- **`calcFMC()`**: Computes the foliar moisture content (FMC) and foliar moisture effect (FME).
+- **`calcROS()`**: Models the fire rate of spread.
+- **`calcSFC()`**: Calculates forest floor consumption, woody fuel consumption, and total surface fuel consumption.
+- **`getCBH_CFL()`**: Retrieves the default canopy base height (CBH) and canopy fuel load (CFL) for a specified fuel type.
+- **`calcCSFI()`**: Calculates the critical surface fire intensity.
+- **`calcRSO()`**: Computes the critical surface fire rate of spread.
+- **`calcCFB()`**: Determines crown fraction burned.
+- **`calcFireType()`**: Calculates the fire type (surface, intermittent crown, or active crown).
+- **`calcCFC()`**: Determines the crown fuel consumed.
+- **`calcC6hfros()`**: Calculates the crown and total head fire rate of spread for the C6 fuel type.
+- **`calcTFC()`**: Computes the total fuel consumed.
+- **`calcHFI()`**: Calculates the head fire intensity.
+- **`runFBP()`**: Automatically runs the fire behavior model using all the methods above.
 
-This module includes functions for calculating various FBP metrics, which help assess wildfire behavior under different conditions.
-
-#### Functions:
-- **`calcFC(fuel, wind, slope, aspect)`**: Calculates the Fire Crown potential based on fuel, wind, slope, and aspect.
-- **`calcSP(sp_fmc, ffmc)`**: Computes Spread Potential based on the fine fuel moisture code and other factors.
-- **`calcIC(intensity, slope)`**: Computes Initial Spread Index (ISI) based on intensity and slope.
-  
-#### Usage Example:
+#### Usage Example
 ```python
-from cffdrs.cffbps import calcFC, calcSP, calcIC
+from cffbps import FBP
 
-fc_value = calcFC(fuel="C1", wind=20, slope=15, aspect=180)
-sp_value = calcSP(sp_fmc=85, ffmc=92)
-ic_value = calcIC(intensity=30, slope=10)
+# Initialize the FBP class with required parameters
+fbp_instance = FBP(
+    fuel_type=1, 
+    wx_date=20240516, 
+    lat=62.245533, 
+    long=-133.840363, 
+    elevation=1180,
+    slope=8, 
+    aspect=60, 
+    ws=24, 
+    wd=266, 
+    ffmc=92, 
+    bui=31, 
+    pc=50, 
+    pdf=35, 
+    gfl=0.35, 
+    gcf=80, 
+    out_request=['fire_type', 'hfros', 'hfi']
+)
+
+# Run the fire behavior model and retrieve outputs
+results = fbp_instance.runFBP()
 ```
 
-### 2. `cffwis.py` - Fire Weather Index System (FWI) Calculations
+### 2. `cffwis.py` - Fire Weather Index System
 
-This module contains functions to calculate FWI values based on environmental factors. FWI indices are used for wildfire risk assessment.
+This module provides functions for calculating various weather indices in the Canadian Fire Weather Index (FWI) system, based on moisture and weather data.
 
-#### Functions:
-- **`dailyDMC(dmc0, temp, precip, rh, month)`**: Calculates the Duff Moisture Code (DMC).
-- **`dailyDC(dc0, temp, precip, month)`**: Calculates the Drought Code (DC).
-- **`dailyISI(wind, ffmc)`**: Calculates the Initial Spread Index (ISI).
-- **`dailyFWI(isi, bui)`**: Calculates the Fire Weather Index (FWI).
-- **`dailyDSR(fwi)`**: Calculates the Daily Severity Rating (DSR).
+#### Key Functions
+- **`hourlyFFMC()`**: Computes hourly Fine Fuel Moisture Code (FFMC) values.
+- **`dailyFFMC()`**: Calculates daily FFMC values.
+- **`dailyDMC()`**: Determines the daily Drought Code (DMC).
+- **`dailyDC()`**: Calculates the daily Drought Code (DC).
+- **`dailyISI()`**: Calculates the Initial Spread Index (ISI).
+- **`dailyBUI()`**: Computes the Build Up Index (BUI).
+- **`dailyFWI()`**: Calculates the Fire Weather Index (FWI).
+- **`dailyDSR()`**: Determines the Daily Severity Rating (DSR).
+- **`startupDC()`**: Computes the Drought Code at the start of a season after overwintering.
 
-#### Usage Example:
+#### Usage Example
 ```python
-from cffdrs.cffwis import dailyDMC, dailyDC, dailyISI, dailyFWI, dailyDSR
+from cffwis import dailyFFMC, dailyISI, dailyBUI
 
-dmc_value = dailyDMC(dmc0=6, temp=20, precip=5, rh=40, month=6)
-dc_value = dailyDC(dc0=15, temp=25, precip=2, month=7)
-isi_value = dailyISI(wind=30, ffmc=85)
-fwi_value = dailyFWI(isi=isi_value, bui=50)
-dsr_value = dailyDSR(fwi=fwi_value)
+# Calculate FFMC, ISI, and BUI based on weather inputs
+ffmc = dailyFFMC(ffmc0=85, temp=15, rh=50, wind=10, precip=0)
+isi = dailyISI(wind=10, ffmc=ffmc)
+bui = dailyBUI(dmc=20, dc=30)
 ```
 
-### 3. `generate_test_fbp_rasters.py` - Generate Test Raster Data for FBP
+### 3. `generate_test_fbp_rasters.py` - Test Raster Data Generation
 
-This script generates test raster datasets for FBP analysis, useful for simulating fire behavior under different conditions. It requires an input folder with a `FuelType.tif` file.
+The `generate_test_fbp_rasters.py` script generates test raster data based on specified parameters. This is useful for validating and visualizing the model output in a spatial format.
 
-#### Usage Example:
-To generate test FBP rasters:
-1. Set the parameters in the script (e.g., `wx_date`, `lat`, `long`, etc.).
-2. Run the script:
-   ```bash
-   python generate_test_fbp_rasters.py
-   ```
+#### Key Function
+- **`gen_test_data()`**: Generates test raster files for various parameters, saved in the `Test_Data/Inputs` directory.
 
-Example function call within the script:
+#### Usage Example
 ```python
-from cffdrs.generate_test_fbp_rasters import gen_test_data
+from generate_test_fbp_rasters import gen_test_data
 
-gen_test_data(wx_date=20160516, lat=62.245533, long=-133.840363,
-              elevation=1180, slope=8, aspect=60, ws=24, wd=266,
-              ffmc=92, bui=31, pc=0, pdf=0, gfl=0, gcf=60)
+# Generate test raster data with specified parameters
+gen_test_data(
+    wx_date=20160516, 
+    lat=62.245533, 
+    long=-133.840363, 
+    elevation=1180, 
+    slope=8, 
+    aspect=60, 
+    ws=24, 
+    wd=266, 
+    ffmc=92, 
+    bui=31
+)
+```
+
+### Running Tests and Multiprocessing
+You can test various functions in `cffbps.py` with the `_testFBP` function, which supports numeric, array, raster, and raster multiprocessing testing modes.
+
+```python
+from cffbps import _testFBP
+
+# Test various modes
+_testFBP(
+    test_functions=['all'], 
+    wx_date=20240516, 
+    lat=62.245533, 
+    long=-133.840363, 
+    elevation=1180,
+    slope=8, 
+    aspect=60, 
+    ws=24, 
+    wd=266, 
+    ffmc=92, 
+    bui=31, 
+    pc=50, 
+    pdf=35, 
+    gfl=0.35, 
+    gcf=80, 
+    out_request=['fire_type', 'hfros', 'hfi']
+)
 ```
 
 ---
