@@ -4,9 +4,8 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Replaced &quot;from fiona.crs import CRS, from_epsg&quot; import statements with &quot;from pyproj import CRS&quot; and &quot;CRS.from_epsg&quot; within the necessary functions">
+    <list default="true" id="4b636978-a408-4f52-964a-0edd7c4a75ef" name="Changes" comment="Revised the README.md file">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/cffbps.py" beforeDir="false" afterPath="$PROJECT_DIR$/cffbps.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -333,15 +332,7 @@
       <option name="project" value="LOCAL" />
       <updated>1731318328579</updated>
     </task>
-    <task id="LOCAL-00032" summary="Replaced &quot;from fiona.crs import CRS, from_epsg&quot; import statements with &quot;from pyproj import CRS&quot; and &quot;CRS.from_epsg&quot; within the necessary functions">
-      <option name="closed" value="true" />
-      <created>1731373570370</created>
-      <option name="number" value="00032" />
-      <option name="presentableId" value="LOCAL-00032" />
-      <option name="project" value="LOCAL" />
-      <updated>1731373570370</updated>
-    </task>
-    <option name="localTasksCounter" value="33" />
+    <option name="localTasksCounter" value="32" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -356,6 +347,7 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
+    <MESSAGE value="Added .gitignore" />
     <MESSAGE value="Added testing function to CFFBPS_.py" />
     <MESSAGE value="Revised .gitignore" />
     <MESSAGE value="Removed underscores from parameter names" />
@@ -380,8 +372,7 @@
     <MESSAGE value="Added NF and WA as fuel types to the _testFBP() function" />
     <MESSAGE value="Edited the FBP class docstring" />
     <MESSAGE value="Merged the multiprocessing imports" />
-    <MESSAGE value="Replaced &quot;from fiona.crs import CRS, from_epsg&quot; import statements with &quot;from pyproj import CRS&quot; and &quot;CRS.from_epsg&quot; within the necessary functions" />
-    <option name="LAST_COMMIT_MESSAGE" value="Replaced &quot;from fiona.crs import CRS, from_epsg&quot; import statements with &quot;from pyproj import CRS&quot; and &quot;CRS.from_epsg&quot; within the necessary functions" />
+    <option name="LAST_COMMIT_MESSAGE" value="Merged the multiprocessing imports" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
