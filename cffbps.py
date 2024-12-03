@@ -341,6 +341,7 @@ class FBP:
 
         # Initialize the back fire rate of spread parameters
         self.bfW = self.ref_array
+        self.brsi = self.ref_array
         self.bisi = self.ref_array
         self.bros = self.ref_array
 
@@ -741,6 +742,7 @@ class FBP:
                                              np.degrees(np.arccos(self.wsy / self.wsv))),
                                   self.raz)
 
+            # ## Calculate Head Fire metrics
             # Calculate the wind function of the ISI equation
             self.fW = mask.where(self.fuel_type == self.ftype,
                                  mask.where(self.wsv > 40,
@@ -752,6 +754,15 @@ class FBP:
             self.isi = mask.where(self.fuel_type == self.ftype,
                                   0.208 * self.fW * self.fF,
                                   self.isi)
+
+            # ## Calculate Back Fire metrics
+            # Calculate the back fire wind function
+            self.bfW = mask.where(self.fuel_type == self.ftype,
+                                  mask.exp(-0.05039 * self.wsv),
+                                  self.bfW)
+
+            # Calculate the ISI associated with the back fire rate of spread
+            self.bisi = self.bfW * self.fF * 0.208
 
         # ### CFFBPS ROS models
         if self.ftype not in [10, 11]:
@@ -786,10 +797,15 @@ class FBP:
                 # Calculate slope effects on wind and ISI
                 _calcISI_slopeWind()
 
-                # Calculate rate of spread with slope and wind effects
+                # Calculate head fire rate of spread with slope and wind effects
                 self.rsi = mask.where(self.fuel_type == self.ftype,
                                       self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) * self.cf,
                                       self.rsi)
+
+                # Calculate back fire rate of spread with slope and wind effects
+                self.brsi = mask.where(self.fuel_type == self.ftype,
+                                       self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) * self.cf,
+                                       self.brsi)
 
                 # Calculate Buildup Effect (BE)
                 self.be = mask.where(self.fuel_type == self.ftype,
@@ -841,26 +857,43 @@ class FBP:
                 # Calculate ISI with slope and wind effects
                 _calcISI_slopeWind()
 
-                # Calculate rate of spread with slope and wind effects for D1
+                # Calculate head fire rate of spread with slope and wind effects for D1
                 rsi_d1 = mask.where(self.fuel_type == self.ftype,
                                     a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isi), c_d1_2),
                                     0)
 
+                # Calculate back fire rate of spread with slope and wind effects for D1
+                brsi_d1 = mask.where(self.fuel_type == self.ftype,
+                                     a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.bisi), c_d1_2),
+                                     0)
+
                 # Calculate rate of spread with slope and wind effects
                 if self.ftype == 13:
-                    # D1 Fuel Type
+                    # D1 Fuel Type Head Fire RSI
                     self.rsi = mask.where(self.fuel_type == self.ftype,
                                           ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi),
                                                                                 self.c) +
                                            (1 - self.pdf / 100) * rsi_d1),
                                           self.rsi)
+                    # D1 Fuel Type Back Fire RSI
+                    self.brsi = mask.where(self.fuel_type == self.ftype,
+                                           ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi),
+                                                                                 self.c) +
+                                            (1 - self.pdf / 100) * brsi_d1),
+                                           self.brsi)
                 else:
-                    # D2 Fuel Type
+                    # D2 Fuel Type Head Fire RSI
                     self.rsi = mask.where(self.fuel_type == self.ftype,
                                           ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi),
                                                                                 self.c) +
                                            0.2 * (1 - self.pdf / 100) * rsi_d1),
                                           self.rsi)
+                    # D2 Fuel Type Back Fire RSI
+                    self.brsi = mask.where(self.fuel_type == self.ftype,
+                                          ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi),
+                                                                                self.c) +
+                                           0.2 * (1 - self.pdf / 100) * brsi_d1),
+                                          self.brsi)
 
                 # Calculate Buildup Effect (BE)
                 self.be = mask.where(self.fuel_type == self.ftype,
@@ -896,10 +929,15 @@ class FBP:
                 # Calculate slope effects on wind and ISI
                 _calcISI_slopeWind()
 
-                # Calculate rate of spread with slope and wind effects
+                # Calculate head fire rate of spread with slope and wind effects
                 self.rsi = mask.where(self.fuel_type == self.ftype,
                                       self.a * np.power(1 - np.exp(-self.b * self.isi), self.c),
                                       self.rsi)
+
+                # Calculate back fire rate of spread with slope and wind effects
+                self.brsi = mask.where(self.fuel_type == self.ftype,
+                                       self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c),
+                                       self.brsi)
 
                 # Calculate Buildup Effect (BE)
                 self.be = mask.where(self.fuel_type == self.ftype,
@@ -956,24 +994,38 @@ class FBP:
             _calcISI_slopeWind()
 
             # Calculate rate of spread with slope and wind effects for C2 and D1
-            # Get C2 RSI and ISI
+            # Get C2 Head Fire RSI
             rsi_c2 = mask.where(self.fuel_type == self.ftype,
                                 a_c2 * np.power(1 - np.exp(-b_c2 * self.isi), c_c2),
                                 0)
-            # Get D1 RSZ and ISF
+            # Get C2 Back Fire RSI
+            brsi_c2 = mask.where(self.fuel_type == self.ftype,
+                                 a_c2 * np.power(1 - np.exp(-b_c2 * self.bisi), c_c2),
+                                 0)
+            # Get D1 Head Fire RSI
             rsi_d1 = mask.where(self.fuel_type == self.ftype,
                                 a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isi), c_d1_2),
                                 0)
+            # Get D1 Back Fire RSI
+            brsi_d1 = mask.where(self.fuel_type == self.ftype,
+                                 a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.bisi), c_d1_2),
+                                 0)
 
             # Calculate rate of spread with slope and wind effects (RSI)
             if self.ftype == 11:
                 self.rsi = mask.where(self.fuel_type == self.ftype,
                                       (self.pc / 100) * rsi_c2 + 0.2 * (1 - self.pc / 100) * rsi_d1,
                                       self.rsi)
+                self.brsi = mask.where(self.fuel_type == self.ftype,
+                                      (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
+                                      self.brsi)
             else:
                 self.rsi = mask.where(self.fuel_type == self.ftype,
                                       (self.pc / 100) * rsi_c2 + (1 - self.pc / 100) * rsi_d1,
                                       self.rsi)
+                self.brsi = mask.where(self.fuel_type == self.ftype,
+                                      (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
+                                      self.brsi)
 
             # Calculate Buildup Effect (BE)
             self.be = mask.where(self.fuel_type == self.ftype,
@@ -992,14 +1044,24 @@ class FBP:
         # Calculate Final ROS
         if self.ftype == 6:
             # C6 fuel type
+            # Head Surface Fire ROS
             self.sfros = mask.where(self.fuel_type == self.ftype,
                                     self.rsi * self.be,
                                     self.sfros)
+            # Back Surface Fire ROS
+            self.bros = mask.where(self.fuel_type == self.ftype,
+                                   self.brsi * self.be,
+                                   self.bros)
         else:
             # All other fuel types
+            # Head Fire ROS
             self.hfros = mask.where(self.fuel_type == self.ftype,
                                     self.rsi * self.be,
                                     self.hfros)
+            # Back Fire ROS
+            self.bros = mask.where(self.fuel_type == self.ftype,
+                                   self.brsi * self.be,
+                                   self.bros)
             if self.ftype == 9:
                 # D2 fuel type
                 self.hfros = mask.where(self.fuel_type == self.ftype,
@@ -1235,22 +1297,6 @@ class FBP:
         :returns: None
         """
         self.hfi = 300 * self.hfros * self.tfc
-
-        return
-
-    def calcBROS(self) -> None:
-        """
-
-        :return:
-        """
-        # Calculate the back fire wind function
-        self.bfW = np.exp(-0.05039 * self.wsv)
-
-        # Calculate the ISI associated with the back fire rate of spread
-        self.bisi = self.bfW * self.fF * 0.208
-
-        # Calculate the back fire rate of spread
-        self.bros = self.a * (1 - np.power(np.exp(-self.b * self.bisi), self.c) * self.be)
 
         return
 
