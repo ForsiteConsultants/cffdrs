@@ -1418,8 +1418,6 @@ class FBP:
         self.calcTFC()
         # print('Calculating head fire intensity')
         self.calcHFI()
-        # print('Calculating back fire rate of spread')
-        self.calcBROS()
 
         # print('<< Returning requested values >>\n')
         return self.getOutputs(self.out_request)
