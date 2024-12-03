@@ -339,6 +339,11 @@ class FBP:
         self.cfc = self.ref_array
         self.tfc = self.ref_array
 
+        # Initialize the back fire rate of spread parameters
+        self.bfW = self.ref_array
+        self.bisi = self.ref_array
+        self.bros = self.ref_array
+
         # Initialize default CFFBPS output parameters
         self.fire_type = self.ref_array
         self.hfros = self.ref_array
@@ -1233,6 +1238,22 @@ class FBP:
 
         return
 
+    def calcBROS(self) -> None:
+        """
+
+        :return:
+        """
+        # Calculate the back fire wind function
+        self.bfW = np.exp(-0.05039 * self.wsv)
+
+        # Calculate the ISI associated with the back fire rate of spread
+        self.bisi = self.bfW * self.fF * 0.208
+
+        # Calculate the back fire rate of spread
+        self.bros = self.a * (1 - np.power(np.exp(-self.b * self.bisi), self.c) * self.be)
+
+        return
+
     def getOutputs(self, out_request: list[str]) -> list[any]:
         # Dictionary of CFFBPS parameters
         fbp_params = {
@@ -1286,8 +1307,13 @@ class FBP:
             'fme': self.fme,  # foliar moisture effect
 
             # Critical crown fire threshold variables
-            'csfi': self.csfi,  # critical intensity (kW/m)
-            'rso': self.rso,  # critical rate of spread (m/min)
+            'csfi': self.csfi,  # Critical intensity (kW/m)
+            'rso': self.rso,  # Critical rate of spread (m/min)
+
+            # Back fire spread variables
+            'bfw': self.bfW,  # The back fire wind function
+            'bisi': self.bisi,  # The ISI associated with the back fire rate of spread
+            'bros': self.bros,  # Backing rate of spread (m/min)
 
             # Crown fuel parameters
             'cbh': self.cbh,  # Height to live crown base (m)
@@ -1346,6 +1372,8 @@ class FBP:
         self.calcTFC()
         # print('Calculating head fire intensity')
         self.calcHFI()
+        # print('Calculating back fire rate of spread')
+        self.calcBROS()
 
         # print('<< Returning requested values >>\n')
         return self.getOutputs(self.out_request)
