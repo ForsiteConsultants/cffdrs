@@ -135,225 +135,107 @@ def getSeasonGrassCuring(season: str,
 ##################################################################################################
 class FBP:
     """
-    Class to model fire type, head fire rate of spread, and head fire intensity with CFFBPS
-    :param fuel_type: CFFBPS fuel type (numeric code: 1-20)
-        Model 1: C-1 fuel type ROS model
-        Model 2: C-2 fuel type ROS model
-        Model 3: C-3 fuel type ROS model
-        Model 4: C-4 fuel type ROS model
-        Model 5: C-5 fuel type ROS model
-        Model 6: C-6 fuel type ROS model
-        Model 7: C-7 fuel type ROS model
-        Model 8: D-1 fuel type ROS model
-        Model 9: D-2 fuel type ROS model
-        Model 10: M-1 fuel type ROS model
-        Model 11: M-2 fuel type ROS model
-        Model 12: M-3 fuel type ROS model
-        Model 13: M-4 fuel type ROS model
-        Model 14: O-1a fuel type ROS model
-        Model 15: O-1b fuel type ROS model
-        Model 16: S-1 fuel type ROS model
-        Model 17: S-2 fuel type ROS model
-        Model 18: S-3 fuel type ROS model
-        Model 19: Non-fuel (NF)
-        Model 20: Water (WA)
-    :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
-    :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
-    :param long: Longitude of area being modelled (Decimal Degrees, floating point)
-    :param elevation: Elevation of area being modelled (m)
-    :param slope: Ground slope angle/tilt of area being modelled (%)
-    :param aspect: Ground slope aspect/azimuth of area being modelled (degrees)
-    :param ws: Wind speed (km/h @ 10m height)
-    :param wd: Wind direction (degrees, direction wind is coming from)
-    :param ffmc: CFFWIS Fine Fuel Moisture Code
-    :param bui: CFFWIS Buildup Index
-    :param pc: Percent conifer (%, value from 0-100)
-    :param pdf: Percent dead fir (%, value from 0-100)
-    :param gfl: Grass fuel load (kg/m^2)
-    :param gcf: Grass curing factor (%, value from 0-100)
-    :param out_request: Tuple or list of CFFBPS output variables
-        # Default output variables
-        fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
-        hfros = Head fire rate of spread (m/min)
-        hfi = head fire intensity (kW/m)
-
-        # Weather variables
-        ws = Observed wind speed (km/h)
-        wd = Wind azimuth/direction (degrees)
-        m = Moisture content equivalent of the FFMC (%, value from 0-100+)
-        fF = Fine fuel moisture function in the ISI
-        fW = Wind function in the ISI
-        isi = Final ISI, accounting for wind and slope
-
-        # Slope + wind effect variables
-        a = Rate of spread equation coefficient
-        b = Rate of spread equation coefficient
-        c = Rate of spread equation coefficient
-        RSZ = Surface spread rate with zero wind on level terrain
-        SF = Slope factor
-        RSF = spread rate with zero wind, upslope
-        ISF = ISI, with zero wind upslope
-        RSI = Initial spread rate without BUI effect
-        WSE1 = Original slope equivalent wind speed value
-        WSE2 = New slope equivalent sind speed value for cases where WSE1 > 40 (capped at max of 112.45)
-        WSE = Slope equivalent wind speed
-        WSX = Net vectorized wind speed in the x-direction
-        WSY = Net vectorized wind speed in the y-direction
-        WSV = (aka: slope-adjusted wind speed) Net vectorized wind speed (km/h)
-        RAZ = (aka: slope-adjusted wind direction) Net vectorized wind direction (degrees)
-
-        # BUI effect variables
-        q = Proportion of maximum rate of spread at BUI equal to 50
-        bui0 = Average BUI for each fuel type
-        BE = Buildup effect on spread rate
-        be_max = Maximum allowable BE value
-
-        # Surface fuel variables
-        ffc = Estimated forest floor consumption
-        wfc = Estimated woody fuel consumption
-        sfc = Estimated total surface fuel consumption
-
-        # Foliar moisture content variables
-        latn = Normalized latitude
-        d0 = Julian date of minimum foliar moisture content
-        nd = number of days between modelled fire date and d0
-        fmc = foliar moisture content
-        fme = foliar moisture effect
-
-        # Critical crown fire threshold variables
-        csfi = critical intensity (kW/m)
-        rso = critical rate of spread (m/min)
-
-        # Crown fuel parameters
-        cbh = Height to live crown base (m)
-        cfb = Crown fraction burned (proportion, value ranging from 0-1)
-        cfl = Crown fuel load (kg/m^2)
-        cfc = Crown fuel consumed
-    :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
-        to the grid codes used in this module
-    :returns:
-        Tuple of values requested through out_request parameter. Default values are fire_type, hfros, and hfi.
+    Class to model fire behavior with the Canadian Forest Fire Behavior Prediction System.
     """
 
-    def __init__(self,
-                 fuel_type: Union[int, str, np.ndarray],
-                 wx_date: int,
-                 lat: Union[float, int, np.ndarray],
-                 long: Union[float, int, np.ndarray],
-                 elevation: Union[float, int, np.ndarray],
-                 slope: Union[float, int, np.ndarray],
-                 aspect: Union[float, int, np.ndarray],
-                 ws: Union[float, int, np.ndarray],
-                 wd: Union[float, int, np.ndarray],
-                 ffmc: Union[float, int, np.ndarray],
-                 bui: Union[float, int, np.ndarray],
-                 pc: Optional[Union[float, int, np.ndarray]] = 50,
-                 pdf: Optional[Union[float, int, np.ndarray]] = 35,
-                 gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
-                 gcf: Optional[Union[float, int, np.ndarray]] = 80,
-                 out_request: Optional[list[str]] = None,
-                 convert_fuel_type_codes: Optional[bool] = False):
-
+    def __init__(self):
         # Initialize CFFBPS input parameters
-        self.fuel_type = fuel_type
-        self.wx_date = wx_date
-        self.lat = lat
-        self.long = long
-        self.elevation = elevation
-        self.slope = slope
-        self.aspect = aspect
-        self.ws = ws
-        self.wd = wd
-        self.ffmc = ffmc
-        self.bui = bui
-        self.pc = pc
-        self.pdf = pdf
-        self.gfl = gfl
-        self.gcf = gcf
-        self.out_request = out_request
-        self.convert_fuel_type_codes = convert_fuel_type_codes
+        self.fuel_type = None
+        self.wx_date = None
+        self.lat = None
+        self.long = None
+        self.elevation = None
+        self.slope = None
+        self.aspect = None
+        self.ws = None
+        self.wd = None
+        self.ffmc = None
+        self.bui = None
+        self.pc = None
+        self.pdf = None
+        self.gfl = None
+        self.gcf = None
+        self.out_request = None
+        self.convert_fuel_type_codes = None
 
         # Array verification parameter
         self.return_array = None
         self.ref_array = None
-
-        # Verify input parameters
-        self._checkArray()
-        self._verifyInputs()
+        self.initialized = False
 
         # Initialize multiprocessing block variable
         self.block = None
 
         # Initialize weather parameters
-        self.isi = self.ref_array
-        self.m = self.ref_array
-        self.fF = self.ref_array
-        self.fW = self.ref_array
+        self.isi = None
+        self.m = None
+        self.fF = None
+        self.fW = None
 
         # Initialize slope effect parameters
-        self.a = self.ref_array
-        self.b = self.ref_array
-        self.c = self.ref_array
-        self.rsz = self.ref_array
-        self.isz = self.ref_array
-        self.sf = self.ref_array
-        self.rsf = self.ref_array
-        self.isf = self.ref_array
-        self.rsi = self.ref_array
-        self.wse1 = self.ref_array
-        self.wse2 = self.ref_array
-        self.wse = self.ref_array
-        self.wsx = self.ref_array
-        self.wsy = self.ref_array
-        self.wsv = self.ref_array
-        self.raz = self.ref_array
+        self.a = None
+        self.b = None
+        self.c = None
+        self.rsz = None
+        self.isz = None
+        self.sf = None
+        self.rsf = None
+        self.isf = None
+        self.rsi = None
+        self.wse1 = None
+        self.wse2 = None
+        self.wse = None
+        self.wsx = None
+        self.wsy = None
+        self.wsv = None
+        self.raz = None
 
         # Initialize BUI effect parameters
-        self.q = self.ref_array
-        self.bui0 = self.ref_array
-        self.be = self.ref_array
-        self.be_max = self.ref_array
+        self.q = None
+        self.bui0 = None
+        self.be = None
+        self.be_max = None
 
         # Initialize surface parameters
-        self.cf = self.ref_array
-        self.ffc = self.ref_array
-        self.wfc = self.ref_array
-        self.sfc = self.ref_array
-        self.rss = self.ref_array
+        self.cf = None
+        self.ffc = None
+        self.wfc = None
+        self.sfc = None
+        self.rss = None
 
         # Initialize foliar moisture content parameters
-        self.latn = self.ref_array
-        self.dj = self.ref_array
-        self.d0 = self.ref_array
-        self.nd = self.ref_array
-        self.fmc = self.ref_array
-        self.fme = self.ref_array
+        self.latn = None
+        self.dj = None
+        self.d0 = None
+        self.nd = None
+        self.fmc = None
+        self.fme = None
 
         # Initialize crown and total fuel consumed parameters
-        self.cbh = self.ref_array
-        self.csfi = self.ref_array
-        self.rso = self.ref_array
-        self.rsc = self.ref_array
-        self.cfb = self.ref_array
-        self.cfl = self.ref_array
-        self.cfc = self.ref_array
-        self.tfc = self.ref_array
+        self.cbh = None
+        self.csfi = None
+        self.rso = None
+        self.rsc = None
+        self.cfb = None
+        self.cfl = None
+        self.cfc = None
+        self.tfc = None
 
         # Initialize the back fire rate of spread parameters
-        self.bfW = self.ref_array
-        self.brsi = self.ref_array
-        self.bisi = self.ref_array
-        self.bros = self.ref_array
+        self.bfW = None
+        self.brsi = None
+        self.bisi = None
+        self.bros = None
 
         # Initialize default CFFBPS output parameters
-        self.fire_type = self.ref_array
-        self.hfros = self.ref_array
-        self.hfi = self.ref_array
+        self.fire_type = None
+        self.hfros = None
+        self.hfi = None
 
         # Initialize other parameters
-        self.ftype = self.ref_array
-        self.sfros = self.ref_array
-        self.cfros = self.ref_array
+        self.ftype = None
+        self.sfros = None
+        self.cfros = None
 
         # ### Lists for CFFBPS Crown Fire Metric variables
         self.csfiVarList = ['cbh', 'fmc']
@@ -428,22 +310,28 @@ class FBP:
             # If more than one array, verify they are all the same shape
             if len(array_indices) > 1:
                 # Verify all arrays have the same shape
-                shapes = {arr.shape for arr in list(itemgetter(*array_indices)(input_list))}
+                arrays = itemgetter(*array_indices)(input_list)
+                # Ensure the result is a list
+                if isinstance(arrays, np.ndarray):  # Single array case
+                    arrays = [arrays]
+                shapes = {arr.shape for arr in arrays}
                 if len(shapes) > 1:
                     raise ValueError(f'All arrays must have the same dimensions. '
                                      f'The following range of dimensions exists: {shapes}')
 
-            # Get first input array as a masked array
-            first_array = input_list[array_indices[0]]
-            if (array_indices[0] == 0) and ('<U' in str(first_array.dtype)):
-                for ftype in np.unique(self.fuel_type):
-                    self.fuel_type = np.where(self.fuel_type == ftype,
-                                              fbpFTCode_AlphaToNum_LUT.get(ftype),
-                                              self.fuel_type)
-                self.fuel_type = self.fuel_type.astype(np.float32)
-                first_array = self.fuel_type
-            self.ref_array = mask.array(first_array,
-                                        mask=np.isnan(first_array)).astype(np.float32) * 0
+                # Get first input array as a masked array
+                first_array = input_list[array_indices[0]]
+                if (array_indices[0] == 0) and ('<U' in str(first_array.dtype)):
+                    # Convert the string representations to numeric codes using the lookup table
+                    convert_to_numeric = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)
+                    converted_fuel_type = convert_to_numeric(self.fuel_type)
+                    if None in converted_fuel_type:
+                        raise ValueError("Unknown fuel type code found, conversion failed.")
+                    self.fuel_type = converted_fuel_type.astype(np.float32)
+                    first_array = self.fuel_type
+
+                self.ref_array = mask.array(first_array,
+                                            mask=np.isnan(first_array)).astype(np.float32) * 0
         else:
             self.return_array = False
             # Get first input parameter array as a masked array
@@ -468,6 +356,10 @@ class FBP:
         if not isinstance(self.fuel_type, (int, str, np.ndarray)):
             raise TypeError('fuel_type must be either int, string, or numpy ndarray data types')
         elif isinstance(self.fuel_type, np.ndarray):
+            if '<U' in str(self.fuel_type.dtype):
+                # Convert using np.vectorize
+                convert_to_numeric = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)
+                self.fuel_type = convert_to_numeric(self.fuel_type).astype(np.uint16)
             self.fuel_type = mask.array(self.fuel_type, mask=np.isnan(self.fuel_type))
         elif isinstance(self.fuel_type, str):
             self.fuel_type = mask.array([fbpFTCode_AlphaToNum_LUT.get(self.fuel_type)],
@@ -597,6 +489,232 @@ class FBP:
         if not isinstance(self.out_request, (list, tuple)):
             raise TypeError('out_request must be a list or tuple')
 
+    def initialize(self,
+                   fuel_type: Union[int, str, np.ndarray] = None,
+                   wx_date: int = None,
+                   lat: Union[float, int, np.ndarray] = None,
+                   long: Union[float, int, np.ndarray] = None,
+                   elevation: Union[float, int, np.ndarray] = None,
+                   slope: Union[float, int, np.ndarray] = None,
+                   aspect: Union[float, int, np.ndarray] = None,
+                   ws: Union[float, int, np.ndarray] = None,
+                   wd: Union[float, int, np.ndarray] = None,
+                   ffmc: Union[float, int, np.ndarray] = None,
+                   bui: Union[float, int, np.ndarray] = None,
+                   pc: Optional[Union[float, int, np.ndarray]] = 50,
+                   pdf: Optional[Union[float, int, np.ndarray]] = 35,
+                   gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
+                   gcf: Optional[Union[float, int, np.ndarray]] = 80,
+                   out_request: Optional[list[str]] = None,
+                   convert_fuel_type_codes: Optional[bool] = False) -> None:
+        """
+        Initialize the FBP object with the provided parameters.
+
+        :param fuel_type: CFFBPS fuel type (numeric code: 1-20)
+            Model 1: C-1 fuel type ROS model
+            Model 2: C-2 fuel type ROS model
+            Model 3: C-3 fuel type ROS model
+            Model 4: C-4 fuel type ROS model
+            Model 5: C-5 fuel type ROS model
+            Model 6: C-6 fuel type ROS model
+            Model 7: C-7 fuel type ROS model
+            Model 8: D-1 fuel type ROS model
+            Model 9: D-2 fuel type ROS model
+            Model 10: M-1 fuel type ROS model
+            Model 11: M-2 fuel type ROS model
+            Model 12: M-3 fuel type ROS model
+            Model 13: M-4 fuel type ROS model
+            Model 14: O-1a fuel type ROS model
+            Model 15: O-1b fuel type ROS model
+            Model 16: S-1 fuel type ROS model
+            Model 17: S-2 fuel type ROS model
+            Model 18: S-3 fuel type ROS model
+            Model 19: Non-fuel (NF)
+            Model 20: Water (WA)
+        :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
+        :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
+        :param long: Longitude of area being modelled (Decimal Degrees, floating point)
+        :param elevation: Elevation of area being modelled (m)
+        :param slope: Ground slope angle/tilt of area being modelled (%)
+        :param aspect: Ground slope aspect/azimuth of area being modelled (degrees)
+        :param ws: Wind speed (km/h @ 10m height)
+        :param wd: Wind direction (degrees, direction wind is coming from)
+        :param ffmc: CFFWIS Fine Fuel Moisture Code
+        :param bui: CFFWIS Buildup Index
+        :param pc: Percent conifer (%, value from 0-100)
+        :param pdf: Percent dead fir (%, value from 0-100)
+        :param gfl: Grass fuel load (kg/m^2)
+        :param gcf: Grass curing factor (%, value from 0-100)
+        :param out_request: Tuple or list of CFFBPS output variables
+            # Default output variables
+            fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
+            hfros = Head fire rate of spread (m/min)
+            hfi = head fire intensity (kW/m)
+
+            # Weather variables
+            ws = Observed wind speed (km/h)
+            wd = Wind azimuth/direction (degrees)
+            m = Moisture content equivalent of the FFMC (%, value from 0-100+)
+            fF = Fine fuel moisture function in the ISI
+            fW = Wind function in the ISI
+            isi = Final ISI, accounting for wind and slope
+
+            # Slope + wind effect variables
+            a = Rate of spread equation coefficient
+            b = Rate of spread equation coefficient
+            c = Rate of spread equation coefficient
+            RSZ = Surface spread rate with zero wind on level terrain
+            SF = Slope factor
+            RSF = spread rate with zero wind, upslope
+            ISF = ISI, with zero wind upslope
+            RSI = Initial spread rate without BUI effect
+            WSE1 = Original slope equivalent wind speed value
+            WSE2 = New slope equivalent sind speed value for cases where WSE1 > 40 (capped at max of 112.45)
+            WSE = Slope equivalent wind speed
+            WSX = Net vectorized wind speed in the x-direction
+            WSY = Net vectorized wind speed in the y-direction
+            WSV = (aka: slope-adjusted wind speed) Net vectorized wind speed (km/h)
+            RAZ = (aka: slope-adjusted wind direction) Net vectorized wind direction (degrees)
+
+            # BUI effect variables
+            q = Proportion of maximum rate of spread at BUI equal to 50
+            bui0 = Average BUI for each fuel type
+            BE = Buildup effect on spread rate
+            be_max = Maximum allowable BE value
+
+            # Surface fuel variables
+            ffc = Estimated forest floor consumption
+            wfc = Estimated woody fuel consumption
+            sfc = Estimated total surface fuel consumption
+
+            # Foliar moisture content variables
+            latn = Normalized latitude
+            d0 = Julian date of minimum foliar moisture content
+            nd = number of days between modelled fire date and d0
+            fmc = foliar moisture content
+            fme = foliar moisture effect
+
+            # Critical crown fire threshold variables
+            csfi = critical intensity (kW/m)
+            rso = critical rate of spread (m/min)
+
+            # Crown fuel parameters
+            cbh = Height to live crown base (m)
+            cfb = Crown fraction burned (proportion, value ranging from 0-1)
+            cfl = Crown fuel load (kg/m^2)
+            cfc = Crown fuel consumed
+        :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
+            to the grid codes used in this module
+        """
+        # Initialize CFFBPS input parameters
+        self.fuel_type = fuel_type
+        self.wx_date = wx_date
+        self.lat = lat
+        self.long = long
+        self.elevation = elevation
+        self.slope = slope
+        self.aspect = aspect
+        self.ws = ws
+        self.wd = wd
+        self.ffmc = ffmc
+        self.bui = bui
+        self.pc = pc
+        self.pdf = pdf
+        self.gfl = gfl
+        self.gcf = gcf
+        self.out_request = out_request
+        self.convert_fuel_type_codes = convert_fuel_type_codes
+
+        # Verify input parameters
+        self._checkArray()
+        self._verifyInputs()
+
+        # Initialize weather parameters
+        self.isi = self.ref_array
+        self.m = self.ref_array
+        self.fF = self.ref_array
+        self.fW = self.ref_array
+
+        # Initialize slope effect parameters
+        self.a = self.ref_array
+        self.b = self.ref_array
+        self.c = self.ref_array
+        self.rsz = self.ref_array
+        self.isz = self.ref_array
+        self.sf = self.ref_array
+        self.rsf = self.ref_array
+        self.isf = self.ref_array
+        self.rsi = self.ref_array
+        self.wse1 = self.ref_array
+        self.wse2 = self.ref_array
+        self.wse = self.ref_array
+        self.wsx = self.ref_array
+        self.wsy = self.ref_array
+        self.wsv = self.ref_array
+        self.raz = self.ref_array
+
+        # Initialize BUI effect parameters
+        self.q = self.ref_array
+        self.bui0 = self.ref_array
+        self.be = self.ref_array
+        self.be_max = self.ref_array
+
+        # Initialize surface parameters
+        self.cf = self.ref_array
+        self.ffc = self.ref_array
+        self.wfc = self.ref_array
+        self.sfc = self.ref_array
+        self.rss = self.ref_array
+
+        # Initialize foliar moisture content parameters
+        self.latn = self.ref_array
+        self.dj = self.ref_array
+        self.d0 = self.ref_array
+        self.nd = self.ref_array
+        self.fmc = self.ref_array
+        self.fme = self.ref_array
+
+        # Initialize crown and total fuel consumed parameters
+        self.cbh = self.ref_array
+        self.csfi = self.ref_array
+        self.rso = self.ref_array
+        self.rsc = self.ref_array
+        self.cfb = self.ref_array
+        self.cfl = self.ref_array
+        self.cfc = self.ref_array
+        self.tfc = self.ref_array
+
+        # Initialize the back fire rate of spread parameters
+        self.bfW = self.ref_array
+        self.brsi = self.ref_array
+        self.bisi = self.ref_array
+        self.bros = self.ref_array
+
+        # Initialize default CFFBPS output parameters
+        self.fire_type = self.ref_array
+        self.hfros = self.ref_array
+        self.hfi = self.ref_array
+
+        # Initialize other parameters
+        self.ftype = self.ref_array
+        self.sfros = self.ref_array
+        self.cfros = self.ref_array
+
+        # List of required parameters
+        required_params = [
+            'fuel_type', 'wx_date', 'lat', 'long', 'elevation', 'slope', 'aspect', 'ws', 'wd', 'ffmc', 'bui'
+        ]
+
+        # Check for missing required parameters
+        missing_params = [param for param in required_params if getattr(self, param) is None]
+        if missing_params:
+            raise ValueError(f"Missing required parameters: {missing_params}")
+
+        # Set initialized to True
+        self.initialized = True
+
+        return
+
     def invertWindAspect(self):
         """
         Function to invert/flip wind direction and aspect by 180 degrees
@@ -690,12 +808,11 @@ class FBP:
 
         return
 
-    def calcROS(self) -> None:
+    def calcISI_RSI_BE(self) -> None:
         """
         Function to model the fire rate of spread (m/min).
         :return: None
         """
-
         def _calcISI_slopeWind() -> None:
             # Calculate the slope equivalent wind speed (for lower wind speeds)
             np.seterr(divide='ignore')
@@ -742,7 +859,7 @@ class FBP:
                                              np.degrees(np.arccos(self.wsy / self.wsv))),
                                   self.raz)
 
-            # ## Calculate Head Fire metrics
+            # ## Calculate Head Fire ISI
             # Calculate the wind function of the ISI equation
             self.fW = mask.where(self.fuel_type == self.ftype,
                                  mask.where(self.wsv > 40,
@@ -755,7 +872,7 @@ class FBP:
                                   0.208 * self.fW * self.fF,
                                   self.isi)
 
-            # ## Calculate Back Fire metrics
+            # ## Calculate Back Fire ISI
             # Calculate the back fire wind function
             self.bfW = mask.where(self.fuel_type == self.ftype,
                                   mask.exp(-0.05039 * self.wsv),
@@ -1041,6 +1158,13 @@ class FBP:
                                         self.be),
                              self.be)
 
+        return
+
+    def calcROS(self) -> None:
+        """
+
+        :return:
+        """
         # Calculate Final ROS
         if self.ftype == 6:
             # C6 fuel type
@@ -1300,7 +1424,94 @@ class FBP:
 
         return
 
-    def getOutputs(self, out_request: list[str]) -> list[any]:
+    def setParams(self, set_dict: dict) -> None:
+        """
+        Function to set FBP parameters to specific values.
+
+        :param set_dict: Dictionary of FBP parameter names and the values to assign to the FBP class object
+        :return: None
+        """
+        # Dictionary of CFFBPS parameters
+        fbp_params = {
+            # Default output variables
+            'fire_type': self.fire_type,  # Type of fire (surface, intermittent crown, active crown)
+            'hfros': self.hfros,  # Head fire rate of spread (m/min)
+            'hfi': self.hfi,  # Head fire intensity (kW/m)
+
+            # Weather variables
+            'ws': self.ws,  # Observed wind speed (km/h)
+            'wd': self.wd,  # Wind azimuth/direction (degrees)
+            'm': self.m,  # Moisture content equivalent of the FFMC (%, value from 0-100+)
+            'fF': self.fF,  # Fine fuel moisture function in the ISI
+            'fW': self.fW,  # Wind function in the ISI
+            'isi': self.isi,  # Final ISI, accounting for wind and slope
+
+            # Slope + wind effect variables
+            'a': self.a,  # Rate of spread equation coefficient
+            'b': self.b,  # Rate of spread equation coefficient
+            'c': self.c,  # Rate of spread equation coefficient
+            'RSZ': self.rsz,  # Surface spread rate with zero wind on level terrain
+            'SF': self.sf,  # Slope factor
+            'RSF': self.rsf,  # Spread rate with zero wind, upslope
+            'ISF': self.isf,  # ISI, with zero wind upslope
+            'RSI': self.rsi,  # Initial spread rate without BUI effect
+            'WSE1': self.wse1,  # Original slope equivalent wind speed value for cases where WSE1 <= 40
+            'WSE2': self.wse2,  # New slope equivalent sind speed value for cases where WSE1 > 40
+            'WSE': self.wse,  # Slope equivalent wind speed
+            'WSX': self.wsx,  # Net vectorized wind speed in the x-direction
+            'WSY': self.wsy,  # Net vectorized wind speed in the y-direction
+            'WSV': self.wsv,  # Net vectorized wind speed
+            'RAZ': self.raz,  # Net vectorized wind direction
+
+            # BUI effect variables
+            'q': self.q,  # Proportion of maximum rate of spread at BUI equal to 50
+            'bui0': self.bui0,  # Average BUI for each fuel type
+            'BE': self.be,  # Buildup effect on spread rate
+            'be_max': self.be_max,  # Maximum allowable BE value
+
+            # Surface fuel variables
+            'ffc': self.ffc,  # Estimated forest floor consumption
+            'wfc': self.wfc,  # Estimated woody fuel consumption
+            'sfc': self.sfc,  # Estimated total surface fuel consumption
+
+            # Foliar moisture content variables
+            'latn': self.latn,  # Normalized latitude
+            'dj': self.dj,  # Julian date of day being modelled
+            'd0': self.d0,  # Julian date of minimum foliar moisture content
+            'nd': self.nd,  # number of days between modelled fire date and d0
+            'fmc': self.fmc,  # foliar moisture content
+            'fme': self.fme,  # foliar moisture effect
+
+            # Critical crown fire threshold variables
+            'csfi': self.csfi,  # Critical intensity (kW/m)
+            'rso': self.rso,  # Critical rate of spread (m/min)
+
+            # Back fire spread variables
+            'bfw': self.bfW,  # The back fire wind function
+            'bisi': self.bisi,  # The ISI associated with the back fire rate of spread
+            'bros': self.bros,  # Backing rate of spread (m/min)
+
+            # Crown fuel parameters
+            'cbh': self.cbh,  # Height to live crown base (m)
+            'cfb': self.cfb,  # Crown fraction burned (proportion, value ranging from 0-1)
+            'cfl': self.cfl,  # Crown fuel load (kg/m^2)
+            'cfc': self.cfc  # Crown fuel consumed
+        }
+        # Iterate through the set dictionary and assign values
+        for key, value in set_dict.items():
+            if isinstance(value, np.ndarray):
+                fbp_params[key] = mask.array(fbp_params[key], mask=np.isnan(fbp_params[key]))
+            else:
+                fbp_params[key] = value
+
+        return
+
+    def getParams(self, out_request: list[str]) -> list[any]:
+        """
+        Function to output requested dataset parameters from the FBP class.
+        :param out_request: List of requested FBP parameters.
+        :return: List of requested outputs.
+        """
         # Dictionary of CFFBPS parameters
         fbp_params = {
             # Default output variables
@@ -1377,10 +1588,18 @@ class FBP:
 
     def runFBP(self, block: Optional[np.ndarray] = None) -> list[any]:
         """
-        Function to automatically run CFFBPS modelling
+        Function to automatically run CFFBPS modelling.
+
+        :param block: The array of partial data (block) to run FBP with.
+        :returns:
+            Tuple of values requested through out_request parameter. Default values are fire_type, hfros, and hfi.
         """
+        if not self.initialized:
+            raise ValueError('FBP class must be initialized before running calculations. Call "initialize" first.')
+
         if block is not None:
             self.block = block
+
         # Model fire behavior with CFFBPS
         # print('Inverting wind direction and aspect')
         self.invertWindAspect()
@@ -1393,6 +1612,8 @@ class FBP:
         for self.ftype in [ftype for ftype in np.unique(self.fuel_type)
                            if ftype in list(self.rosParams.keys())]:
             # print(f'Processing {fbpFTCode_NumToAlpha_LUT.get(self.ftype)} fuel type')
+            # print('\tCalculating ISI, RSI, and BE')
+            self.calcISI_RSI_BE()
             # print('\tCalculating ROS')
             self.calcROS()
             # print('\tCalculating surface fuel consumption')
@@ -1420,7 +1641,7 @@ class FBP:
         self.calcHFI()
 
         # print('<< Returning requested values >>\n')
-        return self.getOutputs(self.out_request)
+        return self.getParams(self.out_request)
 
 
 def _estimate_optimal_block_size(array_shape, num_processors, memory_fraction=0.8):
@@ -1471,9 +1692,12 @@ def _process_block(block: tuple, position: tuple) -> tuple:
     row, col = position
 
     # Initialize FBP class with parameters
-    fbp_instance = FBP(*block)
+    fbp = FBP()
+    fbp.initialize(*block)
+
     # Process the block and return results
-    result = fbp_instance.runFBP()
+    result = fbp.runFBP()
+
     return result, (row, col)
 
 
@@ -1786,6 +2010,8 @@ def _testFBP(test_functions: list,
     import ProcessRasters as pr
     import generate_test_fbp_rasters as genras
 
+    fbp = FBP()
+
     # Create fuel type list
     fuel_type_list = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'D1', 'D2', 'M1', 'M2', 'M3', 'M4',
                       'O1a', 'O1b', 'S1', 'S2', 'S3', 'NF', 'WA']
@@ -1799,12 +2025,14 @@ def _testFBP(test_functions: list,
     if any(var in test_functions for var in ['numeric', 'all']):
         print('Testing non-raster modelling')
         for ft in fuel_type_list:
-            print('\t' + ft, FBP(*([fbpFTCode_AlphaToNum_LUT.get(ft)] + input_data)).runFBP())
+            fbp.initialize(*([fbpFTCode_AlphaToNum_LUT.get(ft)] + input_data))
+            print('\t' + ft, fbp.runFBP())
 
     # ### Test array modelling
     if any(var in test_functions for var in ['array', 'all']):
         print('Testing array modelling')
-        print('\t', FBP(*([np.array(fuel_type_list)] + input_data)).runFBP())
+        fbp.initialize(*([np.array(fuel_type_list)] + input_data))
+        print('\t', fbp.runFBP())
 
     # Get test folders
     input_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Inputs')
@@ -1856,13 +2084,15 @@ def _testFBP(test_functions: list,
         gcf_array = pr.getRaster(gcf_path).read()
 
         # Run the FBP modelling
-        fbp_result = FBP(
+        fbp.initialize(
             fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
             elevation=elev_array, slope=slope_array, aspect=aspect_array,
             ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
             pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
             out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc'],
-            convert_fuel_type_codes=False).runFBP()
+            convert_fuel_type_codes=False
+        )
+        fbp_result = fbp.runFBP()
 
         # Get output dataset paths
         wsv_out = os.path.join(output_folder, 'wsv.tif')

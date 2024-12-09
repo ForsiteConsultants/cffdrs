@@ -6,6 +6,9 @@ Created on Thur Aug 8 17:30:00 2024
 """
 
 import os
+
+import numpy as np
+
 import ProcessRasters as pr
 from numpy import float64 as f64
 from datetime import datetime as dt
@@ -118,12 +121,12 @@ def gen_test_data(wx_date: int,
     }
 
     for dset in list(data_dict.keys()):
-        dset_array = fuel_type_array * 0 + data_dict.get(dset)
+        dset_array = fuel_type_array.astype(np.float64) * 0 + data_dict.get(dset)
         # Save output datasets
         pr.arrayToRaster(array=dset_array,
                          out_file=os.path.join(input_folder, f'{dset}.tif'),
                          ras_profile=fuel_type_profile,
-                         data_type=f64)
+                         dtype=np.float64)
 
 
 if __name__ == '__main__':
