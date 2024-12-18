@@ -15,7 +15,6 @@ from datetime import datetime as dt
 from multiprocessing import current_process, Pool
 import psutil
 
-
 # CFFBPS Fuel Type Numeric-Alphanumeric Code Lookup Table
 fbpFTCode_NumToAlpha_LUT = {
     1: 'C1',  # C-1
@@ -233,7 +232,6 @@ class FBP:
         self.hfi = None
 
         # Initialize other parameters
-        self.ftype = None
         self.sfros = None
         self.cfros = None
 
@@ -330,13 +328,18 @@ class FBP:
                     self.fuel_type = converted_fuel_type.astype(np.float32)
                     first_array = self.fuel_type
 
-                self.ref_array = mask.array(first_array,
-                                            mask=np.isnan(first_array)).astype(np.float32) * 0
+                self.ref_array = mask.array(
+                    [np.full(first_array.shape, 0, dtype=np.float32)],
+                    mask=np.isnan([first_array])
+                )
+                self.ref_array_nan = mask.array(
+                    [np.full(first_array.shape, np.nan, dtype=np.float32)],
+                    mask=np.isnan([first_array])
+                )
         else:
             self.return_array = False
             # Get first input parameter array as a masked array
-            self.ref_array = mask.array([self.fuel_type],
-                                        mask=np.isnan([self.fuel_type])).astype(np.float32) * 0
+            self.ref_array = mask.array([0], mask=np.isnan([self.fuel_type])).astype(np.float32)
 
     def _verifyInputs(self) -> None:
         """
@@ -344,14 +347,6 @@ class FBP:
         :return: None
         """
         # ### VERIFY ALL INPUTS AND CONVERT TO MASKED NUMPY ARRAYS
-        input_list = [
-            self.fuel_type, self.lat, self.long,
-            self.elevation, self.slope, self.aspect,
-            self.ws, self.wd, self.ffmc, self.bui,
-            self.pc, self.pdf,
-            self.gfl, self.gcf
-        ]
-
         # Verify fuel_type
         if not isinstance(self.fuel_type, (int, str, np.ndarray)):
             raise TypeError('fuel_type must be either int, string, or numpy ndarray data types')
@@ -486,8 +481,8 @@ class FBP:
             self.gcf = mask.array([self.gcf], mask=np.isnan([self.gcf]))
 
         # Verify out_request
-        if not isinstance(self.out_request, (list, tuple)):
-            raise TypeError('out_request must be a list or tuple')
+        if not isinstance(self.out_request, (list, tuple, type(None))):
+            raise TypeError('out_request must be a list, tuple, or None')
 
     def initialize(self,
                    fuel_type: Union[int, str, np.ndarray] = None,
@@ -505,7 +500,7 @@ class FBP:
                    pdf: Optional[Union[float, int, np.ndarray]] = 35,
                    gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
                    gcf: Optional[Union[float, int, np.ndarray]] = 80,
-                   out_request: Optional[list[str]] = None,
+                   out_request: Optional[Union[list, tuple]] = None,
                    convert_fuel_type_codes: Optional[bool] = False) -> None:
         """
         Initialize the FBP object with the provided parameters.
@@ -661,9 +656,9 @@ class FBP:
 
         # Initialize surface parameters
         self.cf = self.ref_array
-        self.ffc = self.ref_array
-        self.wfc = self.ref_array
-        self.sfc = self.ref_array
+        self.ffc = self.ref_array_nan
+        self.wfc = self.ref_array_nan
+        self.sfc = self.ref_array_nan
         self.rss = self.ref_array
 
         # Initialize foliar moisture content parameters
@@ -696,7 +691,7 @@ class FBP:
         self.hfi = self.ref_array
 
         # Initialize other parameters
-        self.ftype = self.ref_array
+        ftype = self.ref_array
         self.sfros = self.ref_array
         self.cfros = self.ref_array
 
@@ -808,52 +803,56 @@ class FBP:
 
         return
 
-    def calcISI_RSI_BE(self) -> None:
+    def calcISI_RSI_BE(self, ftype: int) -> None:
         """
-        Function to model the fire rate of spread (m/min).
+        Function to calculate the slope-/wind-adjusted Initial Spread Index (ISI), rate of spread (RSI),
+        and the BUI buildup effect (BE).
+
+        :param ftype: The numeric FBP fuel type code.
         :return: None
         """
+
         def _calcISI_slopeWind() -> None:
             # Calculate the slope equivalent wind speed (for lower wind speeds)
             np.seterr(divide='ignore')
-            self.wse1 = mask.where(self.fuel_type == self.ftype,
+            self.wse1 = mask.where(self.fuel_type == ftype,
                                    (1 / 0.05039) * np.log(self.isf / (0.208 * self.fF)),
                                    self.wse1)
             np.seterr(divide='warn')
 
             # Calculate the slope equivalent wind speed (for higher wind speeds)
-            self.wse2 = mask.where(self.fuel_type == self.ftype,
+            self.wse2 = mask.where(self.fuel_type == ftype,
                                    mask.where(self.isf < (0.999 * 2.496 * self.fF),
                                               28 - (1 / 0.0818) * np.log(1 - (self.isf / (2.496 * self.fF))),
                                               112.45),
                                    self.wse2)
 
             # Assign slope equivalent wind speed
-            self.wse = mask.where(self.fuel_type == self.ftype,
+            self.wse = mask.where(self.fuel_type == ftype,
                                   mask.where(self.wse1 <= 40,
                                              self.wse1,
                                              self.wse2),
                                   self.wse)
 
             # Calculate vector magnitude in x-direction
-            self.wsx = mask.where(self.fuel_type == self.ftype,
+            self.wsx = mask.where(self.fuel_type == ftype,
                                   (self.ws * np.sin(np.radians(self.wd))) +
                                   (self.wse * np.sin(np.radians(self.aspect))),
                                   self.wsx)
 
             # Calculate vector magnitude in y-direction
-            self.wsy = mask.where(self.fuel_type == self.ftype,
+            self.wsy = mask.where(self.fuel_type == ftype,
                                   (self.ws * np.cos(np.radians(self.wd))) +
                                   (self.wse * np.cos(np.radians(self.aspect))),
                                   self.wsy)
 
             # Calculate the net effective wind speed
-            self.wsv = mask.where(self.fuel_type == self.ftype,
+            self.wsv = mask.where(self.fuel_type == ftype,
                                   np.sqrt(np.power(self.wsx, 2) + np.power(self.wsy, 2)),
                                   self.wsv)
 
             # Calculate the net effective wind direction (RAZ)
-            self.raz = mask.where(self.fuel_type == self.ftype,
+            self.raz = mask.where(self.fuel_type == ftype,
                                   mask.where(self.wsx < 0,
                                              360 - np.degrees(np.arccos(self.wsy / self.wsv)),
                                              np.degrees(np.arccos(self.wsy / self.wsv))),
@@ -861,20 +860,20 @@ class FBP:
 
             # ## Calculate Head Fire ISI
             # Calculate the wind function of the ISI equation
-            self.fW = mask.where(self.fuel_type == self.ftype,
+            self.fW = mask.where(self.fuel_type == ftype,
                                  mask.where(self.wsv > 40,
                                             12 * (1 - np.exp(-0.0818 * (self.wsv - 28))),
                                             np.exp(0.05039 * self.wsv)),
                                  self.fW)
 
             # Calculate the new ISI with slope and wind effects
-            self.isi = mask.where(self.fuel_type == self.ftype,
+            self.isi = mask.where(self.fuel_type == ftype,
                                   0.208 * self.fW * self.fF,
                                   self.isi)
 
             # ## Calculate Back Fire ISI
             # Calculate the back fire wind function
-            self.bfW = mask.where(self.fuel_type == self.ftype,
+            self.bfW = mask.where(self.fuel_type == ftype,
                                   mask.exp(-0.05039 * self.wsv),
                                   self.bfW)
 
@@ -882,29 +881,29 @@ class FBP:
             self.bisi = self.bfW * self.fF * 0.208
 
         # ### CFFBPS ROS models
-        if self.ftype not in [10, 11]:
+        if ftype not in [10, 11]:
             # Get fuel type specific fixed rate of spread parameters
-            self.a, self.b, self.c, self.q, self.bui0, self.be_max = self.rosParams[self.ftype]
-            if self.ftype in [14, 15]:
+            self.a, self.b, self.c, self.q, self.bui0, self.be_max = self.rosParams[ftype]
+            if ftype in [14, 15]:
                 # ## Process O-1a/b fuel types...
-                self.cf = mask.where(self.fuel_type == self.ftype,
+                self.cf = mask.where(self.fuel_type == ftype,
                                      mask.where(self.gcf < 58.8,
                                                 0.005 * (np.exp(0.061 * self.gcf) - 1),
                                                 0.176 + (0.02 * (self.gcf - 58.8))),
                                      self.cf)
 
                 # Calculate no slope/no wind rate of spread
-                self.rsz = mask.where(self.fuel_type == self.ftype,
+                self.rsz = mask.where(self.fuel_type == ftype,
                                       self.a * np.power(1 - np.exp(-self.b * self.isz), self.c) * self.cf,
                                       self.rsz)
 
                 # Calculate rate of spread with slope effect
-                self.rsf = mask.where(self.fuel_type == self.ftype,
+                self.rsf = mask.where(self.fuel_type == ftype,
                                       self.rsz * self.sf,
                                       self.rsf)
 
                 # Calculate initial spread index with slope effect
-                self.isf = mask.where(self.fuel_type == self.ftype,
+                self.isf = mask.where(self.fuel_type == ftype,
                                       mask.where(1 - np.power(self.rsf / (self.cf * self.a), 1 / self.c) >= 0.01,
                                                  np.log(
                                                      1 - np.power(self.rsf / (self.cf * self.a), 1 / self.c)) / -self.b,
@@ -915,23 +914,23 @@ class FBP:
                 _calcISI_slopeWind()
 
                 # Calculate head fire rate of spread with slope and wind effects
-                self.rsi = mask.where(self.fuel_type == self.ftype,
+                self.rsi = mask.where(self.fuel_type == ftype,
                                       self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) * self.cf,
                                       self.rsi)
 
                 # Calculate back fire rate of spread with slope and wind effects
-                self.brsi = mask.where(self.fuel_type == self.ftype,
+                self.brsi = mask.where(self.fuel_type == ftype,
                                        self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) * self.cf,
                                        self.brsi)
 
                 # Calculate Buildup Effect (BE)
-                self.be = mask.where(self.fuel_type == self.ftype,
+                self.be = mask.where(self.fuel_type == ftype,
                                      1,
                                      self.be)
 
-            elif self.ftype in [12, 13]:
+            elif ftype in [12, 13]:
                 # ## Process M-3/4 fuel types...
-                if self.ftype == 12:
+                if ftype == 12:
                     # Get D1 parameters
                     a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[8]
                 else:
@@ -939,30 +938,30 @@ class FBP:
                     a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[9]
 
                 # Get RSZ and ISF
-                rsz_d1_2 = mask.where(self.fuel_type == self.ftype,
+                rsz_d1_2 = mask.where(self.fuel_type == ftype,
                                       a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isz), c_d1_2),
                                       0)
-                rsf_d1_2 = mask.where(self.fuel_type == self.ftype,
+                rsf_d1_2 = mask.where(self.fuel_type == ftype,
                                       rsz_d1_2 * self.sf,
                                       0)
-                isf_d1_2 = mask.where(self.fuel_type == self.ftype,
+                isf_d1_2 = mask.where(self.fuel_type == ftype,
                                       mask.where((1 - np.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) >= 0.01,
                                                  np.log(1 - np.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) / -b_d1_2,
                                                  np.log(0.01) / -b_d1_2),
                                       0)
 
                 # Calculate no slope/no wind rate of spread
-                self.rsz = mask.where(self.fuel_type == self.ftype,
+                self.rsz = mask.where(self.fuel_type == ftype,
                                       self.a * np.power(1 - np.exp(-self.b * self.isz), self.c),
                                       self.rsz)
 
                 # Calculate rate of spread with slope effect (no wind)
-                self.rsf = mask.where(self.fuel_type == self.ftype,
+                self.rsf = mask.where(self.fuel_type == ftype,
                                       self.rsz * self.sf,
                                       self.rsf)
 
                 # Calculate initial spread index with slope effect (no wind)
-                self.isf = mask.where(self.fuel_type == self.ftype,
+                self.isf = mask.where(self.fuel_type == ftype,
                                       mask.where((1 - np.power(self.rsf / self.a, 1 / self.c)) >= 0.01,
                                                  (self.pdf / 100) *
                                                  (np.log(1 - np.power(self.rsf / self.a, 1 / self.c)) / -self.b) +
@@ -975,45 +974,45 @@ class FBP:
                 _calcISI_slopeWind()
 
                 # Calculate head fire rate of spread with slope and wind effects for D1
-                rsi_d1 = mask.where(self.fuel_type == self.ftype,
+                rsi_d1 = mask.where(self.fuel_type == ftype,
                                     a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isi), c_d1_2),
                                     0)
 
                 # Calculate back fire rate of spread with slope and wind effects for D1
-                brsi_d1 = mask.where(self.fuel_type == self.ftype,
+                brsi_d1 = mask.where(self.fuel_type == ftype,
                                      a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.bisi), c_d1_2),
                                      0)
 
                 # Calculate rate of spread with slope and wind effects
-                if self.ftype == 13:
+                if ftype == 13:
                     # D1 Fuel Type Head Fire RSI
-                    self.rsi = mask.where(self.fuel_type == self.ftype,
+                    self.rsi = mask.where(self.fuel_type == ftype,
                                           ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi),
                                                                                 self.c) +
                                            (1 - self.pdf / 100) * rsi_d1),
                                           self.rsi)
                     # D1 Fuel Type Back Fire RSI
-                    self.brsi = mask.where(self.fuel_type == self.ftype,
+                    self.brsi = mask.where(self.fuel_type == ftype,
                                            ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi),
                                                                                  self.c) +
                                             (1 - self.pdf / 100) * brsi_d1),
                                            self.brsi)
                 else:
                     # D2 Fuel Type Head Fire RSI
-                    self.rsi = mask.where(self.fuel_type == self.ftype,
+                    self.rsi = mask.where(self.fuel_type == ftype,
                                           ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi),
                                                                                 self.c) +
                                            0.2 * (1 - self.pdf / 100) * rsi_d1),
                                           self.rsi)
                     # D2 Fuel Type Back Fire RSI
-                    self.brsi = mask.where(self.fuel_type == self.ftype,
-                                          ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi),
-                                                                                self.c) +
-                                           0.2 * (1 - self.pdf / 100) * brsi_d1),
-                                          self.brsi)
+                    self.brsi = mask.where(self.fuel_type == ftype,
+                                           ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi),
+                                                                                 self.c) +
+                                            0.2 * (1 - self.pdf / 100) * brsi_d1),
+                                           self.brsi)
 
                 # Calculate Buildup Effect (BE)
-                self.be = mask.where(self.fuel_type == self.ftype,
+                self.be = mask.where(self.fuel_type == ftype,
                                      mask.where(self.bui == 0,
                                                 0,
                                                 np.exp(50 * np.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))),
@@ -1022,21 +1021,21 @@ class FBP:
             else:
                 # ## Process all other fuel types...
                 # Calculate no slope/no wind rate of spread
-                self.rsz = mask.where(self.fuel_type == self.ftype,
+                self.rsz = mask.where(self.fuel_type == ftype,
                                       self.a * np.power(1 - np.exp(-self.b * self.isz), self.c),
                                       self.rsz)
 
                 # Calculate rate of spread with slope effect
-                self.rsf = mask.where(self.fuel_type == self.ftype,
+                self.rsf = mask.where(self.fuel_type == ftype,
                                       self.rsz * self.sf,
                                       self.rsf)
 
                 # Calculate initial spread index with slope effect
-                isf_numer = mask.where(self.fuel_type == self.ftype,
+                isf_numer = mask.where(self.fuel_type == ftype,
                                        (1 - np.power(self.rsf / self.a, 1 / self.c)),
                                        0)
                 np.seterr(divide='ignore')
-                self.isf = mask.where(self.fuel_type == self.ftype,
+                self.isf = mask.where(self.fuel_type == ftype,
                                       mask.where(isf_numer >= 0.01,
                                                  np.log(isf_numer) / -self.b,
                                                  np.log(0.01) / -self.b),
@@ -1047,17 +1046,17 @@ class FBP:
                 _calcISI_slopeWind()
 
                 # Calculate head fire rate of spread with slope and wind effects
-                self.rsi = mask.where(self.fuel_type == self.ftype,
+                self.rsi = mask.where(self.fuel_type == ftype,
                                       self.a * np.power(1 - np.exp(-self.b * self.isi), self.c),
                                       self.rsi)
 
                 # Calculate back fire rate of spread with slope and wind effects
-                self.brsi = mask.where(self.fuel_type == self.ftype,
+                self.brsi = mask.where(self.fuel_type == ftype,
                                        self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c),
                                        self.brsi)
 
                 # Calculate Buildup Effect (BE)
-                self.be = mask.where(self.fuel_type == self.ftype,
+                self.be = mask.where(self.fuel_type == ftype,
                                      mask.where(self.bui == 0,
                                                 0,
                                                 np.exp(50 * np.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))),
@@ -1065,24 +1064,24 @@ class FBP:
 
         else:
             # ## Process M-1/2 fuel types...
-            self.q, self.bui0, self.be_max = self.rosParams[self.ftype]
+            self.q, self.bui0, self.be_max = self.rosParams[ftype]
 
             # Calculate no slope/no wind rate of spread
             # Get C2 RSZ and ISF
             a_c2, b_c2, c_c2, q_c2, bui0_c2, be_max_c2 = self.rosParams[2]
-            rsz_c2 = mask.where(self.fuel_type == self.ftype,
+            rsz_c2 = mask.where(self.fuel_type == ftype,
                                 a_c2 * np.power(1 - np.exp(-b_c2 * self.isz), c_c2),
                                 0)
-            rsf_c2 = mask.where(self.fuel_type == self.ftype,
+            rsf_c2 = mask.where(self.fuel_type == ftype,
                                 rsz_c2 * self.sf,
                                 0)
-            isf_c2 = mask.where(self.fuel_type == self.ftype,
+            isf_c2 = mask.where(self.fuel_type == ftype,
                                 mask.where((1 - np.power(rsf_c2 / a_c2, 1 / c_c2)) >= 0.01,
                                            np.log(1 - np.power(rsf_c2 / a_c2, 1 / c_c2)) / -b_c2,
                                            np.log(0.01) / -b_c2),
                                 0)
             # Get parameters
-            if self.ftype == 10:
+            if ftype == 10:
                 # Get D1 parameters
                 a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[8]
             else:
@@ -1090,20 +1089,20 @@ class FBP:
                 a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[9]
 
             # Get D1 RSZ and ISF
-            rsz_d1_2 = mask.where(self.fuel_type == self.ftype,
+            rsz_d1_2 = mask.where(self.fuel_type == ftype,
                                   a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isz), c_d1_2),
                                   0)
-            rsf_d1_2 = mask.where(self.fuel_type == self.ftype,
+            rsf_d1_2 = mask.where(self.fuel_type == ftype,
                                   rsz_d1_2 * self.sf,
                                   0)
-            isf_d1_2 = mask.where(self.fuel_type == self.ftype,
+            isf_d1_2 = mask.where(self.fuel_type == ftype,
                                   mask.where((1 - np.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) >= 0.01,
                                              np.log(1 - np.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) / -b_d1_2,
                                              np.log(0.01) / -b_d1_2),
                                   0)
 
             # Calculate initial spread index with slope effects
-            self.isf = mask.where(self.fuel_type == self.ftype,
+            self.isf = mask.where(self.fuel_type == ftype,
                                   (self.pc / 100) * isf_c2 + (1 - self.pc / 100) * isf_d1_2,
                                   self.isf)
 
@@ -1112,47 +1111,47 @@ class FBP:
 
             # Calculate rate of spread with slope and wind effects for C2 and D1
             # Get C2 Head Fire RSI
-            rsi_c2 = mask.where(self.fuel_type == self.ftype,
+            rsi_c2 = mask.where(self.fuel_type == ftype,
                                 a_c2 * np.power(1 - np.exp(-b_c2 * self.isi), c_c2),
                                 0)
             # Get C2 Back Fire RSI
-            brsi_c2 = mask.where(self.fuel_type == self.ftype,
+            brsi_c2 = mask.where(self.fuel_type == ftype,
                                  a_c2 * np.power(1 - np.exp(-b_c2 * self.bisi), c_c2),
                                  0)
             # Get D1 Head Fire RSI
-            rsi_d1 = mask.where(self.fuel_type == self.ftype,
+            rsi_d1 = mask.where(self.fuel_type == ftype,
                                 a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isi), c_d1_2),
                                 0)
             # Get D1 Back Fire RSI
-            brsi_d1 = mask.where(self.fuel_type == self.ftype,
+            brsi_d1 = mask.where(self.fuel_type == ftype,
                                  a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.bisi), c_d1_2),
                                  0)
 
             # Calculate rate of spread with slope and wind effects (RSI)
-            if self.ftype == 11:
-                self.rsi = mask.where(self.fuel_type == self.ftype,
+            if ftype == 11:
+                self.rsi = mask.where(self.fuel_type == ftype,
                                       (self.pc / 100) * rsi_c2 + 0.2 * (1 - self.pc / 100) * rsi_d1,
                                       self.rsi)
-                self.brsi = mask.where(self.fuel_type == self.ftype,
-                                      (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
-                                      self.brsi)
+                self.brsi = mask.where(self.fuel_type == ftype,
+                                       (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
+                                       self.brsi)
             else:
-                self.rsi = mask.where(self.fuel_type == self.ftype,
+                self.rsi = mask.where(self.fuel_type == ftype,
                                       (self.pc / 100) * rsi_c2 + (1 - self.pc / 100) * rsi_d1,
                                       self.rsi)
-                self.brsi = mask.where(self.fuel_type == self.ftype,
-                                      (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
-                                      self.brsi)
+                self.brsi = mask.where(self.fuel_type == ftype,
+                                       (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
+                                       self.brsi)
 
             # Calculate Buildup Effect (BE)
-            self.be = mask.where(self.fuel_type == self.ftype,
+            self.be = mask.where(self.fuel_type == ftype,
                                  mask.where(self.bui == 0,
                                             0,
                                             np.exp(50 * np.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))),
                                  self.be)
 
         # Ensure BE does not exceed be_max
-        self.be = mask.where(self.fuel_type == self.ftype,
+        self.be = mask.where(self.fuel_type == ftype,
                              mask.where(self.be > self.be_max,
                                         self.be_max,
                                         self.be),
@@ -1160,35 +1159,39 @@ class FBP:
 
         return
 
-    def calcROS(self) -> None:
+    def calcROS(self, ftype: int) -> None:
         """
+        Function to model the fire rate of spread (m/min).
+        For C6, this is the surface fire heading and backing rate of spread.
+        For all other fuel types, this is the overall heading and backing fire rate of spread.
 
-        :return:
+        :param ftype: The numeric FBP fuel type code.
+        :return: None
         """
         # Calculate Final ROS
-        if self.ftype == 6:
+        if ftype == 6:
             # C6 fuel type
             # Head Surface Fire ROS
-            self.sfros = mask.where(self.fuel_type == self.ftype,
+            self.sfros = mask.where(self.fuel_type == ftype,
                                     self.rsi * self.be,
                                     self.sfros)
             # Back Surface Fire ROS
-            self.bros = mask.where(self.fuel_type == self.ftype,
+            self.bros = mask.where(self.fuel_type == ftype,
                                    self.brsi * self.be,
                                    self.bros)
         else:
             # All other fuel types
             # Head Fire ROS
-            self.hfros = mask.where(self.fuel_type == self.ftype,
+            self.hfros = mask.where(self.fuel_type == ftype,
                                     self.rsi * self.be,
                                     self.hfros)
             # Back Fire ROS
-            self.bros = mask.where(self.fuel_type == self.ftype,
+            self.bros = mask.where(self.fuel_type == ftype,
                                    self.brsi * self.be,
                                    self.bros)
-            if self.ftype == 9:
+            if ftype == 9:
                 # D2 fuel type
-                self.hfros = mask.where(self.fuel_type == self.ftype,
+                self.hfros = mask.where(self.fuel_type == ftype,
                                         mask.where(self.bui < 70,
                                                    0,
                                                    self.hfros * 0.2),
@@ -1196,13 +1199,15 @@ class FBP:
 
         return
 
-    def calcSFC(self) -> None:
+    def calcSFC(self, ftype: int) -> None:
         """
         Function to calculate forest floor consumption (FFC), woody fuel consumption (WFC),
         and total surface fuel consumption (SFC).
+
+        :param ftype: The numeric FBP fuel type code.
         :return: None
         """
-        if self.ftype == 1:
+        if ftype == 1:
             ffc = np.nan
             wfc = np.nan
             np.seterr(invalid='ignore', over='ignore')
@@ -1210,96 +1215,98 @@ class FBP:
                              0.75 + 0.75 * np.sqrt(1 - np.exp(-0.23 * (self.ffmc - 84))),
                              0.75 - 0.75 * np.sqrt(1 - np.exp(0.23 * (self.ffmc - 84))))
             np.seterr(invalid='warn', over='warn')
-        elif self.ftype == 2:
+        elif ftype == 2:
             ffc = np.nan
             wfc = np.nan
             sfc = 5 * (1 - np.exp(-0.0115 * self.bui))
-        elif self.ftype in [3, 4]:
+        elif ftype in [3, 4]:
             ffc = np.nan
             wfc = np.nan
             sfc = 5 * np.power(1 - np.exp(-0.0164 * self.bui), 2.24)
-        elif self.ftype in [5, 6]:
+        elif ftype in [5, 6]:
             ffc = np.nan
             wfc = np.nan
             sfc = 5 * np.power(1 - np.exp(-0.0149 * self.bui), 2.48)
-        elif self.ftype == 7:
+        elif ftype == 7:
             ffc = 2 * (1 - np.exp(-0.104 * (self.ffmc - 70)))
             ffc = mask.where(ffc < 0,
                              0,
                              ffc)
             wfc = 1.5 * (1 - np.exp(-0.0201 * self.bui))
             sfc = ffc + wfc
-        elif self.ftype in [8, 9]:
+        elif ftype in [8, 9]:
             ffc = np.nan
             wfc = np.nan
             sfc = 1.5 * (1 - np.exp(-0.0183 * self.bui))
-        elif self.ftype in [10, 11]:
+        elif ftype in [10, 11]:
             c2_sfc = 5 * (1 - np.exp(-0.0115 * self.bui))
             d1_sfc = 1.5 * (1 - np.exp(-0.0183 * self.bui))
             ffc = np.nan
             wfc = np.nan
             sfc = ((self.pc / 100) * c2_sfc) + (((100 - self.pc) / 100) * d1_sfc)
-        elif self.ftype in [12, 13]:
+        elif ftype in [12, 13]:
             ffc = np.nan
             wfc = np.nan
             sfc = 5 * (1 - np.exp(-0.0115 * self.bui))
-        elif self.ftype in [14, 15]:
+        elif ftype in [14, 15]:
             ffc = np.nan
             wfc = np.nan
             sfc = self.gfl
-        elif self.ftype == 16:
+        elif ftype == 16:
             ffc = 4 * (1 - np.exp(-0.025 * self.bui))
             wfc = 4 * (1 - np.exp(-0.034 * self.bui))
             sfc = ffc + wfc
-        elif self.ftype == 17:
+        elif ftype == 17:
             ffc = 10 * (1 - np.exp(-0.013 * self.bui))
             wfc = 6 * (1 - np.exp(-0.06 * self.bui))
             sfc = ffc + wfc
-        elif self.ftype == 18:
+        elif ftype == 18:
             ffc = 12 * (1 - np.exp(-0.0166 * self.bui))
             wfc = 20 * (1 - np.exp(-0.021 * self.bui))
             sfc = ffc + wfc
-        elif self.ftype == 19:
-            ffc = 0
-            wfc = 0
-            sfc = 0
-        elif self.ftype == 20:
-            ffc = 0
-            wfc = 0
-            sfc = 0
+        elif ftype == 19:
+            ffc = np.nan
+            wfc = np.nan
+            sfc = np.nan
+        elif ftype == 20:
+            ffc = np.nan
+            wfc = np.nan
+            sfc = np.nan
         else:
             ffc = np.nan
             wfc = np.nan
             sfc = np.nan
 
         # Assign FFC
-        self.ffc = mask.where(self.fuel_type == self.ftype,
+        self.ffc = mask.where(self.fuel_type == ftype,
                               ffc,
                               self.ffc)
         # Assign WFC
-        self.wfc = mask.where(self.fuel_type == self.ftype,
+        self.wfc = mask.where(self.fuel_type == ftype,
                               wfc,
                               self.wfc)
         # Assign SFC
-        self.sfc = mask.where(self.fuel_type == self.ftype,
+        self.sfc = mask.where(self.fuel_type == ftype,
                               sfc,
                               self.sfc)
 
         return
 
-    def getCBH_CFL(self) -> None:
+    def getCBH_CFL(self, ftype: int) -> None:
         """
         Function to get the default CFFBPS canopy base height (CBH) and
         canopy fuel load (CFL) values for a specified fuel type.
+
+        :param ftype: The numeric FBP fuel type code.
         :return: None
         """
         # Get canopy base height (CBH) for fuel type
-        self.cbh = mask.where(self.fuel_type == self.ftype,
-                              self.fbpCBH_CFL_HT_LUT.get(self.ftype)[0],
+        self.cbh = mask.where(self.fuel_type == ftype,
+                              self.fbpCBH_CFL_HT_LUT.get(ftype)[0],
                               self.cbh)
         # Get canopy fuel load (CFL) for fuel type
-        self.cfl = mask.where(self.fuel_type == self.ftype,
-                              self.fbpCBH_CFL_HT_LUT.get(self.ftype)[1],
+        self.cfl = mask.where(self.fuel_type == ftype,
+                              self.fbpCBH_CFL_HT_LUT.get(ftype)[1],
                               self.cbh)
 
         return
@@ -1307,10 +1314,11 @@ class FBP:
     def calcCSFI(self) -> None:
         """
         Function to calculate the critical surface fire intensity (CSFI).
+
         :return: None
         """
         # Calculate critical surface fire intensity (CSFI)
-        self.csfi = mask.where(self.fuel_type < 19,
+        self.csfi = mask.where(self.fuel_type < 14,
                                np.power(0.01 * self.cbh * (460 + (25.9 * self.fmc)), 1.5),
                                0)
 
@@ -1319,6 +1327,7 @@ class FBP:
     def calcRSO(self) -> None:
         """
         Function to calculate the critical surface fire rate of spread (RSO).
+
         :return: None
         """
         # Calculate critical surface fire rate of spread (RSO)
@@ -1328,21 +1337,23 @@ class FBP:
 
         return
 
-    def calcCFB(self) -> None:
+    def calcCFB(self, ftype: int) -> None:
         """
         Function calculates crown fraction burned using equation in Forestry Canada Fire Danger Group (1992)
+
+        :param ftype: The numeric FBP fuel type code.
         :return: None
         """
-        if self.ftype == 6:
+        if ftype == 6:
             # For C-6 fuel type
-            self.cfb = mask.where(self.fuel_type == self.ftype,
+            self.cfb = mask.where(self.fuel_type == ftype,
                                   mask.where((self.sfros - self.rso) < -3086,
                                              0,
                                              1 - np.exp(-0.23 * (self.sfros - self.rso))),
                                   self.cfb)
         else:
             # For all other fuel types
-            self.cfb = mask.where(self.fuel_type == self.ftype,
+            self.cfb = mask.where(self.fuel_type == ftype,
                                   mask.where((self.hfros - self.rso) < -3086,
                                              0,
                                              1 - np.exp((-0.23 * (self.hfros - self.rso)).astype(np.float32))),
@@ -1358,6 +1369,7 @@ class FBP:
     def calcFireType(self) -> None:
         """
         Function to calculate fire type (1: surface, 2: intermittent crown, 3: active crown)
+
         :return: None
         """
         self.fire_type = mask.where((self.fuel_type < 19),
@@ -1379,6 +1391,7 @@ class FBP:
     def calcCFC(self) -> None:
         """
         Function calculates crown fuel consumed (kg/m^2).
+
         :return: None
         """
         self.cfc = mask.where((self.fuel_type == 10) | (self.fuel_type == 11),
@@ -1392,6 +1405,7 @@ class FBP:
     def calcC6hfros(self) -> None:
         """
         Function to calculate crown and total head fire rate of spread for the C6 fuel type
+
         :returns: None
         """
         self.cfros = mask.where(self.fuel_type == 6,
@@ -1409,6 +1423,7 @@ class FBP:
     def calcTFC(self) -> None:
         """
         Function to calculate total fuel consumed (kg/m^2)
+
         :return: None
         """
         self.tfc = self.sfc + self.cfc
@@ -1418,6 +1433,7 @@ class FBP:
     def calcHFI(self) -> None:
         """
         Function to calculate fire type, total fuel consumption, and head fire intensity
+
         :returns: None
         """
         self.hfi = 300 * self.hfros * self.tfc
@@ -1431,84 +1447,19 @@ class FBP:
         :param set_dict: Dictionary of FBP parameter names and the values to assign to the FBP class object
         :return: None
         """
-        # Dictionary of CFFBPS parameters
-        fbp_params = {
-            # Default output variables
-            'fire_type': self.fire_type,  # Type of fire (surface, intermittent crown, active crown)
-            'hfros': self.hfros,  # Head fire rate of spread (m/min)
-            'hfi': self.hfi,  # Head fire intensity (kW/m)
-
-            # Weather variables
-            'ws': self.ws,  # Observed wind speed (km/h)
-            'wd': self.wd,  # Wind azimuth/direction (degrees)
-            'm': self.m,  # Moisture content equivalent of the FFMC (%, value from 0-100+)
-            'fF': self.fF,  # Fine fuel moisture function in the ISI
-            'fW': self.fW,  # Wind function in the ISI
-            'isi': self.isi,  # Final ISI, accounting for wind and slope
-
-            # Slope + wind effect variables
-            'a': self.a,  # Rate of spread equation coefficient
-            'b': self.b,  # Rate of spread equation coefficient
-            'c': self.c,  # Rate of spread equation coefficient
-            'RSZ': self.rsz,  # Surface spread rate with zero wind on level terrain
-            'SF': self.sf,  # Slope factor
-            'RSF': self.rsf,  # Spread rate with zero wind, upslope
-            'ISF': self.isf,  # ISI, with zero wind upslope
-            'RSI': self.rsi,  # Initial spread rate without BUI effect
-            'WSE1': self.wse1,  # Original slope equivalent wind speed value for cases where WSE1 <= 40
-            'WSE2': self.wse2,  # New slope equivalent sind speed value for cases where WSE1 > 40
-            'WSE': self.wse,  # Slope equivalent wind speed
-            'WSX': self.wsx,  # Net vectorized wind speed in the x-direction
-            'WSY': self.wsy,  # Net vectorized wind speed in the y-direction
-            'WSV': self.wsv,  # Net vectorized wind speed
-            'RAZ': self.raz,  # Net vectorized wind direction
-
-            # BUI effect variables
-            'q': self.q,  # Proportion of maximum rate of spread at BUI equal to 50
-            'bui0': self.bui0,  # Average BUI for each fuel type
-            'BE': self.be,  # Buildup effect on spread rate
-            'be_max': self.be_max,  # Maximum allowable BE value
-
-            # Surface fuel variables
-            'ffc': self.ffc,  # Estimated forest floor consumption
-            'wfc': self.wfc,  # Estimated woody fuel consumption
-            'sfc': self.sfc,  # Estimated total surface fuel consumption
-
-            # Foliar moisture content variables
-            'latn': self.latn,  # Normalized latitude
-            'dj': self.dj,  # Julian date of day being modelled
-            'd0': self.d0,  # Julian date of minimum foliar moisture content
-            'nd': self.nd,  # number of days between modelled fire date and d0
-            'fmc': self.fmc,  # foliar moisture content
-            'fme': self.fme,  # foliar moisture effect
-
-            # Critical crown fire threshold variables
-            'csfi': self.csfi,  # Critical intensity (kW/m)
-            'rso': self.rso,  # Critical rate of spread (m/min)
-
-            # Back fire spread variables
-            'bfw': self.bfW,  # The back fire wind function
-            'bisi': self.bisi,  # The ISI associated with the back fire rate of spread
-            'bros': self.bros,  # Backing rate of spread (m/min)
-
-            # Crown fuel parameters
-            'cbh': self.cbh,  # Height to live crown base (m)
-            'cfb': self.cfb,  # Crown fraction burned (proportion, value ranging from 0-1)
-            'cfl': self.cfl,  # Crown fuel load (kg/m^2)
-            'cfc': self.cfc  # Crown fuel consumed
-        }
         # Iterate through the set dictionary and assign values
         for key, value in set_dict.items():
-            if isinstance(value, np.ndarray):
-                fbp_params[key] = mask.array(fbp_params[key], mask=np.isnan(fbp_params[key]))
-            else:
-                fbp_params[key] = value
-
+            if hasattr(self, key):  # Check if the class has the attribute
+                if isinstance(value, np.ndarray):
+                    setattr(self, key, mask.array(value, mask=np.isnan(value)))
+                else:
+                    setattr(self, key, mask.array([value], mask=np.isnan([value])))
         return
 
     def getParams(self, out_request: list[str]) -> list[any]:
         """
         Function to output requested dataset parameters from the FBP class.
+
         :param out_request: List of requested FBP parameters.
         :return: List of requested outputs.
         """
@@ -1531,23 +1482,23 @@ class FBP:
             'a': self.a,  # Rate of spread equation coefficient
             'b': self.b,  # Rate of spread equation coefficient
             'c': self.c,  # Rate of spread equation coefficient
-            'RSZ': self.rsz,  # Surface spread rate with zero wind on level terrain
-            'SF': self.sf,  # Slope factor
-            'RSF': self.rsf,  # Spread rate with zero wind, upslope
-            'ISF': self.isf,  # ISI, with zero wind upslope
-            'RSI': self.rsi,  # Initial spread rate without BUI effect
-            'WSE1': self.wse1,  # Original slope equivalent wind speed value for cases where WSE1 <= 40
-            'WSE2': self.wse2,  # New slope equivalent sind speed value for cases where WSE1 > 40
-            'WSE': self.wse,  # Slope equivalent wind speed
-            'WSX': self.wsx,  # Net vectorized wind speed in the x-direction
-            'WSY': self.wsy,  # Net vectorized wind speed in the y-direction
-            'WSV': self.wsv,  # Net vectorized wind speed
-            'RAZ': self.raz,  # Net vectorized wind direction
+            'rsz': self.rsz,  # Surface spread rate with zero wind on level terrain
+            'sf': self.sf,  # Slope factor
+            'rsf': self.rsf,  # Spread rate with zero wind, upslope
+            'isf': self.isf,  # ISI, with zero wind upslope
+            'rsi': self.rsi,  # Initial spread rate without BUI effect
+            'wse1': self.wse1,  # Original slope equivalent wind speed value for cases where WSE1 <= 40
+            'wse2': self.wse2,  # New slope equivalent sind speed value for cases where WSE1 > 40
+            'wse': self.wse,  # Slope equivalent wind speed
+            'wsx': self.wsx,  # Net vectorized wind speed in the x-direction
+            'wsy': self.wsy,  # Net vectorized wind speed in the y-direction
+            'wsv': self.wsv,  # Net vectorized wind speed
+            'raz': self.raz,  # Net vectorized wind direction
 
             # BUI effect variables
             'q': self.q,  # Proportion of maximum rate of spread at BUI equal to 50
             'bui0': self.bui0,  # Average BUI for each fuel type
-            'BE': self.be,  # Buildup effect on spread rate
+            'be': self.be,  # Buildup effect on spread rate
             'be_max': self.be_max,  # Maximum allowable BE value
 
             # Surface fuel variables
@@ -1600,47 +1551,47 @@ class FBP:
         if block is not None:
             self.block = block
 
-        # Model fire behavior with CFFBPS
-        # print('Inverting wind direction and aspect')
+        # ### Model fire behavior with CFFBPS
+        # Invert wind direction and aspect
         self.invertWindAspect()
-        # print('Calculating slope factor')
+        # Calculate slope factor
         self.calcSF()
-        # print('Calculating zero slope & zero wind ISI')
+        # Calculate zero slope & zero wind ISI
         self.calcISZ()
-        # print('Calculating foliar moisture content')
+        # Calculate foliar moisture content
         self.calcFMC()
-        for self.ftype in [ftype for ftype in np.unique(self.fuel_type)
-                           if ftype in list(self.rosParams.keys())]:
-            # print(f'Processing {fbpFTCode_NumToAlpha_LUT.get(self.ftype)} fuel type')
-            # print('\tCalculating ISI, RSI, and BE')
-            self.calcISI_RSI_BE()
-            # print('\tCalculating ROS')
-            self.calcROS()
-            # print('\tCalculating surface fuel consumption')
-            self.calcSFC()
-            # print('\tCalculating canopy base height and canopy fuel load')
-            self.getCBH_CFL()
-        # print('Calculating critical surface fire intensity')
+        for ftype in [_ftype for _ftype in np.unique(self.fuel_type)
+                      if _ftype in list(self.rosParams.keys())]:
+            # Calculate ISI, RSI, and BE
+            self.calcISI_RSI_BE(ftype)
+            # Calculate ROS
+            self.calcROS(ftype)
+            # Calculate surface fuel consumption
+            self.calcSFC(ftype)
+            # Calculate canopy base height and canopy fuel load
+            self.getCBH_CFL(ftype)
+        # Calculate critical surface fire intensity
         self.calcCSFI()
-        # print('Calculating critical surface fire rate of spread')
+        # Calculate critical surface fire rate of spread
         self.calcRSO()
-        # print(f'Calculating crown fraction burned')
-        for self.ftype in [ftype for ftype in np.unique(self.fuel_type)
-                           if ftype in list(self.rosParams.keys())]:
-            # print(f'\tProcessing {fbpFTCode_NumToAlpha_LUT.get(self.ftype)} fuel type')
-            self.calcCFB()
-        # print('Calculating fire type')
+        # Calculate crown fraction burned
+        for ftype in [_ftype for _ftype in np.unique(self.fuel_type)
+                      if _ftype in list(self.rosParams.keys())]:
+            self.calcCFB(ftype)
+        # Calculate fire type
         self.calcFireType()
-        # print('Calculating crown fuel consumed')
+        # Calculate crown fuel consumed
         self.calcCFC()
-        # print('Calculating C6 head fire rate of spread')
+        # Calculate C6 head fire rate of spread
         self.calcC6hfros()
-        # print('Calculating total fuel consumption')
+        # Calculate total fuel consumption
         self.calcTFC()
-        # print('Calculating head fire intensity')
+        # Calculate head fire intensity
         self.calcHFI()
 
-        # print('<< Returning requested values >>\n')
+        # Return requested values
+        if self.out_request is None:
+            self.out_request = ['hfros', 'hfi', 'fire_type']
         return self.getParams(self.out_request)
 
 
