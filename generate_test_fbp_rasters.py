@@ -6,9 +6,7 @@ Created on Thur Aug 8 17:30:00 2024
 """
 
 import os
-
 import numpy as np
-
 import ProcessRasters as pr
 from numpy import float64 as f64
 from datetime import datetime as dt
@@ -39,7 +37,8 @@ def gen_test_data(wx_date: int,
                   pc: Optional[Union[float, int]] = 50,
                   pdf: Optional[Union[float, int]] = 35,
                   gfl: Optional[Union[float, int]] = 0.35,
-                  gcf: Optional[Union[float, int]] = 80):
+                  gcf: Optional[Union[float, int]] = 80,
+                  dtype=np.float32):
     # ### VERIFY ALL INPUTS
     # Verify wx_date
     if not isinstance(wx_date, int):
@@ -126,7 +125,7 @@ def gen_test_data(wx_date: int,
         pr.arrayToRaster(array=dset_array,
                          out_file=os.path.join(input_folder, f'{dset}.tif'),
                          ras_profile=fuel_type_profile,
-                         dtype=np.float64)
+                         dtype=dtype)
 
 
 if __name__ == '__main__':
