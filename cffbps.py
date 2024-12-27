@@ -70,23 +70,25 @@ def convert_grid_codes(fuel_type_array: np.ndarray) -> np.ndarray:
     :param fuel_type_array: CFFBPS fuel type array, containing the CFS cffdrs R version of grid codes
     :return: modified fuel_type_array
     """
-    fuel_type_array = mask.where(fuel_type_array == 19,
-                                 20,
-                                 mask.where(fuel_type_array == 13,
-                                            19,
-                                            mask.where(fuel_type_array == 12,
-                                                       13,
-                                                       mask.where(fuel_type_array == 11,
-                                                                  12,
-                                                                  mask.where(fuel_type_array == 10,
-                                                                             11,
-                                                                             mask.where(fuel_type_array == 9,
-                                                                                        10,
-                                                                                        fuel_type_array))))))
+    fuel_type_array = mask.where(
+        fuel_type_array == 19, 20,
+        mask.where(
+            fuel_type_array == 13, 19,
+            mask.where(
+                fuel_type_array == 12, 13,
+                mask.where(
+                    fuel_type_array == 11, 12,
+                    mask.where(
+                        fuel_type_array == 10, 11,
+                        mask.where(fuel_type_array == 9, 10, fuel_type_array)
+                    )
+                )
+            )
+        )
+    )
     return fuel_type_array
 
 
-# Grass curing values by season
 def getSeasonGrassCuring(season: str,
                          province: str,
                          subregion: str = None) -> int:
@@ -160,6 +162,7 @@ class FBP:
         # Array verification parameter
         self.return_array = None
         self.ref_array = None
+        self.ref_array_nan = None
         self.initialized = False
 
         # Initialize multiprocessing block variable
@@ -340,6 +343,9 @@ class FBP:
             self.return_array = False
             # Get first input parameter array as a masked array
             self.ref_array = mask.array([0], mask=np.isnan([self.fuel_type])).astype(np.float32)
+            self.ref_array_nan = mask.array([np.nan], mask=np.isnan([self.fuel_type])).astype(np.float32)
+
+        return
 
     def _verifyInputs(self) -> None:
         """
@@ -691,7 +697,6 @@ class FBP:
         self.hfi = self.ref_array
 
         # Initialize other parameters
-        ftype = self.ref_array
         self.sfros = self.ref_array
         self.cfros = self.ref_array
 
@@ -1196,6 +1201,12 @@ class FBP:
                                                    0,
                                                    self.hfros * 0.2),
                                         self.hfros)
+                # D2 fuel type
+                self.bros = mask.where(self.fuel_type == ftype,
+                                       mask.where(self.bui < 70,
+                                                  0,
+                                                  self.bros * 0.2),
+                                       self.bros)
 
         return
 
@@ -1530,12 +1541,21 @@ class FBP:
             'cfc': self.cfc  # Crown fuel consumed
         }
 
+        # Retrieve requested parameters
         if self.return_array:
-            return [fbp_params.get(var).data if fbp_params.get(var, None) is not None
-                    else 'Invalid output variable' for var in out_request]
+            return [
+                fbp_params.get(var).data[0] if fbp_params.get(var).ndim > 3
+                else fbp_params.get(var).data if fbp_params.get(var, None) is not None
+                else 'Invalid output variable'
+                for var in out_request
+            ]
         else:
-            return [fbp_params.get(var).data[0] if fbp_params.get(var, None) is not None
-                    else 'Invalid output variable' for var in out_request]
+            return [
+                fbp_params.get(var).item() if fbp_params.get(var).ndim == 0
+                else (fbp_params.get(var))[0].item() if fbp_params.get(var) is not None
+                else 'Invalid output variable'
+                for var in out_request
+            ]
 
     def runFBP(self, block: Optional[np.ndarray] = None) -> list[any]:
         """
@@ -1997,79 +2017,56 @@ def _testFBP(test_functions: list,
     if any(var in test_functions for var in ['raster', 'all']):
         print('Testing raster modelling')
         # Generate test raster datasets using user-provided input values
-        genras.gen_test_data(*input_data[:-2])
+        genras.gen_test_data(*input_data[:-2], dtype=np.float64)
 
         # Get input dataset paths
-        fuel_type_path = os.path.join(input_folder, 'FuelType.tif')
-        lat_path = os.path.join(input_folder, 'LAT.tif')
-        long_path = os.path.join(input_folder, 'LONG.tif')
-        elev_path = os.path.join(input_folder, 'ELV.tif')
-        slope_path = os.path.join(input_folder, 'GS.tif')
-        aspect_path = os.path.join(input_folder, 'Aspect.tif')
-        ws_path = os.path.join(input_folder, 'WS.tif')
-        wd_path = os.path.join(input_folder, 'WD.tif')
-        ffmc_path = os.path.join(input_folder, 'FFMC.tif')
-        bui_path = os.path.join(input_folder, 'BUI.tif')
-        pc_path = os.path.join(input_folder, 'PC.tif')
-        pdf_path = os.path.join(input_folder, 'PDF.tif')
-        gfl_path = os.path.join(input_folder, 'GFL.tif')
-        gcf_path = os.path.join(input_folder, 'cc.tif')
+        raster_paths = {
+            'fuel_type': os.path.join(input_folder, 'FuelType.tif'),
+            'lat': os.path.join(input_folder, 'LAT.tif'),
+            'long': os.path.join(input_folder, 'LONG.tif'),
+            'elevation': os.path.join(input_folder, 'ELV.tif'),
+            'slope': os.path.join(input_folder, 'GS.tif'),
+            'aspect': os.path.join(input_folder, 'Aspect.tif'),
+            'ws': os.path.join(input_folder, 'WS.tif'),
+            'wd': os.path.join(input_folder, 'WD.tif'),
+            'ffmc': os.path.join(input_folder, 'FFMC.tif'),
+            'bui': os.path.join(input_folder, 'BUI.tif'),
+            'pc': os.path.join(input_folder, 'PC.tif'),
+            'pdf': os.path.join(input_folder, 'PDF.tif'),
+            'gfl': os.path.join(input_folder, 'GFL.tif'),
+            'gcf': os.path.join(input_folder, 'cc.tif'),
+        }
 
         # Create a reference raster profile for final raster outputs
-        ref_ras_profile = pr.getRaster(gfl_path).profile
+        ref_ras_profile = pr.getRaster(raster_paths['gfl']).profile
 
-        # Get input dataset arrays
-        fuel_type_array = pr.getRaster(fuel_type_path).read()
-        lat_array = pr.getRaster(lat_path).read()
-        long_array = pr.getRaster(long_path).read()
-        elev_array = pr.getRaster(elev_path).read()
-        slope_array = pr.getRaster(slope_path).read()
-        aspect_array = pr.getRaster(aspect_path).read()
-        ws_array = pr.getRaster(ws_path).read()
-        wd_array = pr.getRaster(wd_path).read()
-        ffmc_array = pr.getRaster(ffmc_path).read()
-        bui_array = pr.getRaster(bui_path).read()
-        pc_array = pr.getRaster(pc_path).read()
-        pdf_array = pr.getRaster(pdf_path).read()
-        gfl_array = pr.getRaster(gfl_path).read()
-        gcf_array = pr.getRaster(gcf_path).read()
+        # Read raster data into CuPy arrays
+        raster_data = {key: pr.getRaster(path).read() for key, path in raster_paths.items()}
 
-        # Run the FBP modelling
+        # Generate the output request
+        out_request = ['wsv', 'raz', 'fire_type', 'hfi', 'hfros', 'bros', 'ffc', 'wfc', 'sfc']
+
+        # Run the FBP modeling
         fbp.initialize(
-            fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
-            elevation=elev_array, slope=slope_array, aspect=aspect_array,
-            ws=ws_array, wd=wd_array, ffmc=ffmc_array, bui=bui_array,
-            pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=gcf_array,
-            out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc'],
+            fuel_type=raster_data['fuel_type'], wx_date=wx_date,
+            lat=raster_data['lat'], long=raster_data['long'], elevation=raster_data['elevation'],
+            slope=raster_data['slope'], aspect=raster_data['aspect'],
+            ws=raster_data['ws'], wd=raster_data['wd'], ffmc=raster_data['ffmc'],
+            bui=raster_data['bui'], pc=raster_data['pc'], pdf=raster_data['pdf'],
+            gfl=raster_data['gfl'], gcf=raster_data['gcf'],
+            out_request=out_request,
             convert_fuel_type_codes=False
         )
         fbp_result = fbp.runFBP()
 
         # Get output dataset paths
-        wsv_out = os.path.join(output_folder, 'wsv.tif')
-        raz_out = os.path.join(output_folder, 'raz.tif')
-        fire_type_out = os.path.join(output_folder, 'fire_type.tif')
-        hfros_out = os.path.join(output_folder, 'hfros.tif')
-        hfi_out = os.path.join(output_folder, 'hfi.tif')
-        ffc_out = os.path.join(output_folder, 'ffc.tif')
-        wfc_out = os.path.join(output_folder, 'wfc.tif')
-        sfc_out = os.path.join(output_folder, 'sfc.tif')
-
-        # Generate list of output paths
         out_path_list = [
-            wsv_out,
-            raz_out,
-            fire_type_out,
-            hfros_out,
-            hfi_out,
-            ffc_out,
-            wfc_out,
-            sfc_out,
+            os.path.join(output_folder, name + '.tif') for name in out_request
         ]
 
         for dset, path in zip(fbp_result, out_path_list):
             # Save output datasets
-            pr.arrayToRaster(array=dset,
+            pr.arrayToRaster(array=dset,  # Convert to NumPy for rasterio compatibility
                              out_file=path,
                              ras_profile=ref_ras_profile,
                              dtype=np.float64)
@@ -2115,38 +2112,24 @@ def _testFBP(test_functions: list,
         gfl_array = pr.getRaster(gfl_path).read()
         # gcf_array = pr.getRaster(gcf_path).read()
 
+        # Generate the output request
+        out_request = ['wsv', 'raz', 'fire_type', 'hfi', 'hfros', 'bros', 'ffc', 'wfc', 'sfc']
+
         # Run the FBP multiprocessing
         fbp_multiprocess_result = fbpMultiprocessArray(
             fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
             elevation=elev_array, slope=slope_array, aspect=aspect_array,
             ws=ws_array, wd=wd, ffmc=ffmc_array, bui=bui_array,
             pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=getSeasonGrassCuring(season='summer', province='BC'),
-            out_request=['WSV', 'RAZ', 'fire_type', 'hfros', 'hfi', 'ffc', 'wfc', 'sfc'],
+            out_request=out_request,
             convert_fuel_type_codes=True,
             num_processors=num_processors,
             block_size=block_size
         )
 
         # Get output dataset paths
-        wsv_out = os.path.join(output_folder, 'Multiprocessing', 'wsv.tif')
-        raz_out = os.path.join(output_folder, 'Multiprocessing', 'raz.tif')
-        fire_type_out = os.path.join(output_folder, 'Multiprocessing', 'fire_type.tif')
-        hfros_out = os.path.join(output_folder, 'Multiprocessing', 'hfros.tif')
-        hfi_out = os.path.join(output_folder, 'Multiprocessing', 'hfi.tif')
-        ffc_out = os.path.join(output_folder, 'Multiprocessing', 'ffc.tif')
-        wfc_out = os.path.join(output_folder, 'Multiprocessing', 'wfc.tif')
-        sfc_out = os.path.join(output_folder, 'Multiprocessing', 'sfc.tif')
-
-        # Generate list of output paths
         out_path_list = [
-            wsv_out,
-            raz_out,
-            fire_type_out,
-            hfros_out,
-            hfi_out,
-            ffc_out,
-            wfc_out,
-            sfc_out,
+            os.path.join(output_folder, 'Multiprocessing', name + '.tif') for name in out_request
         ]
 
         for dset, path in zip(fbp_multiprocess_result, out_path_list):
