@@ -8,7 +8,7 @@ Created on Thur Dec 26 20:45:00 2024
 __author__ = ['Gregory A. Greene']
 
 import os
-from typing import Union, Optional
+from typing import Union, Optional, Literal
 from operator import itemgetter
 import numpy as np
 import cupy as cp
@@ -126,6 +126,7 @@ class FBP:
         self.gcf = None
         self.out_request = None
         self.convert_fuel_type_codes = None
+        self.return_array_as = None
 
         # Array verification parameter
         self.return_array = None
@@ -400,7 +401,8 @@ class FBP:
                    gfl: Optional[Union[float, int, cp.ndarray]] = 0.35,
                    gcf: Optional[Union[float, int, cp.ndarray]] = 80,
                    out_request: Optional[Union[list, tuple]] = None,
-                   convert_fuel_type_codes: Optional[bool] = False) -> None:
+                   convert_fuel_type_codes: Optional[bool] = False,
+                   return_array_as: Literal['numpy', 'cupy'] = 'numpy') -> None:
         """
         Initialize the FBP object with the provided parameters.
 
@@ -499,6 +501,7 @@ class FBP:
             cfc = Crown fuel consumed
         :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
             to the grid codes used in this module
+        :param return_array_as: If the results are arrays, the type of array to return as. Options: 'numpy', 'cupy'
         """
         self.fuel_type = fuel_type
         self.wx_date = wx_date
@@ -517,6 +520,7 @@ class FBP:
         self.gcf = gcf
         self.out_request = out_request
         self.convert_fuel_type_codes = convert_fuel_type_codes
+        self.return_array_as = return_array_as
 
         # Verify input parameters
         self._checkArray()
@@ -1539,11 +1543,19 @@ class FBP:
 
         # Retrieve requested parameters
         if self.return_array:
-            return [
-                cp.asnumpy(fbp_params.get(var)) if fbp_params.get(var) is not None
-                else 'Invalid output variable'
-                for var in out_request
-            ]
+            if self.return_array_as == 'cupy':
+                return [
+                    cp.array(fbp_params.get(var)) if fbp_params.get(var) is not None
+                    else 'Invalid output variable'
+                    for var in out_request
+                ]
+            elif self.return_array_as == 'numpy':
+                return [
+                    np.array(cp.asnumpy(fbp_params.get(var))) if fbp_params.get(var) is not None
+                    else 'Invalid output variable'
+                    for var in out_request
+                ]
+
         else:
             return [
                 cp.asnumpy(fbp_params.get(var)).item() if fbp_params.get(var).ndim == 0
