@@ -1303,21 +1303,38 @@ class FBP:
 
         return
 
-    def getCBH_CFL(self, ftype: int) -> None:
+    def getCBH_CFL(self, ftype: int, cbh: float = None, cfl: float = None) -> None:
         """
         Function to get the default CFFBPS canopy base height (CBH) and
         canopy fuel load (CFL) values for a specified fuel type.
 
         :param ftype: The numeric FBP fuel type code.
+        :param cbh: A specific cbh value to use instead of the default (only for C6 fuel types)
+        :param cfl: A specific cfl value to use instead of the default (only for C6 fuel types)
         :return: None
         """
         # Get canopy base height (CBH) for fuel type
+        if cbh is None:
+            cbh = self.fbpCBH_CFL_HT_LUT.get(ftype)[0]
+        else:
+            if not isinstance(cbh, float):
+                raise ValueError('The "cbh" parameter must be a float data type.')
+            if ftype != 6:
+                raise ValueError('Only the C-6 fuel type can have the cbh value adjusted.')
         self.cbh = mask.where(self.fuel_type == ftype,
-                              self.fbpCBH_CFL_HT_LUT.get(ftype)[0],
+                              cbh,
                               self.cbh)
+
         # Get canopy fuel load (CFL) for fuel type
+        if cfl is None:
+            cfl = self.fbpCBH_CFL_HT_LUT.get(ftype)[1]
+        else:
+            if not isinstance(cfl, float):
+                raise ValueError('The "cfl" parameter must be a float data type.')
+            if ftype != 6:
+                raise ValueError('Only the C-6 fuel type can have the cfl value adjusted.')
         self.cfl = mask.where(self.fuel_type == ftype,
-                              self.fbpCBH_CFL_HT_LUT.get(ftype)[1],
+                              cfl,
                               self.cbh)
 
         return
