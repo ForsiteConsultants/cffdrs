@@ -168,6 +168,9 @@ class FBP:
         # Initialize multiprocessing block variable
         self.block = None
 
+        # Initialize unique fuel types list
+        self.ftypes = None
+
         # Initialize weather parameters
         self.isi = None
         self.m = None
@@ -223,7 +226,7 @@ class FBP:
         self.cfc = None
         self.tfc = None
 
-        # Initialize the back fire rate of spread parameters
+        # Initialize the backing fire rate of spread parameters
         self.bfW = None
         self.brsi = None
         self.bisi = None
@@ -234,9 +237,12 @@ class FBP:
         self.hfros = None
         self.hfi = None
 
-        # Initialize other parameters
+        # Initialize C-6 rate of spread parameters
         self.sfros = None
         self.cfros = None
+
+        # Initialize point ignition acceleration parameter
+        self.accel_param = None
 
         # ### Lists for CFFBPS Crown Fire Metric variables
         self.csfiVarList = ['cbh', 'fmc']
@@ -370,6 +376,9 @@ class FBP:
         # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
         if self.convert_fuel_type_codes:
             self.fuel_type = convert_grid_codes(self.fuel_type)
+
+        # Get unique fuel types present in the dataset
+        self.ftypes = [ftype for ftype in np.unique(self.fuel_type) if ftype in list(self.rosParams.keys())]
 
         # Verify wx_date
         if not isinstance(self.wx_date, int):
@@ -685,7 +694,7 @@ class FBP:
         self.cfc = self.ref_array
         self.tfc = self.ref_array
 
-        # Initialize the back fire rate of spread parameters
+        # Initialize the backing fire rate of spread parameters
         self.bfW = self.ref_array
         self.brsi = self.ref_array
         self.bisi = self.ref_array
@@ -696,9 +705,12 @@ class FBP:
         self.hfros = self.ref_array
         self.hfi = self.ref_array
 
-        # Initialize other parameters
+        # Initialize C-6 rate of spread parameters
         self.sfros = self.ref_array
         self.cfros = self.ref_array
+
+        # Initialize point ignition acceleration parameter
+        self.accel_param = self.ref_array
 
         # List of required parameters
         required_params = [
@@ -876,13 +888,13 @@ class FBP:
                                   0.208 * self.fW * self.fF,
                                   self.isi)
 
-            # ## Calculate Back Fire ISI
-            # Calculate the back fire wind function
+            # ## Calculate Backing Fire ISI
+            # Calculate the backing fire wind function
             self.bfW = mask.where(self.fuel_type == ftype,
                                   mask.exp(-0.05039 * self.wsv),
                                   self.bfW)
 
-            # Calculate the ISI associated with the back fire rate of spread
+            # Calculate the ISI associated with the backing fire rate of spread
             self.bisi = self.bfW * self.fF * 0.208
 
         # ### CFFBPS ROS models
@@ -923,7 +935,7 @@ class FBP:
                                       self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) * self.cf,
                                       self.rsi)
 
-                # Calculate back fire rate of spread with slope and wind effects
+                # Calculate backing fire rate of spread with slope and wind effects
                 self.brsi = mask.where(self.fuel_type == ftype,
                                        self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) * self.cf,
                                        self.brsi)
@@ -983,7 +995,7 @@ class FBP:
                                     a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isi), c_d1_2),
                                     0)
 
-                # Calculate back fire rate of spread with slope and wind effects for D1
+                # Calculate backing fire rate of spread with slope and wind effects for D1
                 brsi_d1 = mask.where(self.fuel_type == ftype,
                                      a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.bisi), c_d1_2),
                                      0)
@@ -996,7 +1008,7 @@ class FBP:
                                                                                 self.c) +
                                            (1 - self.pdf / 100) * rsi_d1),
                                           self.rsi)
-                    # D1 Fuel Type Back Fire RSI
+                    # D1 Fuel Type backing fire RSI
                     self.brsi = mask.where(self.fuel_type == ftype,
                                            ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi),
                                                                                  self.c) +
@@ -1009,7 +1021,7 @@ class FBP:
                                                                                 self.c) +
                                            0.2 * (1 - self.pdf / 100) * rsi_d1),
                                           self.rsi)
-                    # D2 Fuel Type Back Fire RSI
+                    # D2 Fuel Type backing fire RSI
                     self.brsi = mask.where(self.fuel_type == ftype,
                                            ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi),
                                                                                  self.c) +
@@ -1055,7 +1067,7 @@ class FBP:
                                       self.a * np.power(1 - np.exp(-self.b * self.isi), self.c),
                                       self.rsi)
 
-                # Calculate back fire rate of spread with slope and wind effects
+                # Calculate backing fire rate of spread with slope and wind effects
                 self.brsi = mask.where(self.fuel_type == ftype,
                                        self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c),
                                        self.brsi)
@@ -1119,7 +1131,7 @@ class FBP:
             rsi_c2 = mask.where(self.fuel_type == ftype,
                                 a_c2 * np.power(1 - np.exp(-b_c2 * self.isi), c_c2),
                                 0)
-            # Get C2 Back Fire RSI
+            # Get C2 backing fire RSI
             brsi_c2 = mask.where(self.fuel_type == ftype,
                                  a_c2 * np.power(1 - np.exp(-b_c2 * self.bisi), c_c2),
                                  0)
@@ -1127,7 +1139,7 @@ class FBP:
             rsi_d1 = mask.where(self.fuel_type == ftype,
                                 a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.isi), c_d1_2),
                                 0)
-            # Get D1 Back Fire RSI
+            # Get D1 backing fire RSI
             brsi_d1 = mask.where(self.fuel_type == ftype,
                                  a_d1_2 * np.power(1 - np.exp(-b_d1_2 * self.bisi), c_d1_2),
                                  0)
@@ -1190,7 +1202,7 @@ class FBP:
             self.hfros = mask.where(self.fuel_type == ftype,
                                     self.rsi * self.be,
                                     self.hfros)
-            # Back Fire ROS
+            # backing fire ROS
             self.bros = mask.where(self.fuel_type == ftype,
                                    self.brsi * self.be,
                                    self.bros)
@@ -1348,32 +1360,56 @@ class FBP:
 
         return
 
-    def calcCFB(self, ftype: int) -> None:
+    def calcCFB(self) -> None:
         """
         Function calculates crown fraction burned using equation in Forestry Canada Fire Danger Group (1992)
 
-        :param ftype: The numeric FBP fuel type code.
         :return: None
         """
-        if ftype == 6:
-            # For C-6 fuel type
-            self.cfb = mask.where(self.fuel_type == ftype,
-                                  mask.where((self.sfros - self.rso) < -3086,
-                                             0,
-                                             1 - np.exp(-0.23 * (self.sfros - self.rso))),
-                                  self.cfb)
-        else:
-            # For all other fuel types
-            self.cfb = mask.where(self.fuel_type == ftype,
-                                  mask.where((self.hfros - self.rso) < -3086,
-                                             0,
-                                             1 - np.exp((-0.23 * (self.hfros - self.rso)).astype(np.float32))),
-                                  self.cfb)
+        # Create masks for C-6 and other fuel types
+        is_c6 = mask.where(self.fuel_type == 6, True, False)
+        is_other = mask.where(np.isin(self.fuel_type, self.ftypes) & ~is_c6, True, False)
+
+        # Compute CFB for C-6
+        cfb_c6 = mask.where((self.sfros - self.rso) < -3086,
+                            0,
+                            1 - np.exp(-0.23 * (self.sfros - self.rso)))
+
+        # Compute CFB for other fuel types
+        cfb_other = mask.where((self.hfros - self.rso) < -3086,
+                               0,
+                               1 - np.exp((-0.23 * (self.hfros - self.rso)).astype(np.float32)))
+
+        # Apply the calculations to the mask
+        self.cfb = mask.where(is_c6, cfb_c6, self.cfb)
+        self.cfb = mask.where(is_other, cfb_other, self.cfb)
 
         # Replace negative values with 0
-        self.cfb = mask.where(self.cfb < 0,
-                              0,
-                              self.cfb)
+        self.cfb = mask.where(self.cfb < 0, 0, self.cfb)
+
+        del is_c6, is_other, cfb_c6, cfb_other
+
+        return
+
+    def calcAccelParam(self) -> None:
+        """
+        Function to calculate acceleration parameter for a fire starting from a point ignition source.
+
+        :return: None
+        """
+        # Mask for open fuel types that use a fixed acceleration parameter (0.115)
+        fixed_accel_mask = mask.where(np.isin(self.fuel_type, [1, 14, 15, 16, 17, 18]), True, False)
+
+        # Mask for closed fuel types that require computation
+        variable_accel_mask = mask.where(np.isin(self.fuel_type, self.ftypes) & ~fixed_accel_mask, True, False)
+
+        # Compute acceleration parameter for open fuel types
+        self.accel_param = mask.where(fixed_accel_mask, 0.115, self.accel_param)
+
+        # Compute acceleration parameter for closed fuel types
+        self.accel_param = mask.where(variable_accel_mask,
+                                      0.115 - 18.8 * np.power(self.cfb, 2.5) * np.exp(-8 * self.cfb),
+                                      self.accel_param)
 
         return
 
@@ -1529,16 +1565,19 @@ class FBP:
             'csfi': self.csfi,  # Critical intensity (kW/m)
             'rso': self.rso,  # Critical rate of spread (m/min)
 
-            # Back fire spread variables
-            'bfw': self.bfW,  # The back fire wind function
-            'bisi': self.bisi,  # The ISI associated with the back fire rate of spread
+            # backing fire spread variables
+            'bfw': self.bfW,  # The backing fire wind function
+            'bisi': self.bisi,  # The ISI associated with the backing fire rate of spread
             'bros': self.bros,  # Backing rate of spread (m/min)
 
             # Crown fuel parameters
             'cbh': self.cbh,  # Height to live crown base (m)
             'cfb': self.cfb,  # Crown fraction burned (proportion, value ranging from 0-1)
             'cfl': self.cfl,  # Crown fuel load (kg/m^2)
-            'cfc': self.cfc  # Crown fuel consumed
+            'cfc': self.cfc,  # Crown fuel consumed
+
+            # Acceleration parameter
+            'accel': self.accel_param
         }
 
         # Retrieve requested parameters
@@ -1595,9 +1634,8 @@ class FBP:
         # Calculate critical surface fire rate of spread
         self.calcRSO()
         # Calculate crown fraction burned
-        for ftype in [_ftype for _ftype in np.unique(self.fuel_type)
-                      if _ftype in list(self.rosParams.keys())]:
-            self.calcCFB(ftype)
+        self.calcCFB(ftype)
+        self.calcAccelParam(ftype)
         # Calculate fire type
         self.calcFireType()
         # Calculate crown fuel consumed

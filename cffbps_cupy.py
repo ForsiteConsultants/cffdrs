@@ -137,6 +137,9 @@ class FBP:
         # Initialize multiprocessing block variable
         self.block = None
 
+        # Initialize unique fuel types list
+        self.ftypes
+
         # Initialize weather parameters
         self.isi = None
         self.m = None
@@ -203,9 +206,12 @@ class FBP:
         self.hfros = None
         self.hfi = None
 
-        # Initialize other parameters
+        # Initialize C-6 rate of spread parameters
         self.sfros = None
         self.cfros = None
+
+        # Initialize point ignition acceleration parameter
+        self.accel_param = None
 
         # ### Lists for CFFBPS Crown Fire Metric variables
         self.csfiVarList = ['cbh', 'fmc']
@@ -351,6 +357,10 @@ class FBP:
         # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
         if self.convert_fuel_type_codes:
             self.fuel_type = convert_grid_codes(self.fuel_type)
+
+        # Get unique fuel types present in the dataset
+        self.ftypes = cp.array([int(ftype) for ftype in cp.asnumpy(cp.unique(self.fuel_type))
+                                if ftype in self.rosParams])
 
         # Verify wx_date
         if not isinstance(self.wx_date, int):
@@ -592,9 +602,12 @@ class FBP:
         self.hfros = self.ref_array
         self.hfi = self.ref_array
 
-        # Initialize other parameters
+        # Initialize C-6 rate of spread parameters
         self.sfros = self.ref_array
         self.cfros = self.ref_array
+
+        # Initialize point ignition acceleration parameter
+        self.accel_param = self.ref_array
 
         # List of required parameters
         required_params = [
@@ -1330,7 +1343,7 @@ class FBP:
 
         return
 
-    def calcCFB(self, ftype: int) -> None:
+    def calcCFB(self) -> None:
         """
         Function calculates crown fraction burned using the equation in Forestry Canada Fire Danger Group (1992)
         using CuPy.
@@ -1338,23 +1351,48 @@ class FBP:
         :param ftype: The numeric FBP fuel type code.
         :return: None
         """
-        if ftype == 6:
-            # For C-6 fuel type
-            self.cfb = cp.where(self.fuel_type == ftype,
-                                cp.where((self.sfros - self.rso) < -3086,
-                                         0,
-                                         1 - cp.exp(-0.23 * (self.sfros - self.rso))),
-                                self.cfb)
-        else:
-            # For all other fuel types
-            self.cfb = cp.where(self.fuel_type == ftype,
-                                cp.where((self.hfros - self.rso) < -3086,
-                                         0,
-                                         1 - cp.exp(-0.23 * (self.hfros - self.rso))),
-                                self.cfb)
+        # Create masks for C-6 and other fuel types
+        is_c6 = self.fuel_type == 6
+        is_other = cp.isin(self.fuel_type, self.ftypes) & ~is_c6  # Uses precomputed self.ftypes
 
-        # Replace negative values with 0
+        # Compute CFB for C-6
+        cfb_c6 = cp.where((self.sfros - self.rso) < -3086,
+                          0,
+                          1 - cp.exp(-0.23 * (self.sfros - self.rso)))
+
+        # Compute CFB for other fuel types
+        cfb_other = cp.where((self.hfros - self.rso) < -3086,
+                             0,
+                             1 - cp.exp(-0.23 * (self.hfros - self.rso)))
+
+        # Apply computed values based on the masks
+        self.cfb = cp.where(is_c6, cfb_c6, self.cfb)
+        self.cfb = cp.where(is_other, cfb_other, self.cfb)
+
+        # Ensure no negative values
         self.cfb = cp.where(self.cfb < 0, 0, self.cfb)
+
+        return
+
+    def calcAccelParam(self) -> None:
+        """
+        Function to calculate acceleration parameter for a fire starting from a point ignition source.
+
+        :return: None
+        """
+        # Mask for open fuel types that use a fixed acceleration parameter (0.115)
+        fixed_accel_mask = cp.isin(self.fuel_type, cp.array([1, 14, 15, 16, 17, 18]))
+
+        # Mask for closed fuel types that require computation
+        variable_accel_mask = cp.isin(self.fuel_type, self.ftypes) & ~fixed_accel_mask
+
+        # Compute acceleration parameter for open fuel types
+        self.accel_param = cp.where(fixed_accel_mask, 0.115, self.accel_param)
+
+        # Compute acceleration parameter for closed fuel types
+        self.accel_param = cp.where(variable_accel_mask,
+                                    0.115 - 18.8 * cp.power(self.cfb, 2.5) * cp.exp(-8 * self.cfb),
+                                    self.accel_param)
 
         return
 
@@ -1609,6 +1647,7 @@ class FBP:
         # Calculate crown fraction burned
         for ftype in [ftype for ftype in unique_fuel_types if ftype in self.rosParams.keys()]:
             self.calcCFB(ftype)
+            self.calcAccelParam(ftype)
 
         # Calculate fire type
         self.calcFireType()
