@@ -1651,8 +1651,9 @@ class FBP:
         # Calculate critical surface fire rate of spread
         self.calcRSO()
         # Calculate crown fraction burned
-        self.calcCFB(ftype)
-        self.calcAccelParam(ftype)
+        self.calcCFB()
+        # Calculate acceleration parameter
+        self.calcAccelParam()
         # Calculate fire type
         self.calcFireType()
         # Calculate crown fuel consumed
