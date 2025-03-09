@@ -66,7 +66,9 @@ fbpFTCode_AlphaToNum_LUT = {
 
 def convert_grid_codes(fuel_type_array: np.ndarray) -> np.ndarray:
     """
-    Function to convert array grid code values from the CFS cffdrs R version to the version used in this module
+    Function to convert grid code values from the cffdrs_r R package fuel type codes
+    to the codes used in this module.
+
     :param fuel_type_array: CFFBPS fuel type array, containing the CFS cffdrs R version of grid codes
     :return: modified fuel_type_array
     """
