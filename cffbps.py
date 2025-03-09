@@ -256,6 +256,9 @@ class FBP:
         # List of open fuel type codes
         self.open_fuel_types = [1, 7, 9, 14, 15, 16, 17, 18]
 
+        # List of non-crowning fuel type codes
+        self.non_crowning_fuels = [8, 9, 14, 15, 16, 17, 18]
+
         # CFFBPS Canopy Base Height & Canopy Fuel Load Lookup Table (cbh, cfl, ht)
         self.fbpCBH_CFL_HT_LUT = {
             1: (2, 0.75, 10),
@@ -1388,28 +1391,28 @@ class FBP:
 
         :return: None
         """
+        # Initialize CFB array
+        self.cfb = np.full_like(self.fuel_type, 0, dtype=np.float32)
+
         # Create masks for C-6 and other fuel types
         is_c6 = mask.where(self.fuel_type == 6, True, False)
-        is_other = mask.where(np.isin(self.fuel_type, self.ftypes) & ~is_c6, True, False)
+        non_crowning = mask.where(np.isin(self.fuel_type, self.non_crowning_fuels), True, False)
+        is_other = mask.where(np.isin(self.fuel_type, self.ftypes) & ~is_c6 & ~non_crowning, True, False)
 
-        # Compute CFB for C-6
-        cfb_c6 = mask.where((self.sfros - self.rso) < -3086,
-                            0,
-                            1 - np.exp(-0.23 * (self.sfros - self.rso)))
+        # Precompute rate of spread differences
+        delta_sfros_c6 = self.sfros - self.rso
+        delta_hfros_other = self.hfros - self.rso
 
-        # Compute CFB for other fuel types
-        cfb_other = mask.where((self.hfros - self.rso) < -3086,
-                               0,
-                               1 - np.exp((-0.23 * (self.hfros - self.rso)).astype(np.float32)))
+        # Compute CFB for C-6 and other fuel types
+        cfb_c6 = mask.where(delta_sfros_c6 < -3086, 0, 1 - np.exp(-0.23 * delta_sfros_c6))
+        cfb_other = mask.where(delta_hfros_other < -3086, 0, 1 - np.exp(-0.23 * delta_hfros_other))
 
-        # Apply the calculations to the mask
+        # Apply the calculations
         self.cfb = mask.where(is_c6, cfb_c6, self.cfb)
         self.cfb = mask.where(is_other, cfb_other, self.cfb)
 
-        # Replace negative values with 0
-        self.cfb = mask.where(self.cfb < 0, 0, self.cfb)
-
-        del is_c6, is_other, cfb_c6, cfb_other
+        # Clean up memory
+        del is_c6, non_crowning, is_other, delta_sfros_c6, delta_hfros_other, cfb_c6, cfb_other
 
         return
 

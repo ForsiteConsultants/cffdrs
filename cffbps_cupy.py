@@ -222,8 +222,11 @@ class FBP:
         self.cfcVarList = ['cfb', 'cfl']
         self.cfiVarList = ['cfros', 'cfc']
 
-        # List of open fuel type codes
-        self.open_fuel_types = [1, 7, 9, 14, 15, 16, 17, 18]
+        # Array of open fuel type codes
+        self.open_fuel_types = cp.array([1, 7, 9, 14, 15, 16, 17, 18])
+
+        # Array of non-crowning fuel type codes
+        self.non_crowning_fuels = cp.array([8, 9, 14, 15, 16, 17, 18])
 
         # CFFBPS Canopy Base Height & Canopy Fuel Load Lookup Table (cbh, cfl, ht)
         self.fbpCBH_CFL_HT_LUT = {
@@ -1353,29 +1356,33 @@ class FBP:
         Function calculates crown fraction burned using the equation in Forestry Canada Fire Danger Group (1992)
         using CuPy.
 
-        :param ftype: The numeric FBP fuel type code.
         :return: None
         """
-        # Create masks for C-6 and other fuel types
+        # Initialize CFB array
+        self.cfb = cp.zeros_like(self.fuel_type, dtype=cp.float32)
+
+        # Masks
         is_c6 = self.fuel_type == 6
-        is_other = cp.isin(self.fuel_type, self.ftypes) & ~is_c6  # Uses precomputed self.ftypes
+        non_crowning = cp.isin(self.fuel_type, self.non_crowning_fuels)
+        is_other = cp.isin(self.fuel_type, self.ftypes) & ~is_c6 & ~non_crowning
 
-        # Compute CFB for C-6
-        cfb_c6 = cp.where((self.sfros - self.rso) < -3086,
-                          0,
-                          1 - cp.exp(-0.23 * (self.sfros - self.rso)))
+        # Precompute exponent input values
+        delta_sfros_c6 = self.sfros - self.rso
+        delta_hfros_other = self.hfros - self.rso
 
-        # Compute CFB for other fuel types
-        cfb_other = cp.where((self.hfros - self.rso) < -3086,
-                             0,
-                             1 - cp.exp(-0.23 * (self.hfros - self.rso)))
+        # Compute CFB
+        cfb_c6 = cp.where(delta_sfros_c6 < -3086, 0, 1 - cp.exp(-0.23 * delta_sfros_c6))
+        cfb_other = cp.where(delta_hfros_other < -3086, 0, 1 - cp.exp(-0.23 * delta_hfros_other))
 
-        # Apply computed values based on the masks
-        self.cfb = cp.where(is_c6, cfb_c6, self.cfb)
-        self.cfb = cp.where(is_other, cfb_other, self.cfb)
+        # Assign computed values based on masks
+        self.cfb[is_c6] = cfb_c6[is_c6]
+        self.cfb[is_other] = cfb_other[is_other]
 
         # Ensure no negative values
         self.cfb = cp.where(self.cfb < 0, 0, self.cfb)
+
+        # Clean up memory
+        del is_c6, is_other, delta_sfros_c6, delta_hfros_other, cfb_c6, cfb_other
 
         return
 
@@ -1386,7 +1393,7 @@ class FBP:
         :return: None
         """
         # Mask for open fuel types that use a fixed acceleration parameter (0.115)
-        fixed_accel_mask = cp.isin(self.fuel_type, cp.array(self.open_fuel_types))
+        fixed_accel_mask = cp.isin(self.fuel_type, self.open_fuel_types)
 
         # Mask for closed fuel types that require computation
         variable_accel_mask = cp.isin(self.fuel_type, self.ftypes) & ~fixed_accel_mask
