@@ -251,6 +251,9 @@ class FBP:
         self.cfcVarList = ['cfb', 'cfl']
         self.cfiVarList = ['cfros', 'cfc']
 
+        # List of open fuel type codes
+        self.open_fuel_types = [1, 7, 9, 14, 15, 16, 17, 18]
+
         # CFFBPS Canopy Base Height & Canopy Fuel Load Lookup Table (cbh, cfl, ht)
         self.fbpCBH_CFL_HT_LUT = {
             1: (2, 0.75, 10),
@@ -1415,7 +1418,7 @@ class FBP:
         :return: None
         """
         # Mask for open fuel types that use a fixed acceleration parameter (0.115)
-        fixed_accel_mask = mask.where(np.isin(self.fuel_type, [1, 14, 15, 16, 17, 18]), True, False)
+        fixed_accel_mask = mask.where(np.isin(self.fuel_type, self.open_fuel_types), True, False)
 
         # Mask for closed fuel types that require computation
         variable_accel_mask = mask.where(np.isin(self.fuel_type, self.ftypes) & ~fixed_accel_mask, True, False)
