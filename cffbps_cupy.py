@@ -138,7 +138,7 @@ class FBP:
         self.block = None
 
         # Initialize unique fuel types list
-        self.ftypes
+        self.ftypes = None
 
         # Initialize weather parameters
         self.isi = None
@@ -219,6 +219,9 @@ class FBP:
         self.cfbVarList = ['cfros', 'rso']
         self.cfcVarList = ['cfb', 'cfl']
         self.cfiVarList = ['cfros', 'cfc']
+
+        # List of open fuel type codes
+        self.open_fuel_types = [1, 7, 9, 14, 15, 16, 17, 18]
 
         # CFFBPS Canopy Base Height & Canopy Fuel Load Lookup Table (cbh, cfl, ht)
         self.fbpCBH_CFL_HT_LUT = {
@@ -1381,7 +1384,7 @@ class FBP:
         :return: None
         """
         # Mask for open fuel types that use a fixed acceleration parameter (0.115)
-        fixed_accel_mask = cp.isin(self.fuel_type, cp.array([1, 14, 15, 16, 17, 18]))
+        fixed_accel_mask = cp.isin(self.fuel_type, cp.array(self.open_fuel_types))
 
         # Mask for closed fuel types that require computation
         variable_accel_mask = cp.isin(self.fuel_type, self.ftypes) & ~fixed_accel_mask
@@ -1576,7 +1579,10 @@ class FBP:
             'cbh': self.cbh,  # Height to live crown base (m)
             'cfb': self.cfb,  # Crown fraction burned (proportion, value ranging from 0-1)
             'cfl': self.cfl,  # Crown fuel load (kg/m^2)
-            'cfc': self.cfc  # Crown fuel consumed
+            'cfc': self.cfc,  # Crown fuel consumed
+
+            # Acceleration parameter
+            'accel': self.accel_param
         }
 
         # Retrieve requested parameters
@@ -1629,7 +1635,8 @@ class FBP:
         # Unique fuel types present in the data
         unique_fuel_types = cp.unique(self.fuel_type).tolist()
 
-        for ftype in [ftype for ftype in unique_fuel_types if ftype in self.rosParams.keys()]:
+        for ftype in [ftype for ftype in unique_fuel_types
+                      if ftype in self.rosParams.keys()]:
             # Calculate ISI, RSI, and BE
             self.calcISI_RSI_BE(ftype)
             # Calculate ROS
@@ -1638,17 +1645,14 @@ class FBP:
             self.calcSFC(ftype)
             # Calculate canopy base height and canopy fuel load
             self.getCBH_CFL(ftype)
-
         # Calculate critical surface fire intensity
         self.calcCSFI()
         # Calculate critical surface fire rate of spread
         self.calcRSO()
-
         # Calculate crown fraction burned
-        for ftype in [ftype for ftype in unique_fuel_types if ftype in self.rosParams.keys()]:
-            self.calcCFB(ftype)
-            self.calcAccelParam(ftype)
-
+        self.calcCFB()
+        # Calculate acceleration parameter
+        self.calcAccelParam()
         # Calculate fire type
         self.calcFireType()
         # Calculate crown fuel consumed
