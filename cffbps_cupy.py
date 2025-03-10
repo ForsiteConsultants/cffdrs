@@ -133,7 +133,6 @@ class FBP:
         # Array verification parameter
         self.return_array = None
         self.ref_array = None
-        self.ref_array_nan = None
         self.initialized = False
 
         # Initialize multiprocessing block variable
@@ -315,23 +314,20 @@ class FBP:
                     converted_fuel_type = convert_to_numeric(self.fuel_type)
                     if None in converted_fuel_type:
                         raise ValueError('Unknown fuel type code found, conversion failed.')
-                    self.fuel_type = converted_fuel_type.astype(cp.float32)
-                    first_array = self.fuel_type
+                    first_array = converted_fuel_type.astype(cp.int8)
 
                 # Create reference arrays with manual masking
                 mask = cp.isnan(first_array)
                 self.ref_array = cp.where(mask, cp.nan, cp.full(first_array.shape, 0, dtype=cp.float32))
-                self.ref_array_nan = cp.where(mask, cp.nan, cp.full(first_array.shape, cp.nan, dtype=cp.float32))
             else:
-                # Single array case, still set ref_array and ref_array_nan
+                # Single array case, still set ref_array
                 first_array = input_list[array_indices[0]]
                 mask = cp.isnan(first_array)
                 self.ref_array = cp.where(mask, cp.nan, 0).astype(cp.float32)
-                self.ref_array_nan = cp.where(mask, cp.nan, cp.nan).astype(cp.float32)
         else:
             self.return_array = False
 
-            # Default ref_array and ref_array_nan for scalar inputs
+            # Default ref_array for scalar inputs
             fuel_type = self.fuel_type
             if isinstance(fuel_type, np.ndarray):
                 if '<U' in str(self.fuel_type.dtype):
@@ -342,7 +338,6 @@ class FBP:
                 fuel_type = fbpFTCode_AlphaToNum_LUT.get(self.fuel_type)
             mask = cp.isnan(cp.array([fuel_type], dtype=cp.float32))
             self.ref_array = cp.where(mask, 0, cp.array([fuel_type], dtype=cp.float32))
-            self.ref_array_nan = cp.where(mask, cp.nan, cp.array([fuel_type], dtype=cp.float32))
 
         return
 
@@ -355,9 +350,11 @@ class FBP:
             raise TypeError('fuel_type must be an int, string, or CuPy ndarray')
         elif isinstance(self.fuel_type, cp.ndarray):
             if self.fuel_type.dtype.kind == 'U':  # Check if it's a string array
-                convert_to_numeric = cp.vectorize(fbpFTCode_AlphaToNum_LUT.get)
-                self.fuel_type = convert_to_numeric(self.fuel_type).astype(cp.uint16)
-            self.fuel_type = cp.asarray(self.fuel_type, dtype=cp.float32)
+                invalid_value = cp.int8(-128)  # Define an explicit invalid value
+                convert_to_numeric = cp.vectorize(lambda x: fbpFTCode_AlphaToNum_LUT.get(x, invalid_value))
+                self.fuel_type = convert_to_numeric(self.fuel_type).astype(cp.int8)
+            if self.fuel_type.dtype != cp.int8:
+                self.fuel_type = cp.asarray(self.fuel_type, dtype=cp.int8)
         elif isinstance(self.fuel_type, str):
             self.fuel_type = cp.asarray([fbpFTCode_AlphaToNum_LUT.get(self.fuel_type)], dtype=cp.float32)
         else:
@@ -365,7 +362,6 @@ class FBP:
         # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
         if self.convert_fuel_type_codes:
             self.fuel_type = convert_grid_codes(self.fuel_type)
-
         # Get unique fuel types present in the dataset
         self.ftypes = cp.array([int(ftype) for ftype in cp.asnumpy(cp.unique(self.fuel_type))
                                 if ftype in self.rosParams])
@@ -606,7 +602,7 @@ class FBP:
         self.bros = self.ref_array
 
         # Initialize default CFFBPS output parameters
-        self.fire_type = self.ref_array
+        self.fire_type = cp.full_like(self.ref_array, cp.nan, dtype=cp.int8)
         self.hfros = self.ref_array
         self.hfi = self.ref_array
 

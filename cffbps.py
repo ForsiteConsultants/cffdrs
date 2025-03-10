@@ -159,12 +159,11 @@ class FBP:
         self.gfl = None
         self.gcf = None
         self.out_request = None
-        self.convert_fuel_type_codes = None
+        self.convert_fuel_type_codes = False
 
         # Array verification parameter
         self.return_array = None
         self.ref_array = None
-        self.ref_array_nan = None
         self.initialized = False
 
         # Initialize multiprocessing block variable
@@ -341,23 +340,17 @@ class FBP:
                     convert_to_numeric = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)
                     converted_fuel_type = convert_to_numeric(self.fuel_type)
                     if None in converted_fuel_type:
-                        raise ValueError("Unknown fuel type code found, conversion failed.")
-                    self.fuel_type = converted_fuel_type.astype(np.float32)
-                    first_array = self.fuel_type
+                        raise ValueError('Unknown fuel type code found, conversion failed.')
+                    first_array = converted_fuel_type.astype(np.int8)
 
                 self.ref_array = mask.array(
                     [np.full(first_array.shape, 0, dtype=np.float32)],
-                    mask=np.isnan([first_array])
-                )
-                self.ref_array_nan = mask.array(
-                    [np.full(first_array.shape, np.nan, dtype=np.float32)],
                     mask=np.isnan([first_array])
                 )
         else:
             self.return_array = False
             # Get first input parameter array as a masked array
             self.ref_array = mask.array([0], mask=np.isnan([self.fuel_type])).astype(np.float32)
-            self.ref_array_nan = mask.array([np.nan], mask=np.isnan([self.fuel_type])).astype(np.float32)
 
         return
 
@@ -372,9 +365,12 @@ class FBP:
             raise TypeError('fuel_type must be either int, string, or numpy ndarray data types')
         elif isinstance(self.fuel_type, np.ndarray):
             if '<U' in str(self.fuel_type.dtype):
-                # Convert using np.vectorize
-                convert_to_numeric = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)
-                self.fuel_type = convert_to_numeric(self.fuel_type).astype(np.uint16)
+                invalid_value = np.int8(-128)  # Define an explicit invalid value
+                # Convert using np.vectorize and replace unknown fuel types with invalid_value
+                convert_to_numeric = np.vectorize(lambda x: fbpFTCode_AlphaToNum_LUT.get(x, invalid_value))
+                self.fuel_type = convert_to_numeric(self.fuel_type).astype(np.int8)
+            if self.fuel_type.dtype != np.int8:
+                self.fuel_type = np.asarray(self.fuel_type, dtype=np.int8)
             self.fuel_type = mask.array(self.fuel_type, mask=np.isnan(self.fuel_type))
         elif isinstance(self.fuel_type, str):
             self.fuel_type = mask.array([fbpFTCode_AlphaToNum_LUT.get(self.fuel_type)],
@@ -384,6 +380,10 @@ class FBP:
         # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
         if self.convert_fuel_type_codes:
             self.fuel_type = convert_grid_codes(self.fuel_type)
+        # Apply an additional mask to remove fuel types that are not in the LUT dictionary
+        valid_fuel_types = fbpFTCode_NumToAlpha_LUT.keys()  # Get valid numeric codes
+        invalid_mask = ~np.isin(self.fuel_type, list(valid_fuel_types))
+        self.fuel_type = mask.array(self.fuel_type, mask=invalid_mask | self.fuel_type.mask)
 
         # Get unique fuel types present in the dataset
         self.ftypes = [ftype for ftype in np.unique(self.fuel_type) if ftype in list(self.rosParams.keys())]
@@ -679,9 +679,9 @@ class FBP:
 
         # Initialize surface parameters
         self.cf = self.ref_array
-        self.ffc = self.ref_array_nan
-        self.wfc = self.ref_array_nan
-        self.sfc = self.ref_array_nan
+        self.ffc = np.full_like(self.ref_array, np.nan, dtype=np.float32)
+        self.wfc = np.full_like(self.ref_array, np.nan, dtype=np.float32)
+        self.sfc = np.full_like(self.ref_array, np.nan, dtype=np.float32)
         self.rss = self.ref_array
 
         # Initialize foliar moisture content parameters
@@ -2140,11 +2140,19 @@ def _testFBP(test_functions: list,
         ]
 
         for dset, path in zip(fbp_result, out_path_list):
+            if any(f'{name}.tif' in path for name in ['fuel_type', 'fire_type']):
+                dtype = np.int8
+            else:
+                dtype = np.float32
+
+            # Convert dset to dtype
+            dset = dset.astype(dtype)
+
             # Save output datasets
-            pr.arrayToRaster(array=dset,  # Convert to NumPy for rasterio compatibility
+            pr.arrayToRaster(array=dset,
                              out_file=path,
                              ras_profile=ref_ras_profile,
-                             dtype=np.float64)
+                             dtype=dtype)
 
     # ### Test raster multiprocessing
     if any(var in test_functions for var in ['raster_multiprocessing', 'all']):
@@ -2208,11 +2216,19 @@ def _testFBP(test_functions: list,
         ]
 
         for dset, path in zip(fbp_multiprocess_result, out_path_list):
+            if any(f'{name}.tif' in path for name in ['fuel_type', 'fire_type']):
+                dtype = np.int8
+            else:
+                dtype = np.float32
+
+            # Convert dset to dtype
+            dset = dset.astype(dtype)
+
             # Save output datasets
             pr.arrayToRaster(array=dset,
                              out_file=path,
                              ras_profile=ref_ras_profile,
-                             dtype=np.float64)
+                             dtype=dtype)
 
 
 if __name__ == '__main__':
