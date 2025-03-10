@@ -1355,7 +1355,7 @@ class FBP:
                 raise ValueError('Only the C-6 fuel type can have the cfl value adjusted.')
         self.cfl = mask.where(self.fuel_type == ftype,
                               cfl,
-                              self.cbh)
+                              self.cfl)
 
         return
 
@@ -1411,6 +1411,10 @@ class FBP:
         self.cfb = mask.where(is_c6, cfb_c6, self.cfb)
         self.cfb = mask.where(is_other, cfb_other, self.cfb)
 
+        # Ensure self.cfb is finite and non-negative
+        self.cfb = np.where(np.isfinite(self.cfb), self.cfb, 0)  # Replace NaNs/Infs with 0
+        self.cfb = np.clip(self.cfb, 0, 1)  # Prevent extremely high values causing overflow
+
         # Clean up memory
         del is_c6, non_crowning, is_other, delta_sfros_c6, delta_hfros_other, cfb_c6, cfb_other
 
@@ -1431,10 +1435,13 @@ class FBP:
         # Compute acceleration parameter for open fuel types
         self.accel_param = mask.where(fixed_accel_mask, 0.115, self.accel_param)
 
-        # Compute acceleration parameter for closed fuel types
+        # Compute acceleration parameter for closed fuel types (safe calculation)
         self.accel_param = mask.where(variable_accel_mask,
                                       0.115 - 18.8 * np.power(self.cfb, 2.5) * np.exp(-8 * self.cfb),
                                       self.accel_param)
+
+        # Clean up memory
+        del fixed_accel_mask, variable_accel_mask
 
         return
 
@@ -1926,9 +1933,13 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
 
     # Initialize a multiprocessing pool
     with Pool(num_processors) as pool:
-        print('\tStarting FBP multiprocessing...')
-        # Process each block using runFBP in parallel
-        results = pool.starmap(_process_block, input_blocks)
+        try:
+            print('\tStarting FBP multiprocessing...')
+            # Process each block using runFBP in parallel
+            results = pool.starmap(_process_block, input_blocks)
+        finally:
+            pool.close()  # Stop accepting new tasks
+            pool.join()   # Wait for all tasks to finish
 
     # Place the processed blocks back into the output array
     for result, (i, j) in results:
