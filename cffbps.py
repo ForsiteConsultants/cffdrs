@@ -1411,12 +1411,13 @@ class FBP:
         self.cfb = mask.where(is_c6, cfb_c6, self.cfb)
         self.cfb = mask.where(is_other, cfb_other, self.cfb)
 
-        # Ensure self.cfb is finite and non-negative
-        self.cfb = np.where(np.isfinite(self.cfb), self.cfb, 0)  # Replace NaNs/Infs with 0
-        self.cfb = np.clip(self.cfb, 0, 1)  # Prevent extremely high values causing overflow
+        # Ensure self.cfb is finite and ranges between 0 and 1
+        is_finite = mask.where(np.isfinite(self.cfb), True, False)
+        self.cfb = mask.where(is_finite, self.cfb, 0)  # Replace NaNs/Infs with 0
+        self.cfb = mask.clip(self.cfb, 0, 1)  # Prevent extremely high values causing overflow
 
         # Clean up memory
-        del is_c6, non_crowning, is_other, delta_sfros_c6, delta_hfros_other, cfb_c6, cfb_other
+        del is_c6, non_crowning, is_other, delta_sfros_c6, delta_hfros_other, cfb_c6, cfb_other, is_finite
 
         return
 
