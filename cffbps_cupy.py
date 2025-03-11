@@ -1522,15 +1522,13 @@ class FBP:
             if hasattr(self, key):  # Check if the class has the attribute
                 if isinstance(value, cp.ndarray):  # Check if value is already a CuPy array
                     # Mask NaN values using CuPy
-                    setattr(self, key, cp.where(cp.isnan(value),
-                                                cp.full_like(value, cp.nan, dtype=cp.float32),
-                                                value))
+                    setattr(self, key, cp.where(cp.isnan(value), cp.nan, value))
                 else:
                     # Convert scalar or list to a CuPy array and mask NaN values
-                    value_array = cp.asarray([value]) if not isinstance(value, (list, tuple)) else cp.asarray(value)
-                    setattr(self, key, cp.where(cp.isnan(value_array),
-                                                cp.full_like(value_array, cp.nan, dtype=cp.float32),
-                                                value_array))
+                    value_array = (cp.asarray(value)
+                        if isinstance(value, (list, tuple, np.ndarray))
+                        else cp.asarray([value]))
+                    setattr(self, key, cp.where(cp.isnan(value_array), cp.nan, value_array))
         return
 
     def getParams(self, out_request: list[str]) -> Union[list, str, None]:
