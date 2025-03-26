@@ -35,32 +35,19 @@ fbpFTCode_AlphaToNum_LUT = {
 
 def convert_grid_codes(fuel_type_array: cp.ndarray) -> cp.ndarray:
     """
-    Function to convert grid code values from the cffdrs_r R package fuel type codes
+    Convert grid code values from the cffdrs R package fuel type codes
     to the codes used in this module.
 
-    :param fuel_type_array: CFFBPS fuel type array, containing the cffdrs R version of grid codes
-    :return: modified fuel_type_array
+    :param fuel_type_array: CFFBPS fuel type array (CuPy ndarray)
+    :return: Converted CuPy ndarray with remapped fuel type codes
     """
-    fuel_type_array = cp.where(
-        fuel_type_array == 19, 20,
-        cp.where(
-            fuel_type_array == 13, 19,
-            cp.where(
-                fuel_type_array == 12, 13,
-                cp.where(
-                    fuel_type_array == 11, 12,
-                    cp.where(
-                        fuel_type_array == 10, 11,
-                        cp.where(
-                            fuel_type_array == 9, 10,
-                            fuel_type_array)
-                    )
-                )
-            )
-        )
-    ).astype(cp.int8)
-
-    return fuel_type_array
+    return cp.where(fuel_type_array == 19, 20,
+                    cp.where(fuel_type_array == 13, 19,
+                             cp.where(fuel_type_array == 12, 13,
+                                      cp.where(fuel_type_array == 11, 12,
+                                               cp.where(fuel_type_array == 10, 11,
+                                                        cp.where(fuel_type_array == 9, 10,
+                                                                 fuel_type_array)))))).astype(cp.int8)
 
 
 def getSeasonGrassCuring(season: str,
@@ -114,108 +101,108 @@ class FBP:
 
     def __init__(self):
         # Initialize CFFBPS input parameters
-        self.fuel_type = None
-        self.wx_date = None
-        self.lat = None
-        self.long = None
-        self.elevation = None
-        self.slope = None
-        self.aspect = None
-        self.ws = None
-        self.wd = None
-        self.ffmc = None
-        self.bui = None
-        self.pc = None
-        self.pdf = None
-        self.gfl = None
-        self.gcf = None
-        self.out_request = None
-        self.convert_fuel_type_codes = None
-        self.return_array_as = None
+        self.fuel_type = cp.array([0], dtype=cp.float32)
+        self.wx_date = cp.array([0], dtype=cp.float32)
+        self.lat = cp.array([0], dtype=cp.float32)
+        self.long = cp.array([0], dtype=cp.float32)
+        self.elevation = cp.array([0], dtype=cp.float32)
+        self.slope = cp.array([0], dtype=cp.float32)
+        self.aspect = cp.array([0], dtype=cp.float32)
+        self.ws = cp.array([0], dtype=cp.float32)
+        self.wd = cp.array([0], dtype=cp.float32)
+        self.ffmc = cp.array([0], dtype=cp.float32)
+        self.bui = cp.array([0], dtype=cp.float32)
+        self.pc = cp.array([0], dtype=cp.float32)
+        self.pdf = cp.array([0], dtype=cp.float32)
+        self.gfl = cp.array([0], dtype=cp.float32)
+        self.gcf = cp.array([0], dtype=cp.float32)
+        self.out_request = cp.array([0], dtype=cp.float32)
+        self.convert_fuel_type_codes = cp.array([0], dtype=cp.float32)
+        self.return_array_as = cp.array([0], dtype=cp.float32)
 
-        # Array verification parameter
-        self.return_array = None
-        self.ref_array = None
+        # Internal tracking
+        self.return_array = cp.array([0], dtype=cp.float32)
+        self.ref_array = cp.array([0], dtype=cp.float32)
         self.initialized = False
 
         # Initialize multiprocessing block variable
-        self.block = None
+        self.block = cp.array([0], dtype=cp.float32)
 
         # Initialize unique fuel types list
-        self.ftypes = None
+        self.ftypes = cp.array([0], dtype=cp.float32)
 
         # Initialize weather parameters
-        self.isi = None
-        self.m = None
-        self.fF = None
-        self.fW = None
+        self.isi = cp.array([0], dtype=cp.float32)
+        self.m = cp.array([0], dtype=cp.float32)
+        self.fF = cp.array([0], dtype=cp.float32)
+        self.fW = cp.array([0], dtype=cp.float32)
 
         # Initialize slope effect parameters
-        self.a = None
-        self.b = None
-        self.c = None
-        self.rsz = None
-        self.isz = None
-        self.sf = None
-        self.rsf = None
-        self.isf = None
-        self.rsi = None
-        self.wse1 = None
-        self.wse2 = None
-        self.wse = None
-        self.wsx = None
-        self.wsy = None
-        self.wsv = None
-        self.raz = None
+        self.a = cp.array([0], dtype=cp.float32)
+        self.b = cp.array([0], dtype=cp.float32)
+        self.c = cp.array([0], dtype=cp.float32)
+        self.rsz = cp.array([0], dtype=cp.float32)
+        self.isz = cp.array([0], dtype=cp.float32)
+        self.sf = cp.array([0], dtype=cp.float32)
+        self.rsf = cp.array([0], dtype=cp.float32)
+        self.isf = cp.array([0], dtype=cp.float32)
+        self.rsi = cp.array([0], dtype=cp.float32)
+        self.wse1 = cp.array([0], dtype=cp.float32)
+        self.wse2 = cp.array([0], dtype=cp.float32)
+        self.wse = cp.array([0], dtype=cp.float32)
+        self.wsx = cp.array([0], dtype=cp.float32)
+        self.wsy = cp.array([0], dtype=cp.float32)
+        self.wsv = cp.array([0], dtype=cp.float32)
+        self.raz = cp.array([0], dtype=cp.float32)
 
         # Initialize BUI effect parameters
-        self.q = None
-        self.bui0 = None
-        self.be = None
-        self.be_max = None
+        self.q = cp.array([0], dtype=cp.float32)
+        self.bui0 = cp.array([0], dtype=cp.float32)
+        self.be = cp.array([0], dtype=cp.float32)
+        self.be_max = cp.array([0], dtype=cp.float32)
 
         # Initialize surface parameters
-        self.cf = None
-        self.ffc = None
-        self.wfc = None
-        self.sfc = None
-        self.rss = None
+        self.cf = cp.array([0], dtype=cp.float32)
+        self.ffc = cp.array([0], dtype=cp.float32)
+        self.wfc = cp.array([0], dtype=cp.float32)
+        self.sfc = cp.array([0], dtype=cp.float32)
+        self.rss = cp.array([0], dtype=cp.float32)
 
         # Initialize foliar moisture content parameters
-        self.latn = None
-        self.dj = None
-        self.d0 = None
-        self.nd = None
-        self.fmc = None
-        self.fme = None
+        self.latn = cp.array([0], dtype=cp.float32)
+        self.dj = cp.array([0], dtype=cp.float32)
+        self.d0 = cp.array([0], dtype=cp.float32)
+        self.nd = cp.array([0], dtype=cp.float32)
+        self.fmc = cp.array([0], dtype=cp.float32)
+        self.fme = cp.array([0], dtype=cp.float32)
 
         # Initialize crown and total fuel consumed parameters
-        self.cbh = None
-        self.csfi = None
-        self.rso = None
-        self.rsc = None
-        self.cfb = None
-        self.cfl = None
-        self.cfc = None
-        self.tfc = None
+        self.cbh = cp.array([0], dtype=cp.float32)
+        self.csfi = cp.array([0], dtype=cp.float32)
+        self.rso = cp.array([0], dtype=cp.float32)
+        self.rsc = cp.array([0], dtype=cp.float32)
+        self.cfb = cp.array([0], dtype=cp.float32)
+        self.cfl = cp.array([0], dtype=cp.float32)
+        self.cfc = cp.array([0], dtype=cp.float32)
+        self.tfc = cp.array([0], dtype=cp.float32)
 
         # Initialize the back fire rate of spread parameters
-        self.bfW = None
-        self.brsi = None
-        self.bisi = None
-        self.bros = None
+        self.bfW = cp.array([0], dtype=cp.float32)
+        self.brsi = cp.array([0], dtype=cp.float32)
+        self.bisi = cp.array([0], dtype=cp.float32)
+        self.bros = cp.array([0], dtype=cp.float32)
 
         # Initialize default CFFBPS output parameters
-        self.fire_type = None
-        self.hfros = None
-        self.hfi = None
+        self.fire_type = cp.array([0], dtype=cp.int8)
+        self.hfros = cp.array([0], dtype=cp.float32)
+        self.hfi = cp.array([0], dtype=cp.float32)
 
         # Initialize C-6 rate of spread parameters
-        self.sfros = None
-        self.cfros = None
+        self.sfros = cp.array([0], dtype=cp.float32)
+        self.cfros = cp.array([0], dtype=cp.float32)
 
         # Initialize point ignition acceleration parameter
-        self.accel_param = None
+        self.accel_param = cp.array([0], dtype=cp.float32)
 
         # ### Lists for CFFBPS Crown Fire Metric variables
         self.csfiVarList = ['cbh', 'fmc']
@@ -251,159 +238,112 @@ class FBP:
             17: (0, 0, 0),
             18: (0, 0, 0)
         }
+
         # CFFBPS Surface Fire Rate of Spread Parameters (a, b, c, q, BUI0, be_max)
         self.rosParams = {
-            1: (90, 0.0649, 4.5, 0.9, 72, 1.076),  # C-1
-            2: (110, 0.0282, 1.5, 0.7, 64, 1.321),  # C-2
-            3: (110, 0.0444, 3, 0.75, 62, 1.261),  # C-3
-            4: (110, 0.0293, 1.5, 0.8, 66, 1.184),  # C-4
-            5: (30, 0.0697, 4, 0.8, 56, 1.220),  # C-5
-            6: (30, 0.08, 3, 0.8, 62, 1.197),  # C-6
-            7: (45, 0.0305, 2, 0.85, 106, 1.134),  # C-7
-            8: (30, 0.0232, 1.6, 0.9, 32, 1.179),  # D-1
-            9: (30, 0.0232, 1.6, 0.9, 32, 1.179),  # D-2
-            10: (0.8, 50, 1.250),  # M-1
-            11: (0.8, 50, 1.250),  # M-2
-            12: (120, 0.0572, 1.4, 0.8, 50, 1.250),  # M-3
-            13: (100, 0.0404, 1.48, 0.8, 50, 1.250),  # M-4
-            14: (190, 0.0310, 1.4, 1, None, 1),  # O-1a
-            15: (250, 0.0350, 1.7, 1, None, 1),  # O-1b
-            16: (75, 0.0297, 1.3, 0.75, 38, 1.460),  # S-1
-            17: (40, 0.0438, 1.7, 0.75, 63, 1.256),  # S-2
-            18: (55, 0.0829, 3.2, 0.75, 31, 1.590)  # S-3
+            1: (90, 0.0649, 4.5, 0.9, 72, 1.076),
+            2: (110, 0.0282, 1.5, 0.7, 64, 1.321),
+            3: (110, 0.0444, 3, 0.75, 62, 1.261),
+            4: (110, 0.0293, 1.5, 0.8, 66, 1.184),
+            5: (30, 0.0697, 4, 0.8, 56, 1.220),
+            6: (30, 0.08, 3, 0.8, 62, 1.197),
+            7: (45, 0.0305, 2, 0.85, 106, 1.134),
+            8: (30, 0.0232, 1.6, 0.9, 32, 1.179),
+            9: (30, 0.0232, 1.6, 0.9, 32, 1.179),
+            10: (None, None, None, None, 0.8, 50, 1.250),
+            11: (None, None, None, None, 0.8, 50, 1.250),
+            12: (120, 0.0572, 1.4, 0.8, 50, 1.250),
+            13: (100, 0.0404, 1.48, 0.8, 50, 1.250),
+            14: (190, 0.0310, 1.4, 1, None, 1),
+            15: (250, 0.0350, 1.7, 1, None, 1),
+            16: (75, 0.0297, 1.3, 0.75, 38, 1.460),
+            17: (40, 0.0438, 1.7, 0.75, 63, 1.256),
+            18: (55, 0.0829, 3.2, 0.75, 31, 1.590)
         }
+
+        return
 
     def _checkArray(self) -> None:
         """
-        Function to check if any of the input parameters are CuPy arrays and handle them.
+        Check if any of the core input parameters are CuPy arrays and standardize reference shapes.
+
         :return: None
         """
-        # ### CHECK FOR CUPY ARRAYS IN INPUT PARAMETERS
         input_list = [
             self.fuel_type, self.lat, self.long,
             self.elevation, self.slope, self.aspect,
             self.ws, self.wd, self.ffmc, self.bui,
-            self.pc, self.pdf,
-            self.gfl, self.gcf
+            self.pc, self.pdf, self.gfl, self.gcf
         ]
 
-        # Check if any inputs are CuPy arrays
         if any(isinstance(data, cp.ndarray) for data in input_list):
             self.return_array = True
-
-            # Get indices of input parameters that are CuPy arrays
-            array_indices = [i for i in range(len(input_list)) if isinstance(input_list[i], cp.ndarray)]
-
-            # If more than one array, verify they are all the same shape
-            if len(array_indices) > 1:
-                # Extract arrays
-                arrays = itemgetter(*array_indices)(input_list)
-                if isinstance(arrays, cp.ndarray):  # Single array case
-                    arrays = [arrays]
-
-                # Verify all arrays have the same shape
-                shapes = {arr.shape for arr in arrays}
-                if len(shapes) > 1:
-                    raise ValueError(f'All arrays must have the same dimensions. '
-                                     f'The following range of dimensions exists: {shapes}')
-
-                # Get the first input array
-                first_array = input_list[array_indices[0]]
-
-                # Handle conversion of string-based fuel types
-                if (array_indices[0] == 0) and ('<U' in str(first_array.dtype)):
-                    # Convert string representations to numeric codes
-                    convert_to_numeric = cp.vectorize(fbpFTCode_AlphaToNum_LUT.get)
-                    converted_fuel_type = convert_to_numeric(self.fuel_type)
-                    if None in converted_fuel_type:
-                        raise ValueError('Unknown fuel type code found, conversion failed.')
-                    first_array = converted_fuel_type.astype(cp.int8)
-
-                # Create reference arrays with manual masking
-                mask = cp.isnan(first_array)
-                self.ref_array = cp.where(mask,
-                                          cp.full_like(first_array, cp.nan, dtype=cp.float32),
-                                          cp.full(first_array.shape, 0, dtype=cp.float32))
-            else:
-                # Single array case, still set ref_array
-                first_array = input_list[array_indices[0]]
-                mask = cp.isnan(first_array)
-                self.ref_array = cp.where(mask,
-                                          cp.full_like(first_array, cp.nan, dtype=cp.float32),
-                                          cp.zeros_like(first_array)).astype(cp.float32)
+            array_indices = [i for i, data in enumerate(input_list) if isinstance(data, cp.ndarray)]
+            arrays = itemgetter(*array_indices)(input_list)
+            if isinstance(arrays, cp.ndarray):
+                arrays = [arrays]
+            shapes = {arr.shape for arr in arrays}
+            if len(shapes) > 1:
+                raise ValueError(f'Array dimensions mismatch: {shapes}')
+            first_array = arrays[0]
+            mask = cp.isnan(first_array)
+            self.ref_array = cp.where(mask,
+                                      cp.full_like(first_array, cp.nan, dtype=cp.float32),
+                                      cp.zeros_like(first_array, dtype=cp.float32))
         else:
             self.return_array = False
-
-            # Default ref_array for scalar inputs
-            fuel_type = self.fuel_type
-            if isinstance(fuel_type, np.ndarray):
-                if '<U' in str(self.fuel_type.dtype):
-                    # Convert using np.vectorize
-                    convert_to_numeric = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)
-                    fuel_type = convert_to_numeric(fuel_type).astype(np.uint16)
-            elif isinstance(fuel_type, str):
-                fuel_type = fbpFTCode_AlphaToNum_LUT.get(self.fuel_type)
-            mask = cp.isnan(cp.array([fuel_type], dtype=cp.float32))
-            self.ref_array = cp.where(mask, 0, cp.array([fuel_type], dtype=cp.float32))
-
+            val = self.fuel_type
+            if isinstance(val, str):
+                val = fbpFTCode_AlphaToNum_LUT.get(val)
+            elif isinstance(val, np.ndarray) and val.dtype.kind in ('U', 'S'):
+                val = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)(val).astype(np.uint16)
+            mask = cp.isnan(cp.array([val], dtype=cp.float32))
+            self.ref_array = cp.where(mask,
+                                      cp.full_like(mask, cp.nan, dtype=cp.float32),
+                                      cp.array([val], dtype=cp.float32))
         return
 
     def _verifyInputs(self) -> None:
         """
-        Function to verify and convert input parameters to CuPy arrays.
+        Validate and convert all input parameters into CuPy arrays where needed.
+
+        :return: None
         """
-        # Verify fuel_type
-        if not isinstance(self.fuel_type, (int, str, cp.ndarray)):
-            raise TypeError('fuel_type must be an int, string, or CuPy ndarray')
-        elif isinstance(self.fuel_type, cp.ndarray):
-            if self.fuel_type.dtype.kind == 'U':  # Check if it's a string array
-                invalid_value = cp.int8(-128)  # Define an explicit invalid value
-                convert_to_numeric = cp.vectorize(lambda x: fbpFTCode_AlphaToNum_LUT.get(x, invalid_value))
-                self.fuel_type = convert_to_numeric(self.fuel_type).astype(cp.int8)
-            if self.fuel_type.dtype != cp.int8:
-                self.fuel_type = cp.asarray(self.fuel_type, dtype=cp.int8)
-        elif isinstance(self.fuel_type, str):
+        if isinstance(self.fuel_type, str):
             self.fuel_type = cp.asarray([fbpFTCode_AlphaToNum_LUT.get(self.fuel_type)], dtype=cp.float32)
-        else:
+        elif isinstance(self.fuel_type, np.ndarray) and self.fuel_type.dtype.kind in ('U', 'S'):
+            convert = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)
+            self.fuel_type = cp.asarray(convert(self.fuel_type), dtype=cp.int8)
+        elif isinstance(self.fuel_type, cp.ndarray) and self.fuel_type.dtype.kind in ('U', 'S'):
+            convert = cp.vectorize(fbpFTCode_AlphaToNum_LUT.get)
+            self.fuel_type = convert(self.fuel_type).astype(cp.int8)
+        elif not isinstance(self.fuel_type, cp.ndarray):
             self.fuel_type = cp.asarray([self.fuel_type], dtype=cp.float32)
-        # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
+
         if self.convert_fuel_type_codes:
             self.fuel_type = convert_grid_codes(self.fuel_type)
-        # Get unique fuel types present in the dataset
-        self.ftypes = cp.array([int(ftype) for ftype in cp.asnumpy(cp.unique(self.fuel_type))
-                                if ftype in self.rosParams])
 
-        # Verify wx_date
-        if not isinstance(self.wx_date, int):
-            raise TypeError('wx_date must be an int')
+        self.ftypes = cp.array([int(ft) for ft in cp.asnumpy(cp.unique(self.fuel_type)) if ft in self.rosParams])
+
         try:
-            date_string = str(self.wx_date)
-            dt.strptime(f'{date_string[:4]}-{date_string[4:6]}-{date_string[6:]}', '%Y-%m-%d')
-        except ValueError:
-            raise ValueError('wx_date must be formatted as: YYYYMMDD')
+            dt.strptime(str(self.wx_date), '%Y%m%d')
+        except Exception:
+            raise ValueError('wx_date must be in YYYYMMDD format')
 
-        # Verify lat and long
-        for attr in ['lat', 'long']:
-            value = getattr(self, attr)
-            if not isinstance(value, (int, float, cp.ndarray)):
-                raise TypeError(f'{attr} must be an int, float, or CuPy ndarray')
-            setattr(self, attr, cp.asarray(value, dtype=cp.float32))
+        for attr in ['lat', 'long', 'elevation', 'slope', 'aspect', 'ws', 'wd', 'ffmc', 'bui']:
+            val = getattr(self, attr)
+            setattr(self, attr, cp.asarray(val, dtype=cp.float32))
 
-        # Verify other numeric inputs
-        for attr in ['elevation', 'slope', 'aspect', 'ws', 'wd', 'ffmc', 'bui']:
-            value = getattr(self, attr)
-            if not isinstance(value, (int, float, cp.ndarray)):
-                raise TypeError(f'{attr} must be an int, float, or CuPy ndarray')
-            setattr(self, attr, cp.asarray(value, dtype=cp.float32))
-
-        # Verify optional inputs
         for attr, default in [('pc', 50), ('pdf', 35), ('gfl', 0.35), ('gcf', 80)]:
-            value = getattr(self, attr, default)
-            if value is None:
-                value = default
-            if not isinstance(value, (int, float, cp.ndarray)):
-                raise TypeError(f'{attr} must be an int, float, or CuPy ndarray')
-            setattr(self, attr, cp.asarray(value, dtype=cp.float32))
+            val = getattr(self, attr)
+            if val is None:
+                val = default
+            setattr(self, attr, cp.asarray(val, dtype=cp.float32))
+
+        return
+
+    def _init_array(self, fill_value=0, dtype=cp.float32) -> cp.ndarray:
+        return cp.full(self.ref_array.shape, fill_value, dtype=dtype)
 
     def initialize(self,
                    fuel_type: Union[int, str, cp.ndarray] = None,
@@ -543,82 +483,63 @@ class FBP:
         self.convert_fuel_type_codes = convert_fuel_type_codes
         self.return_array_as = return_array_as
 
-        # Verify input parameters
         self._checkArray()
         self._verifyInputs()
 
-        # Initialize weather parameters
-        self.isi = self.ref_array
-        self.m = self.ref_array
-        self.fF = self.ref_array
-        self.fW = self.ref_array
-
-        # Initialize slope effect parameters
-        self.a = self.ref_array
-        self.b = self.ref_array
-        self.c = self.ref_array
-        self.rsz = self.ref_array
-        self.isz = self.ref_array
-        self.sf = self.ref_array
-        self.rsf = self.ref_array
-        self.isf = self.ref_array
-        self.rsi = self.ref_array
-        self.wse1 = self.ref_array
-        self.wse2 = self.ref_array
-        self.wse = self.ref_array
-        self.wsx = self.ref_array
-        self.wsy = self.ref_array
-        self.wsv = self.ref_array
-        self.raz = self.ref_array
-
-        # Initialize BUI effect parameters
-        self.q = self.ref_array
-        self.bui0 = self.ref_array
-        self.be = self.ref_array
-        self.be_max = self.ref_array
-
-        # Initialize surface parameters
-        self.cf = self.ref_array
-        self.ffc = cp.full_like(self.ref_array, cp.nan, dtype=cp.float32)
-        self.wfc = cp.full_like(self.ref_array, cp.nan, dtype=cp.float32)
-        self.sfc = cp.full_like(self.ref_array, cp.nan, dtype=cp.float32)
-        self.rss = self.ref_array
-
-        # Initialize foliar moisture content parameters
-        self.latn = self.ref_array
-        self.dj = self.ref_array
-        self.d0 = self.ref_array
-        self.nd = self.ref_array
-        self.fmc = self.ref_array
-        self.fme = self.ref_array
-
-        # Initialize crown and total fuel consumed parameters
-        self.cbh = self.ref_array
-        self.csfi = self.ref_array
-        self.rso = self.ref_array
-        self.rsc = self.ref_array
-        self.cfb = self.ref_array
-        self.cfl = self.ref_array
-        self.cfc = self.ref_array
-        self.tfc = self.ref_array
-
-        # Initialize the back fire rate of spread parameters
-        self.bfW = self.ref_array
-        self.brsi = self.ref_array
-        self.bisi = self.ref_array
-        self.bros = self.ref_array
-
-        # Initialize default CFFBPS output parameters
-        self.fire_type = cp.full_like(self.ref_array, 0, dtype=cp.int8)
-        self.hfros = self.ref_array
-        self.hfi = self.ref_array
-
-        # Initialize C-6 rate of spread parameters
-        self.sfros = self.ref_array
-        self.cfros = self.ref_array
-
-        # Initialize point ignition acceleration parameter
-        self.accel_param = self.ref_array
+        # Initialize all model parameter arrays
+        self.isi = self._init_array()
+        self.m = self._init_array()
+        self.fF = self._init_array()
+        self.fW = self._init_array()
+        self.a = self._init_array()
+        self.b = self._init_array()
+        self.c = self._init_array()
+        self.rsz = self._init_array()
+        self.isz = self._init_array()
+        self.sf = self._init_array()
+        self.rsf = self._init_array()
+        self.isf = self._init_array()
+        self.rsi = self._init_array()
+        self.wse1 = self._init_array()
+        self.wse2 = self._init_array()
+        self.wse = self._init_array()
+        self.wsx = self._init_array()
+        self.wsy = self._init_array()
+        self.wsv = self._init_array()
+        self.raz = self._init_array()
+        self.q = self._init_array()
+        self.bui0 = self._init_array()
+        self.be = self._init_array()
+        self.be_max = self._init_array()
+        self.cf = self._init_array()
+        self.ffc = self._init_array(cp.nan)
+        self.wfc = self._init_array(cp.nan)
+        self.sfc = self._init_array(cp.nan)
+        self.rss = self._init_array()
+        self.latn = self._init_array()
+        self.dj = self._init_array()
+        self.d0 = self._init_array()
+        self.nd = self._init_array()
+        self.fmc = self._init_array()
+        self.fme = self._init_array()
+        self.cbh = self._init_array()
+        self.csfi = self._init_array()
+        self.rso = self._init_array()
+        self.rsc = self._init_array()
+        self.cfb = self._init_array()
+        self.cfl = self._init_array()
+        self.cfc = self._init_array()
+        self.tfc = self._init_array()
+        self.bfW = self._init_array()
+        self.brsi = self._init_array()
+        self.bisi = self._init_array()
+        self.bros = self._init_array()
+        self.fire_type = self._init_array(0, dtype=cp.int8)
+        self.hfros = self._init_array()
+        self.hfi = self._init_array()
+        self.sfros = self._init_array()
+        self.cfros = self._init_array()
+        self.accel_param = self._init_array()
 
         # List of required parameters
         required_params = [
@@ -632,21 +553,18 @@ class FBP:
 
         # Set initialized to True
         self.initialized = True
+        return
 
     def invertWindAspect(self):
         """
         Function to invert/flip wind direction and aspect by 180 degrees using CuPy
         :return: None
         """
-        # Invert wind direction by 180 degrees
-        self.wd = cp.where(self.wd > 180,
-                           self.wd - 180,
-                           self.wd + 180)
+        # Invert wind direction by 180 degrees (i.e., direction wind is heading to)
+        self.wd = cp.where(self.wd > 180, self.wd - 180, self.wd + 180)
 
-        # Invert aspect by 180 degrees
-        self.aspect = cp.where(self.aspect > 180,
-                               self.aspect - 180,
-                               self.aspect + 180)
+        # Invert aspect by 180 degrees (i.e., up slope direction)
+        self.aspect = cp.where(self.aspect > 180, self.aspect - 180, self.aspect + 180)
 
         return
 
@@ -656,9 +574,11 @@ class FBP:
         :return: None
         """
         # Calculate the slope factor with CuPy
-        self.sf = cp.where(self.slope < 70,
-                           cp.exp(3.533 * cp.power((self.slope / 100), 1.2)),
-                           cp.full_like(self.slope, 10, dtype=cp.int8))
+        self.sf = cp.where(
+            self.slope < 70,
+            cp.exp(3.533 * cp.power((self.slope / 100), 1.2)),
+            cp.full_like(self.slope, 10, dtype=cp.int8)
+        )
         return
 
     def calcISZ(self) -> None:
@@ -676,47 +596,140 @@ class FBP:
                 wx_date: Optional[int] = None) -> None:
         """
         Function to calculate foliar moisture content (FMC) and foliar moisture effect (FME) using CuPy.
+
         :return: None
         """
         if lat is not None:
-            self.lat = lat
+            self.lat = cp.asarray(lat, dtype=cp.float32)
         if long is not None:
-            self.long = long
+            self.long = cp.asarray(long, dtype=cp.float32)
         if elevation is not None:
-            self.elevation = elevation
+            self.elevation = cp.asarray(elevation, dtype=cp.float32)
         if wx_date is not None:
             self.wx_date = wx_date
 
-        # Calculate normalized latitude
-        self.latn = cp.where((self.elevation is not None) & (self.elevation > 0),
-                             43 + (33.7 * cp.exp(-0.0351 * (150 - cp.abs(self.long)))),
-                             46 + (23.4 * cp.exp(-0.036 * (150 - cp.abs(self.long)))))
+            # Normalize latitude
+        abs_long = cp.abs(self.long)
+        use_elev = (self.elevation > 0)
+        self.latn = cp.where(
+            use_elev,
+            43 + (33.7 * cp.exp(-0.0351 * (150 - abs_long))),
+            46 + (23.4 * cp.exp(-0.036 * (150 - abs_long)))
+        )
 
-        # Calculate date of minimum foliar moisture content (D0)
-        self.d0 = cp.round(cp.where((self.elevation is not None) & (self.elevation > 0),
-                                    142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
-                                    151 * (self.lat / self.latn)), 0)
+        # Julian date
+        dj_value = dt.strptime(str(self.wx_date), '%Y%m%d').timetuple().tm_yday
+        self.dj = cp.full_like(self.latn, dj_value, dtype=cp.int16)
 
-        # Calculate Julian date (Dj)
-        self.dj = cp.where(cp.isfinite(self.latn),
-                           cp.full_like(self.latn,
-                                        dt.strptime(str(self.wx_date), '%Y%m%d').timetuple().tm_yday,
-                                        dtype=cp.int16),
-                           cp.zeros_like(self.latn))
+        # D0 calculation
+        self.d0 = cp.round(cp.where(
+            use_elev,
+            142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
+            151 * (self.lat / self.latn)
+        ), 0)
 
-        # Number of days between Dj and D0 (ND)
+        # ND (difference between dates)
         self.nd = cp.abs(self.dj - self.d0)
 
-        # Calculate foliar moisture content (FMC)
-        self.fmc = cp.where(self.nd < 30,
-                            85 + (0.0189 * (self.nd ** 2)),
-                            cp.where(self.nd < 50,
-                                     32.9 + (3.17 * self.nd) - (0.0288 * (self.nd ** 2)),
-                                     cp.full_like(self.fuel_type, 120, dtype=cp.float32)))
+        # FMC calculation with fused condition
+        nd_lt_30 = self.nd < 30
+        nd_lt_50 = (self.nd >= 30) & (self.nd < 50)
 
-        # Calculate foliar moisture effect (FME)
+        self.fmc = cp.where(
+            nd_lt_30,
+            85 + (0.0189 * self.nd ** 2),
+            cp.where(
+                nd_lt_50,
+                32.9 + (3.17 * self.nd) - (0.0288 * self.nd ** 2),
+                cp.full_like(self.nd, 120, dtype=cp.float32)
+            )
+        )
+
+        # FME calculation
         self.fme = 1000 * cp.power(1.5 - (0.00275 * self.fmc), 4) / (460 + (25.9 * self.fmc))
+        return
 
+    def _calcISI_slopeWind(self, ftype: int) -> None:
+        """
+        Calculate slope-equivalent wind speed and wind-adjusted ISI components.
+        Shared logic used across most fuel types.
+        """
+        # Slope equivalent wind speed (WSE1)
+        self.wse1 = cp.where(
+            self.fuel_type == ftype,
+            (1 / 0.05039) * cp.log(self.isf / (0.208 * self.fF)),
+            self.wse1
+        )
+
+        # Alternate slope equivalent wind speed (WSE2)
+        self.wse2 = cp.where(
+            self.fuel_type == ftype,
+            cp.where(
+                self.isf < (0.999 * 2.496 * self.fF),
+                28 - (1 / 0.0818) * cp.log(1 - (self.isf / (2.496 * self.fF))),
+                112.45
+            ),
+            self.wse2
+        )
+
+        # Final slope equivalent wind speed (WSE)
+        self.wse = cp.where(
+            self.fuel_type == ftype,
+            cp.where(self.wse1 <= 40, self.wse1, self.wse2),
+            self.wse
+        )
+
+        # Combined slope + wind vector
+        self.wsx = cp.where(
+            self.fuel_type == ftype,
+            (self.ws * cp.sin(cp.radians(self.wd))) + (self.wse * cp.sin(cp.radians(self.aspect))),
+            self.wsx
+        )
+        self.wsy = cp.where(
+            self.fuel_type == ftype,
+            (self.ws * cp.cos(cp.radians(self.wd))) + (self.wse * cp.cos(cp.radians(self.aspect))),
+            self.wsy
+        )
+        self.wsv = cp.where(
+            self.fuel_type == ftype,
+            cp.sqrt(self.wsx ** 2 + self.wsy ** 2),
+            self.wsv
+        )
+
+        # Resultant wind direction (RAZ)
+        arccos_val = cp.degrees(cp.arccos(cp.clip(self.wsy / cp.maximum(self.wsv, 1e-6), -1, 1)))
+        self.raz = cp.where(
+            self.fuel_type == ftype,
+            cp.where(self.wsx < 0, 360 - arccos_val, arccos_val),
+            self.raz
+        )
+
+        # Wind function for ISI
+        self.fW = cp.where(
+            self.fuel_type == ftype,
+            cp.where(
+                self.wsv > 40,
+                12 * (1 - cp.exp(-0.0818 * (self.wsv - 28))),
+                cp.exp(0.05039 * self.wsv)
+            ),
+            self.fW
+        )
+
+        # Final ISI
+        self.isi = cp.where(
+            self.fuel_type == ftype,
+            0.208 * self.fW * self.fF,
+            self.isi
+        )
+
+        # Backing fire wind effect
+        self.bfW = cp.where(
+            self.fuel_type == ftype,
+            cp.exp(-0.05039 * self.wsv),
+            self.bfW
+        )
+
+        self.bisi = self.bfW * self.fF * 0.208
         return
 
     def calcISI_RSI_BE(self, ftype: int) -> None:
@@ -727,69 +740,6 @@ class FBP:
         :param ftype: The numeric FBP fuel type code.
         :return: None
         """
-
-        def _calcISI_slopeWind() -> None:
-            # Calculate the slope equivalent wind speed (for lower wind speeds)
-            self.wse1 = cp.where(self.fuel_type == ftype,
-                                 (1 / 0.05039) * cp.log(self.isf / (0.208 * self.fF)),
-                                 self.wse1)
-
-            # Calculate the slope equivalent wind speed (for higher wind speeds)
-            self.wse2 = cp.where(self.fuel_type == ftype,
-                                 cp.where(self.isf < (0.999 * 2.496 * self.fF),
-                                          28 - (1 / 0.0818) * cp.log(1 - (self.isf / (2.496 * self.fF))),
-                                          cp.full_like(self.fuel_type, 112.45, dtype=cp.float32)),
-                                 self.wse2)
-
-            # Assign slope equivalent wind speed
-            self.wse = cp.where(self.fuel_type == ftype,
-                                cp.where(self.wse1 <= 40, self.wse1, self.wse2),
-                                self.wse)
-
-            # Calculate vector magnitude in x-direction
-            self.wsx = cp.where(self.fuel_type == ftype,
-                                (self.ws * cp.sin(cp.radians(self.wd))) +
-                                (self.wse * cp.sin(cp.radians(self.aspect))),
-                                self.wsx)
-
-            # Calculate vector magnitude in y-direction
-            self.wsy = cp.where(self.fuel_type == ftype,
-                                (self.ws * cp.cos(cp.radians(self.wd))) +
-                                (self.wse * cp.cos(cp.radians(self.aspect))),
-                                self.wsy)
-
-            # Calculate the net effective wind speed
-            self.wsv = cp.where(self.fuel_type == ftype,
-                                cp.sqrt(cp.power(self.wsx, 2) + cp.power(self.wsy, 2)),
-                                self.wsv)
-
-            # Calculate the net effective wind direction (RAZ)
-            self.raz = cp.where(self.fuel_type == ftype,
-                                cp.where(self.wsx < 0,
-                                         360 - cp.degrees(cp.arccos(self.wsy / self.wsv)),
-                                         cp.degrees(cp.arccos(self.wsy / self.wsv))),
-                                self.raz)
-
-            # Calculate the wind function of the ISI equation
-            self.fW = cp.where(self.fuel_type == ftype,
-                               cp.where(self.wsv > 40,
-                                        12 * (1 - cp.exp(-0.0818 * (self.wsv - 28))),
-                                        cp.exp(0.05039 * self.wsv)),
-                               self.fW)
-
-            # Calculate the new ISI with slope and wind effects
-            self.isi = cp.where(self.fuel_type == ftype,
-                                0.208 * self.fW * self.fF,
-                                self.isi)
-
-            # Calculate the back fire wind function
-            self.bfW = cp.where(self.fuel_type == ftype,
-                                cp.exp(-0.05039 * self.wsv),
-                                self.bfW)
-
-            # Calculate the ISI associated with the back fire rate of spread
-            self.bisi = self.bfW * self.fF * 0.208
-
         # Ensure all self attributes are CuPy arrays
         self.fuel_type = cp.asarray(self.fuel_type)
         self.isf = cp.asarray(self.isf)
@@ -805,173 +755,155 @@ class FBP:
 
             if ftype in [14, 15]:
                 # ## Process O-1a/b fuel types...
+                # Grass curing coefficient
                 self.cf = cp.where(
                     self.fuel_type == ftype,
-                    cp.where(self.gcf < 58.8,
-                             0.005 * (cp.exp(0.061 * self.gcf) - 1),
-                             0.176 + (0.02 * (self.gcf - 58.8))),
+                    cp.where(
+                        self.gcf < 58.8,
+                        0.005 * (cp.exp(0.061 * self.gcf) - 1),
+                        0.176 + (0.02 * (self.gcf - 58.8))
+                    ),
                     self.cf
                 )
 
-                # Calculate no slope/no wind rate of spread
+                # No-slope/no-wind ROS
                 self.rsz = cp.where(
                     self.fuel_type == ftype,
                     self.a * cp.power(1 - cp.exp(-self.b * self.isz), self.c) * self.cf,
                     self.rsz
                 )
 
-                # Calculate rate of spread with slope effect
+                # Slope-adjusted ROS
                 self.rsf = cp.where(
                     self.fuel_type == ftype,
                     self.rsz * self.sf,
                     self.rsf
                 )
 
-                # Calculate initial spread index with slope effect
+                # Slope-influenced ISI estimate
+                isf_numer = 1 - cp.power(self.rsf / (self.cf * self.a), 1 / self.c)
+                isf_safe = cp.where(isf_numer >= 0.01, isf_numer, 0.01)
                 self.isf = cp.where(
                     self.fuel_type == ftype,
-                    cp.where(
-                        1 - cp.power(self.rsf / (self.cf * self.a), 1 / self.c) >= 0.01,
-                        cp.log(1 - cp.power(self.rsf / (self.cf * self.a), 1 / self.c)) / -self.b,
-                        cp.log(0.01) / -self.b
-                    ),
+                    cp.log(isf_safe) / -self.b,
                     self.isf
                 )
 
-                # Calculate slope effects on wind and ISI
-                _calcISI_slopeWind()
+                # Wind and ISI adjustments
+                self._calcISI_slopeWind(ftype)
 
-                # Calculate head fire rate of spread with slope and wind effects
+                # Final head fire ROS
                 self.rsi = cp.where(
                     self.fuel_type == ftype,
                     self.a * cp.power(1 - cp.exp(-self.b * self.isi), self.c) * self.cf,
                     self.rsi
                 )
 
-                # Calculate back fire rate of spread with slope and wind effects
+                # Backing fire ROS
                 self.brsi = cp.where(
                     self.fuel_type == ftype,
                     self.a * cp.power(1 - cp.exp(-self.b * self.bisi), self.c) * self.cf,
                     self.brsi
                 )
 
-                # Calculate Buildup Effect (BE)
-                self.be = cp.where(
-                    self.fuel_type == ftype,
-                    cp.ones_like(self.fuel_type),
-                    self.be
-                )
+                # BE = 1 for grass fuels
+                self.be = cp.where(self.fuel_type == ftype, 1.0, self.be)
 
             elif ftype in [12, 13]:
                 # ## Process M-3/4 fuel types...
-                if ftype == 12:
-                    # Get D1 parameters
-                    a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[8]
-                else:
-                    # Get D2 parameters (technically the same as D1)
-                    a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[9]
+                lu_params = self.rosParams[8] if ftype == 12 else self.rosParams[9]
+                a_d1, b_d1, c_d1, *_ = lu_params
 
-                # Get RSZ and ISF
-                rsz_d1_2 = cp.where(
+                # D1 component ROS and ISF
+                rsz_d1 = cp.where(
                     self.fuel_type == ftype,
-                    a_d1_2 * cp.power(1 - cp.exp(-b_d1_2 * self.isz), c_d1_2),
-                    cp.zeros_like(self.fuel_type)
+                    a_d1 * cp.power(1 - cp.exp(-b_d1 * self.isz), c_d1),
+                    0.0
                 )
-                rsf_d1_2 = cp.where(
-                    self.fuel_type == ftype,
-                    rsz_d1_2 * self.sf,
-                    cp.zeros_like(self.fuel_type)
-                )
-                isf_d1_2 = cp.where(
+                rsf_d1 = rsz_d1 * self.sf
+                isf_d1 = cp.where(
                     self.fuel_type == ftype,
                     cp.where(
-                        (1 - cp.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) >= 0.01,
-                        cp.log(1 - cp.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) / -b_d1_2,
-                        cp.log(0.01) / -b_d1_2
+                        (1 - cp.power(rsf_d1 / a_d1, 1 / c_d1)) >= 0.01,
+                        cp.log(1 - cp.power(rsf_d1 / a_d1, 1 / c_d1)) / -b_d1,
+                        cp.log(0.01) / -b_d1
                     ),
-                    cp.zeros_like(self.fuel_type)
+                    0.0
                 )
 
-                # Calculate no slope/no wind rate of spread
+                # Mixedwood (primary) ROS and ISF
+                self.a, self.b, self.c, self.q, self.bui0, self.be_max = self.rosParams[ftype]
                 self.rsz = cp.where(
                     self.fuel_type == ftype,
                     self.a * cp.power(1 - cp.exp(-self.b * self.isz), self.c),
                     self.rsz
                 )
-
-                # Calculate rate of spread with slope effect (no wind)
                 self.rsf = cp.where(
                     self.fuel_type == ftype,
                     self.rsz * self.sf,
                     self.rsf
                 )
 
-                # Calculate initial spread index with slope effect (no wind)
-                self.isf = cp.where(
+                isf_mixed = cp.where(
                     self.fuel_type == ftype,
                     cp.where(
                         (1 - cp.power(self.rsf / self.a, 1 / self.c)) >= 0.01,
-                        (self.pdf / 100) * (cp.log(1 - cp.power(self.rsf / self.a, 1 / self.c)) / -self.b) +
-                        (1 - self.pdf / 100) * isf_d1_2,
+                        cp.log(1 - cp.power(self.rsf / self.a, 1 / self.c)) / -self.b,
                         cp.log(0.01) / -self.b
                     ),
+                    0.0
+                )
+
+                # Blend ISF based on percent dead fir
+                self.isf = cp.where(
+                    self.fuel_type == ftype,
+                    (self.pdf / 100) * isf_mixed + (1 - self.pdf / 100) * isf_d1,
                     self.isf
                 )
 
-                # Calculate slope effects on wind and ISI
-                _calcISI_slopeWind()
+                # Wind and ISI adjustments
+                self._calcISI_slopeWind(ftype)
 
-                # Calculate head fire rate of spread with slope and wind effects for D1
-                rsi_d1 = cp.where(
-                    self.fuel_type == ftype,
-                    a_d1_2 * cp.power(1 - cp.exp(-b_d1_2 * self.isi), c_d1_2),
-                    cp.zeros_like(self.fuel_type)
-                )
-                # Calculate back fire rate of spread with slope and wind effects for D1
-                brsi_d1 = cp.where(
-                    self.fuel_type == ftype,
-                    a_d1_2 * cp.power(1 - cp.exp(-b_d1_2 * self.bisi), c_d1_2),
-                    cp.zeros_like(self.fuel_type)
-                )
+                # RSI (head fire) for D1 component
+                rsi_d1 = a_d1 * cp.power(1 - cp.exp(-b_d1 * self.isi), c_d1)
+                brsi_d1 = a_d1 * cp.power(1 - cp.exp(-b_d1 * self.bisi), c_d1)
 
-                # Calculate rate of spread with slope and wind effects
+                # Final RSI blend
                 if ftype == 13:
-                    # D1 Fuel Type Head Fire RSI
+                    # M4
                     self.rsi = cp.where(
                         self.fuel_type == ftype,
-                        ((self.pdf / 100) * self.a * cp.power(1 - cp.exp(-self.b * self.isi), self.c) +
-                         (1 - self.pdf / 100) * rsi_d1),
+                        (self.pdf / 100) * self.a * cp.power(1 - cp.exp(-self.b * self.isi), self.c) +
+                        (1 - self.pdf / 100) * rsi_d1,
                         self.rsi
                     )
-                    # D1 Fuel Type Back Fire RSI
                     self.brsi = cp.where(
                         self.fuel_type == ftype,
-                        ((self.pdf / 100) * self.a * cp.power(1 - cp.exp(-self.b * self.bisi), self.c) +
-                         (1 - self.pdf / 100) * brsi_d1),
+                        (self.pdf / 100) * self.a * cp.power(1 - cp.exp(-self.b * self.bisi), self.c) +
+                        (1 - self.pdf / 100) * brsi_d1,
                         self.brsi
                     )
                 else:
-                    # D2 Fuel Type Head Fire RSI
+                    # M3 (uses only 20% D1 influence)
                     self.rsi = cp.where(
                         self.fuel_type == ftype,
-                        ((self.pdf / 100) * self.a * cp.power(1 - cp.exp(-self.b * self.isi), self.c) +
-                         0.2 * (1 - self.pdf / 100) * rsi_d1),
+                        (self.pdf / 100) * self.a * cp.power(1 - cp.exp(-self.b * self.isi), self.c) +
+                        0.2 * (1 - self.pdf / 100) * rsi_d1,
                         self.rsi
                     )
-                    # D2 Fuel Type Back Fire RSI
                     self.brsi = cp.where(
                         self.fuel_type == ftype,
-                        ((self.pdf / 100) * self.a * cp.power(1 - cp.exp(-self.b * self.bisi), self.c) +
-                         0.2 * (1 - self.pdf / 100) * brsi_d1),
+                        (self.pdf / 100) * self.a * cp.power(1 - cp.exp(-self.b * self.bisi), self.c) +
+                        0.2 * (1 - self.pdf / 100) * brsi_d1,
                         self.brsi
                     )
 
-                # Calculate Buildup Effect (BE)
+                # Buildup Effect
                 self.be = cp.where(
                     self.fuel_type == ftype,
                     cp.where(
                         self.bui == 0,
-                        cp.zeros_like(self.fuel_type),
+                        0.0,
                         cp.exp(50 * cp.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))
                     ),
                     self.be
@@ -996,23 +928,20 @@ class FBP:
                 # Calculate initial spread index with slope effect
                 isf_numer = cp.where(
                     self.fuel_type == ftype,
-                    (1 - cp.power(self.rsf / self.a, 1 / self.c)),
-                    cp.zeros_like(self.fuel_type)
+                    1 - cp.power(self.rsf / self.a, 1 / self.c),
+                    0.0
                 )
                 np.seterr(divide='ignore')  # Suppress divide warnings for log
+                isf_safe = cp.clip(isf_numer, 0.01, None)
                 self.isf = cp.where(
                     self.fuel_type == ftype,
-                    cp.where(
-                        isf_numer >= 0.01,
-                        cp.log(isf_numer) / -self.b,
-                        cp.log(0.01) / -self.b
-                    ),
+                    cp.log(isf_safe) / -self.b,
                     self.isf
                 )
                 np.seterr(divide='warn')  # Restore divide warnings
 
                 # Calculate slope effects on wind and ISI
-                _calcISI_slopeWind()
+                self._calcISI_slopeWind(ftype)
 
                 # Calculate head fire rate of spread with slope and wind effects
                 self.rsi = cp.where(
@@ -1033,7 +962,7 @@ class FBP:
                     self.fuel_type == ftype,
                     cp.where(
                         self.bui == 0,
-                        cp.zeros_like(self.fuel_type),
+                        0.0,
                         cp.exp(50 * cp.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))
                     ),
                     self.be
@@ -1041,24 +970,24 @@ class FBP:
 
         else:
             # ## Process M-1/2 fuel types...
-            self.q, self.bui0, self.be_max = self.rosParams[ftype]
+            *_, self.q, self.bui0, self.be_max = self.rosParams[ftype]
 
             # Calculate no slope/no wind rate of spread
             # Get C2 RSZ and ISF
-            a_c2, b_c2, c_c2, q_c2, bui0_c2, be_max_c2 = self.rosParams[2]
+            a_c2, b_c2, c_c2, q_c2, *_ = self.rosParams[2]
 
             # Calculate C2 RSZ
             rsz_c2 = cp.where(
                 self.fuel_type == ftype,
                 a_c2 * cp.power(1 - cp.exp(-b_c2 * self.isz), c_c2),
-                cp.zeros_like(self.fuel_type)
+                0.0
             )
 
             # Calculate C2 RSF
             rsf_c2 = cp.where(
                 self.fuel_type == ftype,
                 rsz_c2 * self.sf,
-                cp.zeros_like(self.fuel_type)
+                0.0
             )
 
             # Calculate C2 ISF
@@ -1069,29 +998,29 @@ class FBP:
                     cp.log(1 - cp.power(rsf_c2 / a_c2, 1 / c_c2)) / -b_c2,
                     cp.log(0.01) / -b_c2
                 ),
-                cp.zeros_like(self.fuel_type)
+                0.0
             )
 
             # Get parameters for D1/D2 fuel types
             if ftype == 10:
                 # Get D1 parameters
-                a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[8]
+                a_d1_2, b_d1_2, c_d1_2, q_d1_2, *_ = self.rosParams[8]
             else:
                 # Get D2 parameters (technically the same as D1)
-                a_d1_2, b_d1_2, c_d1_2, q_d1_2, bui0_d1_2, be_max_d1_2 = self.rosParams[9]
+                a_d1_2, b_d1_2, c_d1_2, q_d1_2, *_ = self.rosParams[9]
 
             # Calculate D1 RSZ
             rsz_d1_2 = cp.where(
                 self.fuel_type == ftype,
                 a_d1_2 * cp.power(1 - cp.exp(-b_d1_2 * self.isz), c_d1_2),
-                cp.zeros_like(self.fuel_type)
+                0.0
             )
 
             # Calculate D1 RSF
             rsf_d1_2 = cp.where(
                 self.fuel_type == ftype,
                 rsz_d1_2 * self.sf,
-                cp.zeros_like(self.fuel_type)
+                0.0
             )
 
             # Calculate D1 ISF
@@ -1102,7 +1031,7 @@ class FBP:
                     cp.log(1 - cp.power(rsf_d1_2 / a_d1_2, 1 / c_d1_2)) / -b_d1_2,
                     cp.log(0.01) / -b_d1_2
                 ),
-                cp.zeros_like(self.fuel_type)
+                0.0
             )
 
             # Calculate initial spread index with slope effects
@@ -1113,40 +1042,20 @@ class FBP:
             )
 
             # Calculate slope effects on wind and ISI
-            _calcISI_slopeWind()
+            self._calcISI_slopeWind(ftype)
 
-            # Calculate rate of spread with slope and wind effects for C2 and D1
-            # Get C2 Head Fire RSI
-            rsi_c2 = cp.where(
-                self.fuel_type == ftype,
-                a_c2 * cp.power(1 - cp.exp(-b_c2 * self.isi), c_c2),
-                cp.zeros_like(self.fuel_type)
-            )
+            # Calculate head and back fire rates of spread with slope and wind effects for C2 and D1
+            # RSI (C2 & D1 head spread)
+            rsi_c2 = a_c2 * cp.power(1 - cp.exp(-b_c2 * self.isi), c_c2)
+            rsi_d1 = a_d1_2 * cp.power(1 - cp.exp(-b_d1_2 * self.isi), c_d1_2)
 
-            # Get C2 Back Fire RSI
-            brsi_c2 = cp.where(
-                self.fuel_type == ftype,
-                a_c2 * cp.power(1 - cp.exp(-b_c2 * self.bisi), c_c2),
-                cp.zeros_like(self.fuel_type)
-            )
-
-            # Get D1 Head Fire RSI
-            rsi_d1 = cp.where(
-                self.fuel_type == ftype,
-                a_d1_2 * cp.power(1 - cp.exp(-b_d1_2 * self.isi), c_d1_2),
-                cp.zeros_like(self.fuel_type)
-            )
-
-            # Get D1 Back Fire RSI
-            brsi_d1 = cp.where(
-                self.fuel_type == ftype,
-                a_d1_2 * cp.power(1 - cp.exp(-b_d1_2 * self.bisi), c_d1_2),
-                cp.zeros_like(self.fuel_type)
-            )
+            # Back fire RSI
+            brsi_c2 = a_c2 * cp.power(1 - cp.exp(-b_c2 * self.bisi), c_c2)
+            brsi_d1 = a_d1_2 * cp.power(1 - cp.exp(-b_d1_2 * self.bisi), c_d1_2)
 
             # Calculate rate of spread with slope and wind effects (RSI)
             if ftype == 11:
-                # Adjust for D2 fuel type
+                # M2: Adjust for D2 fuel type = 20% D1 influence
                 self.rsi = cp.where(
                     self.fuel_type == ftype,
                     (self.pc / 100) * rsi_c2 + 0.2 * (1 - self.pc / 100) * rsi_d1,
@@ -1158,7 +1067,7 @@ class FBP:
                     self.brsi
                 )
             else:
-                # Default adjustment
+                # M1: standard blend
                 self.rsi = cp.where(
                     self.fuel_type == ftype,
                     (self.pc / 100) * rsi_c2 + (1 - self.pc / 100) * rsi_d1,
@@ -1171,16 +1080,20 @@ class FBP:
                 )
 
             # Calculate Buildup Effect (BE)
-            self.be = cp.where(self.fuel_type == ftype,
-                               cp.where(self.bui == 0,
-                                        cp.zeros_like(self.fuel_type),
-                                        np.exp(50 * np.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))),
-                               self.be)
+            self.be = cp.where(
+                self.fuel_type == ftype,
+                cp.where(
+                    self.bui == 0,
+                    0.0,
+                    cp.exp(50 * cp.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))
+                ),
+                self.be
+            )
 
         # Ensure BE does not exceed be_max
         self.be = cp.where(
             self.fuel_type == ftype,
-            cp.where(self.be > self.be_max, self.be_max, self.be),
+            cp.minimum(self.be, self.be_max),
             self.be
         )
 
@@ -1199,35 +1112,47 @@ class FBP:
         if ftype == 6:
             # C6 fuel type
             # Head Surface Fire ROS
-            self.sfros = cp.where(self.fuel_type == ftype,
-                                  self.rsi * self.be,
-                                  self.sfros)
+            self.sfros = cp.where(
+                self.fuel_type == ftype,
+                self.rsi * self.be,
+                self.sfros)
+
             # Back Surface Fire ROS
-            self.bros = cp.where(self.fuel_type == ftype,
-                                 self.brsi * self.be,
-                                 self.bros)
+            self.bros = cp.where(
+                self.fuel_type == ftype,
+                self.brsi * self.be,
+                self.bros)
         else:
             # All other fuel types
             # Head Fire ROS
-            self.hfros = cp.where(self.fuel_type == ftype,
-                                  self.rsi * self.be,
-                                  self.hfros)
+            self.hfros = cp.where(
+                self.fuel_type == ftype,
+                self.rsi * self.be,
+                self.hfros)
+
             # Back Fire ROS
-            self.bros = cp.where(self.fuel_type == ftype,
-                                 self.brsi * self.be,
-                                 self.bros)
+            self.bros = cp.where(
+                self.fuel_type == ftype,
+                self.brsi * self.be,
+                self.bros)
+
             if ftype == 9:
-                # D2 fuel type
-                self.hfros = cp.where(self.fuel_type == ftype,
-                                      cp.where(self.bui < 70,
-                                               cp.zeros_like(self.fuel_type),
-                                               self.hfros * 0.2),
-                                      self.hfros)
-                self.bros = cp.where(self.fuel_type == ftype,
-                                     cp.where(self.bui < 70,
-                                              cp.zeros_like(self.fuel_type),
-                                              self.bros * 0.2),
-                                     self.bros)
+                # D2: Suppress spread under low BUI conditions
+                # Head Fire ROS
+                self.hfros = cp.where(
+                    self.fuel_type == ftype,
+                    cp.where(self.bui < 70,
+                             cp.zeros_like(self.fuel_type),
+                             self.hfros * 0.2),
+                    self.hfros)
+
+                # Back Fire ROS
+                self.bros = cp.where(
+                    self.fuel_type == ftype,
+                    cp.where(self.bui < 70,
+                             cp.zeros_like(self.fuel_type),
+                             self.bros * 0.2),
+                    self.bros)
 
         return
 
@@ -1319,14 +1244,12 @@ class FBP:
         :return: None
         """
         # Get canopy base height (CBH) for fuel type
-        self.cbh = cp.where(self.fuel_type == ftype,
-                            self.fbpCBH_CFL_HT_LUT.get(ftype)[0],
-                            self.cbh)
+        cbh_val = self.fbpCBH_CFL_HT_LUT.get(ftype, (cp.nan, cp.nan))[0]
+        self.cbh = cp.where(self.fuel_type == ftype, cbh_val, self.cbh)
 
         # Get canopy fuel load (CFL) for fuel type
-        self.cfl = cp.where(self.fuel_type == ftype,
-                            self.fbpCBH_CFL_HT_LUT.get(ftype)[1],
-                            self.cfl)
+        cfl_val = self.fbpCBH_CFL_HT_LUT.get(ftype, (cp.nan, cp.nan))[1]
+        self.cfl = cp.where(self.fuel_type == ftype, cfl_val, self.cfl)
 
         return
 
@@ -1337,10 +1260,11 @@ class FBP:
         :return: None
         """
         # Calculate critical surface fire intensity (CSFI)
-        self.csfi = cp.where(self.fuel_type < 14,
-                             cp.power(0.01 * self.cbh * (460 + (25.9 * self.fmc)), 1.5),
-                             cp.zeros_like(self.fuel_type))
-
+        self.csfi = cp.where(
+            self.fuel_type < 14,
+            cp.power(0.01 * self.cbh * (460 + (25.9 * self.fmc)), 1.5),
+            0.0
+        )
         return
 
     def calcRSO(self) -> None:
@@ -1350,22 +1274,20 @@ class FBP:
         :return: None
         """
         # Calculate critical surface fire rate of spread (RSO)
-        self.rso = cp.where(self.sfc > 0,
-                            self.csfi / (300.0 * self.sfc),
-                            cp.zeros_like(self.sfc))
-
+        self.rso = cp.where(
+            self.sfc > 0,
+            self.csfi / (300.0 * self.sfc),
+            0.0
+        )
         return
 
     def calcCFB(self) -> None:
         """
-        Function calculates crown fraction burned using the equation in Forestry Canada Fire Danger Group (1992)
-        using CuPy.
+        Function to calculate crown fraction burned using CuPy.
+        Equation per Forestry Canada Fire Danger Group (1992).
 
         :return: None
         """
-        # Initialize CFB array
-        self.cfb = cp.zeros_like(self.fuel_type, dtype=cp.float32)
-
         # Masks
         is_c6 = self.fuel_type == 6
         non_crowning = cp.isin(self.fuel_type, self.non_crowning_fuels)
@@ -1376,20 +1298,16 @@ class FBP:
         delta_hfros_other = self.hfros - self.rso
 
         # Compute CFB
-        cfb_c6 = cp.where(delta_sfros_c6 < -3086,
-                          cp.zeros_like(delta_sfros_c6),
-                          1 - cp.exp(-0.23 * delta_sfros_c6))
-        cfb_other = cp.where(delta_hfros_other < -3086,
-                             cp.zeros_like(delta_hfros_other),
-                             1 - cp.exp(-0.23 * delta_hfros_other))
+        cfb_c6 = cp.where(delta_sfros_c6 < -3086, 0.0, 1 - cp.exp(-0.23 * delta_sfros_c6))
+        cfb_other = cp.where(delta_hfros_other < -3086, 0.0, 1 - cp.exp(-0.23 * delta_hfros_other))
 
-        # Assign computed values based on masks
-        self.cfb[is_c6] = cfb_c6[is_c6]
-        self.cfb[is_other] = cfb_other[is_other]
+        # Initialize output
+        self.cfb = cp.zeros_like(self.fuel_type, dtype=cp.float32)
+        self.cfb = cp.where(is_c6, cfb_c6, self.cfb)
+        self.cfb = cp.where(is_other, cfb_other, self.cfb)
 
         # Ensure values range between 0 and 1
-        self.cfb = cp.where(cp.isfinite(self.cfb), self.cfb, cp.zeros_like(self.cfb))
-        self.cfb = cp.clip(self.cfb, 0, 1)
+        self.cfb = cp.clip(cp.nan_to_num(self.cfb, nan=0.0), 0, 1)
 
         # Clean up memory
         del is_c6, is_other, delta_sfros_c6, delta_hfros_other, cfb_c6, cfb_other
@@ -1403,26 +1321,37 @@ class FBP:
         :return: None
         """
         # Mask for open fuel types that use a fixed acceleration parameter (0.115)
-        fixed_accel_mask = cp.isin(self.fuel_type, self.open_fuel_types)
+        fixed_mask = cp.isin(self.fuel_type, self.open_fuel_types)
 
         # Mask for closed fuel types that require computation
-        variable_accel_mask = cp.isin(self.fuel_type, self.ftypes) & ~fixed_accel_mask
+        variable_mask = cp.isin(self.fuel_type, self.ftypes) & ~fixed_mask
 
         # Compute acceleration parameter for open fuel types
-        self.accel_param = cp.where(fixed_accel_mask,
-                                    cp.full_like(fixed_accel_mask, 0.115, dtype=cp.float32),
-                                    self.accel_param)
+        self.accel_param = cp.where(
+            fixed_mask,
+            cp.full_like(fixed_mask, 0.115, dtype=cp.float32),
+            self.accel_param
+        )
 
         # Compute acceleration parameter for closed fuel types
-        self.accel_param = cp.where(variable_accel_mask,
-                                    0.115 - 18.8 * cp.power(self.cfb, 2.5) * cp.exp(-8 * self.cfb),
-                                    self.accel_param)
+        self.accel_param = cp.where(
+            variable_mask,
+            0.115 - 18.8 * cp.power(self.cfb, 2.5) * cp.exp(-8 * self.cfb),
+            self.accel_param
+        )
+
+        # Clean up memory
+        del fixed_mask, variable_mask
 
         return
 
     def calcFireType(self) -> None:
         """
-        Function to calculate fire type (1: surface, 2: intermittent crown, 3: active crown) using CuPy.
+        Function to calculate fire type using CuPy.
+            - 1: surface
+            - 2: intermittent crown
+            - 3: active crown
+        Applies only to fuels with numeric codes < 19.
 
         :return: None
         """
@@ -1431,28 +1360,28 @@ class FBP:
             cp.where(
                 self.cfb <= 0.1,
                 # Surface fire
-                cp.full_like(self.fuel_type, 1, dtype=cp.int8),
+                1,
                 cp.where(
                     (self.cfb > 0.1) & (self.cfb < 0.9),
                     # Intermittent crown fire
-                    cp.full_like(self.fuel_type, 2, dtype=cp.int8),
+                    2,
                     cp.where(
                         self.cfb >= 0.9,
                         # Active crown fire
-                        cp.full_like(self.fuel_type, 3, dtype=cp.int8),
+                        3,
                         # No fire type
-                        cp.zeros_like(self.fuel_type),
+                        0,
                     ),
                 ),
             ),
             cp.zeros_like(self.fuel_type),
-        )
+        ).astype(cp.int8)
 
         return
 
     def calcCFC(self) -> None:
         """
-        Function calculates crown fuel consumed (kg/m^2) using CuPy.
+        Function to calculate crown fuel consumed (kg/m^2) using CuPy.
 
         :return: None
         """
@@ -1462,8 +1391,8 @@ class FBP:
             cp.where(
                 (self.fuel_type == 12) | (self.fuel_type == 13),
                 self.cfb * self.cfl * self.pdf / 100,
-                self.cfb * self.cfl,
-            ),
+                self.cfb * self.cfl
+            )
         )
 
         return
@@ -1481,13 +1410,13 @@ class FBP:
                 cp.zeros_like(self.fuel_type),
                 60 * cp.power(1 - cp.exp(-0.0497 * self.isi), 1) * (self.fme / 0.778237),
             ),
-            self.cfros,
+            self.cfros
         )
 
         self.hfros = cp.where(
             self.fuel_type == 6,
             self.sfros + (self.cfb * (self.cfros - self.sfros)),
-            self.hfros,
+            self.hfros
         )
 
         return
@@ -1526,8 +1455,8 @@ class FBP:
                 else:
                     # Convert scalar or list to a CuPy array and mask NaN values
                     value_array = (cp.asarray(value)
-                        if isinstance(value, (list, tuple, np.ndarray))
-                        else cp.asarray([value]))
+                                   if isinstance(value, (list, tuple, np.ndarray))
+                                   else cp.asarray([value]))
                     setattr(self, key, cp.where(cp.isnan(value_array), cp.nan, value_array))
         return
 
