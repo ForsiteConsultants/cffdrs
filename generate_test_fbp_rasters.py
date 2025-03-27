@@ -8,7 +8,6 @@ Created on Thur Aug 8 17:30:00 2024
 import os
 import numpy as np
 import ProcessRasters as pr
-from numpy import float64 as f64
 from datetime import datetime as dt
 from typing import Union, Optional
 
