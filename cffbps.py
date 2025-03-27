@@ -2099,6 +2099,7 @@ def _testFBP(test_functions: list,
         output_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Outputs')
     else:
         output_folder = out_folder
+    os.makedirs(output_folder, exist_ok=True)
 
     # ### Test raster modelling
     if any(var in test_functions for var in ['raster', 'all']):
