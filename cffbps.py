@@ -377,9 +377,11 @@ class FBP:
                                         mask=np.isnan([fbpFTCode_AlphaToNum_LUT.get(self.fuel_type)]))
         else:
             self.fuel_type = mask.array([self.fuel_type], mask=np.isnan([self.fuel_type]))
+
         # Convert from cffdrs R fuel type grid codes to the grid codes used in this module
         if self.convert_fuel_type_codes:
             self.fuel_type = convert_grid_codes(self.fuel_type)
+
         # Apply an additional mask to remove fuel types that are not in the LUT dictionary
         valid_fuel_types = fbpFTCode_NumToAlpha_LUT.keys()  # Get valid numeric codes
         invalid_mask = ~np.isin(self.fuel_type, list(valid_fuel_types))
@@ -893,7 +895,7 @@ class FBP:
 
             # Calculate the new ISI with slope and wind effects
             self.isi = mask.where(self.fuel_type == ftype,
-                                  0.208 * self.fW * self.fF,
+                                  0.208 * self.fF * self.fW,
                                   self.isi)
 
             # ## Calculate Backing Fire ISI
@@ -903,7 +905,9 @@ class FBP:
                                   self.bfW)
 
             # Calculate the ISI associated with the backing fire rate of spread
-            self.bisi = self.bfW * self.fF * 0.208
+            self.bisi = mask.where(self.fuel_type == ftype,
+                                   0.208 * self.fF * self.bfW,
+                                   self.bisi)
 
         # ### CFFBPS ROS models
         if ftype not in [10, 11]:
@@ -1009,7 +1013,7 @@ class FBP:
                                      0)
 
                 # Calculate rate of spread with slope and wind effects
-                if ftype == 13:
+                if ftype == 12:
                     # D1 Fuel Type Head Fire RSI
                     self.rsi = mask.where(self.fuel_type == ftype,
                                           ((self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi),
@@ -1153,19 +1157,19 @@ class FBP:
                                  0)
 
             # Calculate rate of spread with slope and wind effects (RSI)
-            if ftype == 11:
-                self.rsi = mask.where(self.fuel_type == ftype,
-                                      (self.pc / 100) * rsi_c2 + 0.2 * (1 - self.pc / 100) * rsi_d1,
-                                      self.rsi)
-                self.brsi = mask.where(self.fuel_type == ftype,
-                                       (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
-                                       self.brsi)
-            else:
+            if ftype == 10:
                 self.rsi = mask.where(self.fuel_type == ftype,
                                       (self.pc / 100) * rsi_c2 + (1 - self.pc / 100) * rsi_d1,
                                       self.rsi)
                 self.brsi = mask.where(self.fuel_type == ftype,
                                        (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
+                                       self.brsi)
+            else:
+                self.rsi = mask.where(self.fuel_type == ftype,
+                                      (self.pc / 100) * rsi_c2 + 0.2 * (1 - self.pc / 100) * rsi_d1,
+                                      self.rsi)
+                self.brsi = mask.where(self.fuel_type == ftype,
+                                       (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
                                        self.brsi)
 
             # Calculate Buildup Effect (BE)
@@ -1325,8 +1329,8 @@ class FBP:
 
     def getCBH_CFL(self, ftype: int, cbh: float = None, cfl: float = None) -> None:
         """
-        Function to get the default CFFBPS canopy base height (CBH) and
-        canopy fuel load (CFL) values for a specified fuel type.
+        Function to get the default CFFBPS canopy base height (CBH) and canopy fuel load (CFL)
+        values for a specified fuel type.
 
         :param ftype: The numeric FBP fuel type code.
         :param cbh: A specific cbh value to use instead of the default (only for C6 fuel types)
@@ -1463,8 +1467,12 @@ class FBP:
                                                                      # Active crown fire
                                                                      3,
                                                                      # No fire type
-                                                                     0))),
-                                    0)
+                                                                     0
+                                                                     )
+                                                          )
+                                               ),
+                                    0
+                                    )
 
         return
 
@@ -1549,6 +1557,9 @@ class FBP:
             'fire_type': self.fire_type,  # Type of fire (surface, intermittent crown, active crown)
             'hfros': self.hfros,  # Head fire rate of spread (m/min)
             'hfi': self.hfi,  # Head fire intensity (kW/m)
+
+            # Fuel type variables
+            'fuel_type': self.fuel_type,  # Fuel type codes
 
             # Weather variables
             'ws': self.ws,  # Observed wind speed (km/h)
@@ -1940,7 +1951,7 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
             results = pool.starmap(_process_block, input_blocks)
         finally:
             pool.close()  # Stop accepting new tasks
-            pool.join()   # Wait for all tasks to finish
+            pool.join()  # Wait for all tasks to finish
 
     # Place the processed blocks back into the output array
     for result, (i, j) in results:
@@ -2249,7 +2260,7 @@ if __name__ == '__main__':
     _pdf = 50
     _gfl = 0.35
     _gcf = 80
-    _out_request = ['latn', 'd0', 'dj', 'nd', 'fmc', 'fme', 'csfi', 'rso', 'hfros', 'hfi']
+    _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hfros', 'hfi', 'fire_type']
     _out_folder = None
     _num_processors = 14
     _block_size = None
