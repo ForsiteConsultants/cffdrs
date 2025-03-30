@@ -432,6 +432,8 @@ class FBP:
             self.slope = mask.array(self.slope, mask=np.isnan(self.slope))
         else:
             self.slope = mask.array([self.slope], mask=np.isnan([self.slope]))
+        # Limit the lower slope value to 0
+        self.slope = mask.clip(self.slope, 0, None)
 
         # Verify aspect
         if not isinstance(self.aspect, (int, float, np.ndarray)):
