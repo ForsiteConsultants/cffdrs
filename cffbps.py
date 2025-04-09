@@ -344,13 +344,13 @@ class FBP:
                     first_array = converted_fuel_type.astype(np.int8)
 
                 self.ref_array = mask.array(
-                    [np.full(first_array.shape, 0, dtype=np.float32)],
+                    [np.full(first_array.shape, 0, dtype=np.float64)],
                     mask=np.isnan([first_array])
                 )
         else:
             self.return_array = False
             # Get first input parameter array as a masked array
-            self.ref_array = mask.array([0], mask=np.isnan([self.fuel_type])).astype(np.float32)
+            self.ref_array = mask.array([0], mask=np.isnan([self.fuel_type])).astype(np.float64)
 
         return
 
@@ -683,9 +683,9 @@ class FBP:
 
         # Initialize surface parameters
         self.cf = self.ref_array
-        self.ffc = np.full_like(self.ref_array, np.nan, dtype=np.float32)
-        self.wfc = np.full_like(self.ref_array, np.nan, dtype=np.float32)
-        self.sfc = np.full_like(self.ref_array, np.nan, dtype=np.float32)
+        self.ffc = np.full_like(self.ref_array, np.nan, dtype=np.float64)
+        self.wfc = np.full_like(self.ref_array, np.nan, dtype=np.float64)
+        self.sfc = np.full_like(self.ref_array, np.nan, dtype=np.float64)
         self.rss = self.ref_array
 
         # Initialize foliar moisture content parameters
@@ -1398,7 +1398,7 @@ class FBP:
         :return: None
         """
         # Initialize CFB array
-        self.cfb = np.full_like(self.fuel_type, 0, dtype=np.float32)
+        self.cfb = np.full_like(self.fuel_type, 0, dtype=np.float64)
 
         # Create masks for C-6 and other fuel types
         is_c6 = mask.where(self.fuel_type == 6, True, False)
@@ -1705,7 +1705,7 @@ def _estimate_optimal_block_size(array_shape, num_processors, memory_fraction=0.
     available_memory = psutil.virtual_memory().available * memory_fraction
 
     # Estimate memory needed for one block
-    element_size = np.dtype(np.float32).itemsize  # Assuming float32 data type
+    element_size = np.dtype(np.float64).itemsize  # Assuming float64 data type
 
     # Calculate the maximum possible block size based on available memory and the number of processors
     max_block_size = int(np.sqrt(available_memory / (element_size * array_shape[0] * num_processors)))
@@ -1943,7 +1943,7 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
 
     output_arrays = []
     for _ in out_request:
-        output_arrays.append(np.zeros(input_list[array_indices[0]].shape, dtype=np.float32))
+        output_arrays.append(np.zeros(input_list[array_indices[0]].shape, dtype=np.float64))
 
     # Initialize a multiprocessing pool
     with Pool(num_processors) as pool:
@@ -2158,7 +2158,7 @@ def _testFBP(test_functions: list,
             if any(f'{name}.tif' in path for name in ['fuel_type', 'fire_type']):
                 dtype = np.int8
             else:
-                dtype = np.float32
+                dtype = np.float64
 
             # Convert dset to dtype
             dset = dset.astype(dtype)
@@ -2234,7 +2234,7 @@ def _testFBP(test_functions: list,
             if any(f'{name}.tif' in path for name in ['fuel_type', 'fire_type']):
                 dtype = np.int8
             else:
-                dtype = np.float32
+                dtype = np.float64
 
             # Convert dset to dtype
             dset = dset.astype(dtype)
