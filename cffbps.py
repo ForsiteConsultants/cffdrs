@@ -1427,6 +1427,81 @@ class FBP:
 
         return
 
+    def calcRosPercentileGrowth(self) -> None:
+        """
+        Calculates the rate of spread (ROS) percentile growth for head fire and backing fire rates of spread.
+        This function adjusts the `hfros` and `bros` attributes based on the percentile growth value and
+        crown/surface spread parameters.
+
+        This function is pulled from the WISE code base, and was apparently conceived by John Braun,
+        who is currently a faculty member of the Computer Science, Mathematics, Physics and Statistics
+        department at UBC, Okanagan (as of April 16, 2025).
+
+        :return: None
+        """
+
+        def _tinv(probability: Union[float, int], freedom: int = 9999999):
+            """
+            Calculates the inverse of the Student's t-distribution (quantile function).
+
+            :param probability: The cumulative probability for which the quantile is calculated.
+            :param freedom: The degrees of freedom for the t-distribution.
+            :return: The quantile value.
+            """
+            return t.ppf(probability, freedom)
+
+        if (self.percentile_growth is not None) and (self.percentile_growth != 50):
+            # Calculate the inverse t-distribution for the given percentile growth
+            tinv_value = _tinv(probability=self.percentile_growth / 100, freedom=9999999)
+
+            # Prepare default table with structured dtype
+            keys = np.array([1, 2, 3, 4, 5, 6, 7, 8, 12], dtype=np.uint8)
+            surface_vals = np.array([-1.0, 0.84, 0.62, 0.74, 0.8, 0.66, 1.22, 0.716, 0.551], dtype=np.float32)
+            crown_vals = np.array([0.95, 1.82, 1.78, 1.38, -1.0, 1.54, 1.0, -1.0, -1.0], dtype=np.float32)
+
+            # Initialize default arrays for lookup
+            surface_s = np.full_like(self.fuel_type, np.nan, dtype=np.float32)
+            crown_s = np.full_like(self.fuel_type, np.nan, dtype=np.float32)
+
+            # Create a mask for each valid fuel type and assign values
+            for k, s_val, c_val in zip(keys, surface_vals, crown_vals):
+                valid_mask = self.fuel_type == k
+                surface_s[valid_mask] = s_val
+                crown_s[valid_mask] = c_val
+
+            e = tinv_value * crown_s
+
+            # Iterate over head fire and backing fire ROS attributes
+            for ros_attr in ['hfros', 'bros']:
+                ros_in = getattr(self, ros_attr)  # Get the current ROS value
+                d = mask.power(ros_in, 0.6)  # Apply a power transformation to the ROS value
+
+                # Calculate the adjusted ROS growth based on crown and surface spread parameters
+                ros_growth = mask.where(~np.isnan(crown_s),
+                                        mask.where(self.cfb < 0.1,
+                                                   mask.where(surface_s < 0,
+                                                              # No adjustment if surface_s is invalid
+                                                              ros_in,
+                                                              # Adjust using surface_s
+                                                              np.exp(tinv_value) * ros_in),
+                                                   mask.where(crown_s < 0,
+                                                              # No adjustment if crown_s is invalid
+                                                              ros_in,
+                                                              mask.where(-e > d,
+                                                                         # Adjust using crown_s
+                                                                         mask.exp(tinv_value) * ros_in,
+                                                                         # Apply growth adjustment
+                                                                         mask.power(d + e, 1 / 0.6)
+                                                                         )
+                                                              )
+                                                   ),
+                                        # Default to the original ROS value if no conditions are met
+                                        ros_in)
+
+                setattr(self, ros_attr, ros_growth)  # Update the ROS attribute with the adjusted value
+
+        return
+
     def calcAccelParam(self) -> None:
         """
         Function to calculate acceleration parameter for a fire starting from a point ignition source.
