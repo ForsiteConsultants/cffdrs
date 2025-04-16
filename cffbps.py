@@ -533,7 +533,7 @@ class FBP:
                    gcf: Optional[Union[float, int, np.ndarray]] = 80,
                    out_request: Optional[Union[list, tuple]] = None,
                    convert_fuel_type_codes: Optional[bool] = False,
-                   percentile_growth: Optional[Union[float, int]] = None) -> None:
+                   percentile_growth: Optional[Union[float, int]] = 50) -> None:
         """
         Initialize the FBP object with the provided parameters.
 
