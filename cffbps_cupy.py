@@ -13,6 +13,7 @@ from operator import itemgetter
 import numpy as np
 import cupy as cp
 import rasterio as rio
+from scipy.stats import t
 from datetime import datetime as dt
 
 import ProcessRasters
@@ -119,6 +120,7 @@ class FBP:
         self.gcf = cp.array([0], dtype=self.cupy_float_type)
         self.out_request = cp.array([0], dtype=self.cupy_float_type)
         self.convert_fuel_type_codes = cp.array([0], dtype=self.cupy_float_type)
+        self.percentile_growth = 50,
         self.return_array_as = cp.array([0], dtype=self.cupy_float_type)
 
         # Internal tracking
@@ -366,6 +368,7 @@ class FBP:
                    gcf: Optional[Union[float, int, cp.ndarray]] = 80,
                    out_request: Optional[Union[list, tuple]] = None,
                    convert_fuel_type_codes: Optional[bool] = False,
+                   percentile_growth: Optional[Union[float, int]] = 50,
                    return_array_as: Literal['numpy', 'cupy'] = 'numpy') -> None:
         """
         Initialize the FBP object with the provided parameters.
@@ -458,14 +461,19 @@ class FBP:
             csfi = critical intensity (kW/m)
             rso = critical rate of spread (m/min)
 
-            # Crown fuel parameters
+            # Crown fuel variables
             cbh = Height to live crown base (m)
             cfb = Crown fraction burned (proportion, value ranging from 0-1)
             cfl = Crown fuel load (kg/m^2)
             cfc = Crown fuel consumed
+
+            # Total fuel variables
+            tfc = Estimated total fuel consumption
+
         :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
-            to the grid codes used in this module
-        :param return_array_as: If the results are arrays, the type of array to return as. Options: 'numpy', 'cupy'
+            to the grid codes used in this module.
+        :param percentile_growth: Percentile growth to use for the ROS growth function.
+        :param return_array_as: If the results are arrays, the type of array to return as. Options: 'numpy', 'cupy'.
         """
         self.fuel_type = fuel_type
         self.wx_date = wx_date
@@ -484,6 +492,7 @@ class FBP:
         self.gcf = gcf
         self.out_request = out_request
         self.convert_fuel_type_codes = convert_fuel_type_codes
+        self.percentile_growth = percentile_growth
         self.return_array_as = return_array_as
 
         self._checkArray()
@@ -1075,6 +1084,81 @@ class FBP:
 
         return
 
+    def calcRosPercentileGrowth(self) -> None:
+        """
+        Calculates the percentile growth for head fire and backing fire rates of spread.
+        This function adjusts the `hfros` and `bros` attributes based on the percentile growth value and
+        crown/surface spread parameters.
+
+        This function is pulled from the WISE code base, and was apparently conceived by John Braun,
+        who is currently a faculty member of the Computer Science, Mathematics, Physics and Statistics
+        department at UBC, Okanagan (as of April 16, 2025).
+
+        :return: None
+        """
+
+        def _tinv(probability: float, freedom: int = 9999999):
+            """
+            Calculates the inverse of the Student's t-distribution (quantile function).
+
+            :param probability: The cumulative probability for which the quantile is calculated.
+            :param freedom: The degrees of freedom for the t-distribution.
+            :return: The quantile value.
+            """
+            return t.ppf(probability, freedom)
+
+        if self.percentile_growth != 50:
+            # Calculate the inverse t-distribution for the given percentile growth
+            tinv_value = _tinv(probability=self.percentile_growth / 100, freedom=9999999)
+
+            # Prepare default table with structured dtype
+            keys = cp.array([1, 2, 3, 4, 5, 6, 7, 8, 12], dtype=cp.uint8)
+            surface_vals = cp.array([-1.0, 0.84, 0.62, 0.74, 0.8, 0.66, 1.22, 0.716, 0.551], dtype=cp.float32)
+            crown_vals = cp.array([0.95, 1.82, 1.78, 1.38, -1.0, 1.54, 1.0, -1.0, -1.0], dtype=cp.float32)
+
+            # Initialize default arrays for lookup
+            surface_s = cp.full_like(self.fuel_type, cp.nan, dtype=cp.float32)
+            crown_s = cp.full_like(self.fuel_type, cp.nan, dtype=cp.float32)
+
+            # Create a mask for each valid fuel type and assign values
+            for k, s_val, c_val in zip(keys, surface_vals, crown_vals):
+                valid_mask = self.fuel_type == k
+                surface_s = cp.where(valid_mask, s_val, surface_s)
+                crown_s = cp.where(valid_mask, c_val, crown_s)
+
+            e = tinv_value * crown_s
+
+            # Iterate over head fire and backing fire ROS attributes
+            for ros_attr in ['hfros', 'bros']:
+                ros_in = getattr(self, ros_attr)  # Get the current ROS value
+                d = cp.power(ros_in, 0.6)  # Apply a power transformation to the ROS value
+
+                # Calculate the adjusted ROS growth based on crown and surface spread parameters
+                ros_growth = cp.where(~cp.isnan(crown_s),
+                                      cp.where(self.cfb < 0.1,
+                                               cp.where(surface_s < 0,
+                                                        # No adjustment if surface_s is invalid
+                                                        ros_in,
+                                                        # Adjust using surface_s
+                                                        cp.exp(tinv_value) * ros_in),
+                                               cp.where(crown_s < 0,
+                                                        # No adjustment if crown_s is invalid
+                                                        ros_in,
+                                                        cp.where(-e > d,
+                                                                 # Adjust using crown_s
+                                                                 cp.exp(tinv_value) * ros_in,
+                                                                 # Apply growth adjustment
+                                                                 cp.power(d + e, 1 / 0.6)
+                                                                 )
+                                                        )
+                                               ),
+                                      # Default to the original ROS value if no conditions are met
+                                      ros_in)
+
+                setattr(self, ros_attr, ros_growth)  # Update the ROS attribute with the adjusted value
+
+        return
+
     def calcAccelParam(self) -> None:
         """
         Function to calculate acceleration parameter for a fire starting from a point ignition source.
@@ -1361,6 +1445,8 @@ class FBP:
         self.calcRSO()
         # Calculate crown fraction burned
         self.calcCFB()
+        # Calculate ROS percentile growth
+        self.calcRosPercentileGrowth()
         # Calculate acceleration parameter
         self.calcAccelParam()
         # Calculate fire type
