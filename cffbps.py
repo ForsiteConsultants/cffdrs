@@ -11,6 +11,7 @@ from typing import Union, Optional
 from operator import itemgetter
 import numpy as np
 from numpy import ma as mask
+from scipy.stats import t
 from datetime import datetime as dt
 from multiprocessing import current_process, Pool
 import psutil
@@ -160,6 +161,7 @@ class FBP:
         self.gcf = None
         self.out_request = None
         self.convert_fuel_type_codes = False
+        self.percentile_growth = None
 
         # Array verification parameter
         self.return_array = None
@@ -290,8 +292,8 @@ class FBP:
             7: (45, 0.0305, 2, 0.85, 106, 1.134),  # C-7
             8: (30, 0.0232, 1.6, 0.9, 32, 1.179),  # D-1
             9: (30, 0.0232, 1.6, 0.9, 32, 1.179),  # D-2
-            10: (0.8, 50, 1.250),  # M-1
-            11: (0.8, 50, 1.250),  # M-2
+            10: (None, None, None, 0.8, 50, 1.250),  # M-1
+            11: (None, None, None, 0.8, 50, 1.250),  # M-2
             12: (120, 0.0572, 1.4, 0.8, 50, 1.250),  # M-3
             13: (100, 0.0404, 1.48, 0.8, 50, 1.250),  # M-4
             14: (190, 0.0310, 1.4, 1, None, 1),  # O-1a
@@ -442,6 +444,8 @@ class FBP:
             self.aspect = mask.array(self.aspect, mask=np.isnan(self.aspect))
         else:
             self.aspect = mask.array([self.aspect], mask=np.isnan([self.aspect]))
+        # Set negative values to 270 degrees (assuming the represent "flat" terrain)
+        self.aspect = mask.where(self.aspect < 0, 270, self.aspect)
 
         # Verify ws
         if not isinstance(self.ws, (int, float, np.ndarray)):
@@ -528,7 +532,8 @@ class FBP:
                    gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
                    gcf: Optional[Union[float, int, np.ndarray]] = 80,
                    out_request: Optional[Union[list, tuple]] = None,
-                   convert_fuel_type_codes: Optional[bool] = False) -> None:
+                   convert_fuel_type_codes: Optional[bool] = False,
+                   percentile_growth: Optional[Union[float, int]] = None) -> None:
         """
         Initialize the FBP object with the provided parameters.
 
@@ -627,6 +632,7 @@ class FBP:
             cfc = Crown fuel consumed
         :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
             to the grid codes used in this module
+        :param percentile_growth: The ROS percentile growth (0-100) for the fire growth model
         """
         # Initialize CFFBPS input parameters
         self.fuel_type = fuel_type
@@ -646,6 +652,7 @@ class FBP:
         self.gcf = gcf
         self.out_request = out_request
         self.convert_fuel_type_codes = convert_fuel_type_codes
+        self.percentile_growth = percentile_growth
 
         # Verify input parameters
         self._checkArray()
@@ -795,16 +802,17 @@ class FBP:
         if lat is not None:
             self.lat = lat
         if long is not None:
-            self.long = lat
+            self.long = long
         if elevation is not None:
-            self.elevation = lat
+            self.elevation = elevation
         if wx_date is not None:
-            self.wx_date = lat
+            self.wx_date = wx_date
 
         # Calculate normalized latitude
         self.latn = mask.where((self.elevation is not None) & (self.elevation > 0),
                                43 + (33.7 * np.exp(-0.0351 * (150 - np.abs(self.long)))),
                                46 + (23.4 * (np.exp(-0.036 * (150 - np.abs(self.long))))))
+
         # Calculate date of minimum foliar moisture content (D0)
         # This value is rounded to mimic the approach used in the cffdrs R package.
         self.d0 = mask.MaskedArray.round(mask.where((self.elevation is not None) & (self.elevation > 0),
@@ -1095,7 +1103,7 @@ class FBP:
 
         else:
             # ## Process M-1/2 fuel types...
-            self.q, self.bui0, self.be_max = self.rosParams[ftype]
+            _, _, _, self.q, self.bui0, self.be_max = self.rosParams[ftype]
 
             # Calculate no slope/no wind rate of spread
             # Get C2 RSZ and ISF
@@ -1697,6 +1705,9 @@ class FBP:
             'cfl': self.cfl,  # Crown fuel load (kg/m^2)
             'cfc': self.cfc,  # Crown fuel consumed
 
+            # Final fuel parameters
+            'tfc': self.tfc,  # Total fuel consumed
+
             # Acceleration parameter
             'accel': self.accel_param
         }
@@ -1756,6 +1767,8 @@ class FBP:
         self.calcRSO()
         # Calculate crown fraction burned
         self.calcCFB()
+        # Calculate ROS percentile growth
+        self.calcRosPercentileGrowth()
         # Calculate acceleration parameter
         self.calcAccelParam()
         # Calculate fire type
