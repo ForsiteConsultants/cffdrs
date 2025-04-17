@@ -46,7 +46,7 @@ def diurnalFFMC_lawson(ffmc0_1600: float,
     Predict hourly (diurnal) FFMC using the Lawson interpolation method.
     Valid for times from noon of the current day to 5:59am the next day.
 
-    This function wraps the `hourlyFFMC_lawson` function from `lawson_hourly_ffmc.py.
+    This function wraps the `hourlyFFMC_lawson` function from `diurnal_ffmc_lawson.py'.
 
     :param ffmc0_1600: Yesterday's 4pm (16:00) FFMC value. (unitless code)
         Max FFMC is assumed to occur at 4pm each day.
@@ -55,7 +55,7 @@ def diurnalFFMC_lawson(ffmc0_1600: float,
     :param current_minute: Current minute (0–59)
     :return: Predicted hourly FFMC value using the Lawson method
     """
-    from lawson_hourly_ffmc import hourlyFFMC_lawson, TimeSpan
+    from diurnal_ffmc_lawson import hourlyFFMC_lawson, TimeSpan
 
     ts = TimeSpan(current_hour, current_minute)
     return hourlyFFMC_lawson(ffmc0_1600, ts, current_rh)
