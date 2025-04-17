@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Wed Mar 20 15:00:00 2024
+Created on Thur Apr 17 13:00:00 2025
 
 @author: Gregory A. Greene
 
-The hourlyFFMC_lawson function
-
+The hourlyFFMC_lawson function.
 This code was translated to Python from the C++ code in the WISE_FWI_Module.
 """
 # Morning hour lookup tables for low (L) RH class
