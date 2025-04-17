@@ -9,7 +9,6 @@ __author__ = ['Gregory A. Greene, map.n.trowel@gmail.com']
 import numpy as np
 from typing import Union
 
-
 # ### DRYING PHASE
 dc_daylength_dict = {
     'January': -1.6,
@@ -39,33 +38,27 @@ dc_daylength_dict = {
 }
 
 
-"""
-The diurnalFFMC function is still under development...
-"""
-# def diurnalFFMC(time_lookup, rh, ffmc0_1600, ffmc_1600):
-#     """
-#     Function to calculate diurnal Hourly FFMC per Lawson et al. (1996)
-#     :param time_lookup: string or list of strings; time of day to estimate diurnal FFMC
-#     :param rh: int, float or numpy ndarray; relative humidity value (%)
-#     :param ffmc0_1600: float or numpy ndarray; yesterday's FFMC value at 1600-hr (unitless code)
-#     :param ffmc_1600: float or numpy ndarray; today's FFMC value at 1600-hr (unitless code)
-#     :return: float or numpy ndarray; diurnal FFMC value (unitless code)
-#     """
-#     if not isinstance(time_lookup, (str, np.ndarray)):
-#         raise TypeError('time_lookup must be either string or numpy ndarray data types')
-#     if not isinstance(rh, (int, float, np.ndarray)):
-#         raise TypeError('rh must be either int, float or numpy ndarray data types')
-#     if not isinstance(ffmc0_1600, (int, float, np.ndarray)):
-#         raise TypeError('ffmc0_1600 must be either int, float or numpy ndarray data types')
-#     if not isinstance(ffmc_1600, (int, float, np.ndarray)):
-#         raise TypeError('ffmc_1600 must be either int, float or numpy ndarray data types')
-#
-#     # ### YESTERDAY'S ESTIMATED FINE FUEL MOISTURE CONTENT
-#     m0_1600 = 147.2 * (101 - ffmc0_1600) / (59.5 + ffmc0_1600)
-#
-#     # ### TODAY'S ESTIMATED FINE FUEL MOISTURE CONTENT
-#     m_1600 = 147.2 * (101 - ffmc_1600) / (59.5 + ffmc_1600)
-#     return
+def diurnalFFMC_lawson(ffmc0_1600: float,
+                       current_rh: float,
+                       current_hour: int,
+                       current_minute: int) -> float:
+    """
+    Predict hourly (diurnal) FFMC using the Lawson interpolation method.
+    Valid for times from noon of the current day to 5:59am the next day.
+
+    This function wraps the `hourlyFFMC_lawson` function from `lawson_hourly_ffmc.py.
+
+    :param ffmc0_1600: Yesterday's 4pm (16:00) FFMC value. (unitless code)
+        Max FFMC is assumed to occur at 4pm each day.
+    :param current_rh: Relative humidity at the current hour (%)
+    :param current_hour: Current hour of the day (12–5)
+    :param current_minute: Current minute (0–59)
+    :return: Predicted hourly FFMC value using the Lawson method
+    """
+    from lawson_hourly_ffmc import hourlyFFMC_lawson, TimeSpan
+
+    ts = TimeSpan(current_hour, current_minute)
+    return hourlyFFMC_lawson(ffmc0_1600, ts, current_rh)
 
 
 def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
@@ -144,29 +137,29 @@ def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
     # ### DRYING PHASE
     # Equilibrium Moisture Content (E)
     # Drying from above
-    ed = (0.942 * rh**0.679 + 11 * np.exp((rh - 100) / 10) +
+    ed = (0.942 * rh ** 0.679 + 11 * np.exp((rh - 100) / 10) +
           0.18 * (21.1 - temp) * (1 - np.exp(-0.115 * rh)))
     # Wetting from below
-    ew = (0.618 * rh**0.753 + 10 * np.exp((rh - 100) / 10) +
+    ew = (0.618 * rh ** 0.753 + 10 * np.exp((rh - 100) / 10) +
           0.18 * (21.1 - temp) * (1 - np.exp(-0.115 * rh)))
 
     # LOG DRYING RATE (k)
     # Calculate wetting rate
-    k0d = (0.424 * (1 - (rh / 100)**1.7) +
-           0.0694 * (wind**0.5) * (1 - (rh / 100)**8))
+    k0d = (0.424 * (1 - (rh / 100) ** 1.7) +
+           0.0694 * (wind ** 0.5) * (1 - (rh / 100) ** 8))
     kd = k0d * 0.0579 * np.exp(0.0365 * temp)
     # Calculate drying rate
-    k0w = (0.424 * (1 - ((100 - rh) / 100)**1.7) +
-           0.0694 * (wind**0.5) * (1 - ((100 - rh) / 100)**8))
+    k0w = (0.424 * (1 - ((100 - rh) / 100) ** 1.7) +
+           0.0694 * (wind ** 0.5) * (1 - ((100 - rh) / 100) ** 8))
     kw = k0w * 0.0579 * np.exp(0.0365 * temp)
 
     # Calculate drying/wetting moisture content (mdw)
     if use_precise_values:
         # USES DAILY EQUATIONS FOR BETTER PRECISION
         mdw = np.ma.where(m0 > ed,
-                          ed + (m0 - ed) * (10**-kd),
+                          ed + (m0 - ed) * (10 ** -kd),
                           np.ma.where(m0 < ew,
-                                      ew - (ew - m0) * (10**-kw),
+                                      ew - (ew - m0) * (10 ** -kw),
                                       m0))
     else:
         # ORIGINAL HOURLY EQUATIONS
@@ -186,7 +179,7 @@ def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
 
     # Rainfall Moisture
     m = np.ma.where(m0 > 150,
-                    delta_mrf + 0.0015 * ((m0 - 150)**2) * (precip**0.5),
+                    delta_mrf + 0.0015 * ((m0 - 150) ** 2) * (precip ** 0.5),
                     delta_mrf)
 
     # Cap m at 250 to reflect max moisture content of pine litter
@@ -286,27 +279,27 @@ def dailyFFMC(ffmc0: Union[int, float, np.ndarray],
     # ### DRYING PHASE
     # LOG DRYING RATE (k)
     # Calculate wetting rate
-    k0d = (0.424 * (1 - (rh / 100)**1.7) +
-           (0.0694 * (wind**0.5)) * (1 - (rh / 100)**8))
+    k0d = (0.424 * (1 - (rh / 100) ** 1.7) +
+           (0.0694 * (wind ** 0.5)) * (1 - (rh / 100) ** 8))
     kd = k0d * 0.581 * np.exp(0.0365 * temp)
     # Calculate drying rate
-    k0w = (0.424 * (1 - ((100 - rh) / 100)**1.7) +
-           (0.0694 * wind**0.5) * (1 - ((100 - rh) / 100)**8))
+    k0w = (0.424 * (1 - ((100 - rh) / 100) ** 1.7) +
+           (0.0694 * wind ** 0.5) * (1 - ((100 - rh) / 100) ** 8))
     kw = k0w * 0.581 * np.exp(0.0365 * temp)
 
     # Equilibrium Moisture Content (E)
     # Drying from above
-    ed = (0.942 * rh**0.679 + 11 * np.exp((rh - 100) / 10) +
+    ed = (0.942 * rh ** 0.679 + 11 * np.exp((rh - 100) / 10) +
           0.18 * (21.1 - temp) * (1 - np.exp(-0.115 * rh)))
     # Wetting from below
-    ew = (0.618 * rh**0.753 + 10 * np.exp((rh - 100) / 10) +
+    ew = (0.618 * rh ** 0.753 + 10 * np.exp((rh - 100) / 10) +
           0.18 * (21.1 - temp) * (1 - np.exp(-0.115 * rh)))
 
     # MOISTURE CONTENT (m)
     m = np.ma.where(m0 > ed,
-                    ed + (m0 - ed) * 10**-kd,
+                    ed + (m0 - ed) * 10 ** -kd,
                     np.ma.where(m0 < ew,
-                                ew - (ew - m0) * 10**-kw,
+                                ew - (ew - m0) * 10 ** -kw,
                                 m0))
 
     # ### RAINFALL PHASE
@@ -320,7 +313,7 @@ def dailyFFMC(ffmc0: Union[int, float, np.ndarray],
     m = np.ma.where(rf <= 0,
                     m,
                     np.ma.where(m0 > 150,
-                                m + delta_mrf + 0.0015 * ((m0 - 150)**2) * (rf**0.5),
+                                m + delta_mrf + 0.0015 * ((m0 - 150) ** 2) * (rf ** 0.5),
                                 m + delta_mrf))
 
     # Cap m at 250 to reflect max moisture content of pine litter
@@ -441,7 +434,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
     le = dmc_daylength_dict.get(month, None)
     if le is None:
         raise ValueError(f'Month value is invalid: {month}')
-    k = 1.894 * (temp + 1.1) * (100 - rh) * le * 10**-6
+    k = 1.894 * (temp + 1.1) * (100 - rh) * le * 10 ** -6
 
     # ### RAINFALL PHASE
     np.seterr(divide='ignore')
@@ -598,7 +591,7 @@ def dailyISI(wind: Union[int, float, np.ndarray],
     fw = np.exp(0.05039 * wind)
 
     # ### FFMC COMPONENT OF ISI
-    ff = 91.9 * np.exp(-0.1386 * m) * (1 + ((m**5.31) / 49300000))
+    ff = 91.9 * np.exp(-0.1386 * m) * (1 + ((m ** 5.31) / 49300000))
 
     # ### RETURN FINAL ISI VALUE
     isi = 0.208 * fw * ff
@@ -644,7 +637,7 @@ def dailyBUI(dmc: Union[int, float, np.ndarray],
                       0,
                       np.ma.where(dmc <= 0.4 * dc,
                                   0.8 * dmc * dc / (dmc + 0.4 * dc),
-                                  dmc - (1 - (0.8 * dc / (dmc + 0.4 * dc))) * (0.92 + (0.0114 * dmc)**1.7)))
+                                  dmc - (1 - (0.8 * dc / (dmc + 0.4 * dc))) * (0.92 + (0.0114 * dmc) ** 1.7)))
     if return_array:
         return bui.data
     else:
@@ -688,7 +681,7 @@ def dailyFWI(isi: Union[int, float, np.ndarray],
     # ### DUFF MOISTURE FUNCTION (fD)
     np.seterr(over='ignore')
     fd = np.ma.where(bui <= 80,
-                     0.626 * (bui**0.809) + 2,
+                     0.626 * (bui ** 0.809) + 2,
                      1000 / (25 + 108.64 * np.exp(-0.023 * bui)))
     np.seterr(over='warn')
 
@@ -698,7 +691,7 @@ def dailyFWI(isi: Union[int, float, np.ndarray],
     # ### RETURN FINAL FWI VALUE
     np.seterr(divide='ignore')
     fwi = np.ma.where(b > 1,
-                      np.exp(2.72 * (0.434 * np.log(b))**0.647),
+                      np.exp(2.72 * (0.434 * np.log(b)) ** 0.647),
                       b)
     np.seterr(divide='warn')
     if return_array:
@@ -729,7 +722,7 @@ def dailyDSR(fwi: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
         fwi = np.ma.array([fwi], mask=np.isnan([fwi]))
 
     # ### RETURN DSR VALUE
-    dsr = 0.0272 * fwi**1.77
+    dsr = 0.0272 * fwi ** 1.77
     if return_array:
         return dsr.data
     else:
