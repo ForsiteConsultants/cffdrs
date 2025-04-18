@@ -38,27 +38,34 @@ dc_daylength_dict = {
 }
 
 
-def diurnalFFMC_lawson(ffmc0_1600: float,
-                       current_rh: float,
+def diurnalFFMC_lawson(ffmc0_1600: Union[float, np.ndarray],
+                       rh_1200: Union[float, np.ndarray],
                        current_hour: int,
                        current_minute: int) -> float:
     """
     Predict hourly (diurnal) FFMC using the Lawson interpolation method.
-    Valid for times from noon of the current day to 5:59am the next day.
+    Valid for times from noon (12:00) of the current day to 5:59 the next morning.
 
     This function wraps the `hourlyFFMC_lawson` function from `diurnal_ffmc_lawson.py'.
 
-    :param ffmc0_1600: Yesterday's 4pm (16:00) FFMC value. (unitless code)
+    :param ffmc0_1600: Yesterday's 4pm (16:00) FFMC value (unitless code).
         Max FFMC is assumed to occur at 4pm each day.
-    :param current_rh: Relative humidity at the current hour (%)
-    :param current_hour: Current hour of the day (12–5)
-    :param current_minute: Current minute (0–59)
+    :param rh_1200: Today's noon time relative humidity value (%).
+    :param current_hour: Current hour of the day (12–5).
+    :param current_minute: Current minute (0–59).
     :return: Predicted hourly FFMC value using the Lawson method
     """
-    from diurnal_ffmc_lawson import hourlyFFMC_lawson, TimeSpan
+    from diurnal_ffmc_lawson import hourly_ffmc_lawson_vectorized
 
-    ts = TimeSpan(current_hour, current_minute)
-    return hourlyFFMC_lawson(ffmc0_1600, ts, current_rh)
+    # Validate time: noon (12:00) to 11:59 the next day
+    if not (6 <= current_hour <= 23 or 0 <= current_hour <= 5):
+        raise ValueError('current_hour must be between 12 and 23, or between 0 and 11 (inclusive)')
+
+    if not (0 <= current_minute <= 59):
+        raise ValueError('current_minute must be between 0 and 59 (inclusive)')
+
+    # Return the requested hourly FFMC value using the Lawson method
+    return hourly_ffmc_lawson_vectorized(ffmc=ffmc0_1600, rh=rh_1200, hour=current_hour, minute=current_minute)
 
 
 def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
@@ -69,6 +76,7 @@ def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
                use_precise_values: bool = False) -> Union[float, np.ndarray]:
     """
     Function to calculate hourly FFMC values per Van Wagner (1977) and Alexander et al. (1984).
+
     :param ffmc0: previous hour's FFMC value (unitless code)
     :param temp: temperature value (C)
     :param rh: relative humidity value (%)
