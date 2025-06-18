@@ -510,6 +510,7 @@ class FBP:
             self.gcf = mask.array(self.gcf, mask=np.isnan(self.gcf))
         else:
             self.gcf = mask.array([self.gcf], mask=np.isnan([self.gcf]))
+        self.gcf = mask.where(self.gcf == 0, 0.1, self.gcf)  # Set curing factor to 0.1% if 0%
 
         # Verify out_request
         if not isinstance(self.out_request, (list, tuple, type(None))):
