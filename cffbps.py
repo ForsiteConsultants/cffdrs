@@ -485,7 +485,9 @@ class FBP:
         elif isinstance(self.pc, np.ndarray):
             self.pc = mask.array(self.pc, mask=np.isnan(self.pc))
         else:
-            self.pc = mask.array([self.pc], mask=np.isnan([self.pc]))
+            if np.isnan(self.pc):
+                self.pc = 50  # Default to 50% if NaN
+            self.pc = mask.array([self.pc])
 
         # Verify pdf
         if not isinstance(self.pdf, (int, float, np.ndarray)):
@@ -493,7 +495,9 @@ class FBP:
         elif isinstance(self.pdf, np.ndarray):
             self.pdf = mask.array(self.pdf, mask=np.isnan(self.pdf))
         else:
-            self.pdf = mask.array([self.pdf], mask=np.isnan([self.pdf]))
+            if np.isnan(self.pdf):
+                self.pdf = 35  # Default to 35% if NaN
+            self.pdf = mask.array([self.pdf])
 
         # Verify gfl
         if not isinstance(self.gfl, (int, float, np.ndarray)):
@@ -501,7 +505,9 @@ class FBP:
         elif isinstance(self.gfl, np.ndarray):
             self.gfl = mask.array(self.gfl, mask=np.isnan(self.gfl))
         else:
-            self.gfl = mask.array([self.gfl], mask=np.isnan([self.gfl]))
+            if np.isnan(self.gfl):
+                self.gfl = 0.35  # Default to 0.35 kg/m2 if NaN
+            self.gfl = mask.array([self.gfl])
 
         # Verify gcf
         if not isinstance(self.gcf, (int, float, np.ndarray)):
@@ -509,7 +515,9 @@ class FBP:
         elif isinstance(self.gcf, np.ndarray):
             self.gcf = mask.array(self.gcf, mask=np.isnan(self.gcf))
         else:
-            self.gcf = mask.array([self.gcf], mask=np.isnan([self.gcf]))
+            if np.isnan(self.gcf):
+                self.gcf = 80  # Default to 80% if NaN
+            self.gcf = mask.array([self.gcf])
         self.gcf = mask.where(self.gcf == 0, 0.1, self.gcf)  # Set curing factor to 0.1% if 0%
 
         # Verify out_request
