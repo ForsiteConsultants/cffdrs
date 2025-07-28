@@ -14,10 +14,7 @@ The package consists of three modules:
 
 1. Clone the repository or download the package files.
 2. Ensure that you have Python 3.x installed.
-3. Install required dependencies:
-   ```bash
-   pip install numpy
-   ```
+3. Install required dependencies
 
 ## Modules
 
