@@ -202,15 +202,8 @@ def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
                     delta_mrf + 0.0015 * ((m0 - 150) ** 2) * (precip ** 0.5),
                     delta_mrf)
 
-    # Cap m at 250 to reflect max moisture content of pine litter
-    m = np.ma.where(m > 250,
-                    250,
-                    m)
-
-    # Set moisture minimum to 0
-    m = np.ma.where(m < 0,
-                    0,
-                    m)
+    # Cap m from 0 to 250 to reflect max moisture content of pine litter
+    m = np.ma.clip(m, 0, 250)
 
     # ### RETURN FINAL FFMC VALUE
     # This equation has been revised from Van Wagner (1977) to match Van Wagner (1987)
@@ -335,15 +328,8 @@ def dailyFFMC(ffmc0: Union[int, float, np.ndarray],
                                 m + delta_mrf + 0.0015 * ((m0 - 150) ** 2) * (rf ** 0.5),
                                 m + delta_mrf))
 
-    # Cap m at 250 to reflect max moisture content of pine litter
-    m = np.ma.where(m > 250,
-                    250,
-                    m)
-
-    # Set moisture minimum to 0
-    m = np.ma.where(m < 0,
-                    0,
-                    m)
+    # Cap m from 0 to 250 to reflect max moisture content of pine litter
+    m = np.ma.clip(m, 0, 250)
 
     # ### RETURN FINAL FFMC VALUE
     ffmc = 59.5 * (250 - m) / (147.2 + m)
@@ -577,6 +563,19 @@ def dailyDC(dc0: Union[int, float, np.ndarray],
         month = month_dict.get(month, None)
         if month is None:
             raise ValueError(f'month value is invalid: {month}')
+
+    # Verify lat
+    if not isinstance(lat, (int, float, np.ndarray)):
+        raise TypeError('lat must be either int, float or numpy ndarray data types')
+    elif isinstance(lat, np.ndarray):
+        lat = np.ma.array(lat, mask=np.isnan(lat))
+    else:
+        lat = np.ma.array([lat], mask=np.isnan([lat]))
+    lat = np.ma.clip(lat, -90, 90)  # Ensure lat is within valid range
+
+    # Verify lat_adjust
+    if not isinstance(lat_adjust, bool):
+        raise TypeError('lat_adjust must be a boolean value (True or False)')
 
     # ### YESTERDAYS MOISTURE EQUIVALENT VALUE
     q0 = 800 / np.exp(dc0 / 400)
@@ -849,7 +848,9 @@ def startupDC(dc_stop: Union[int, float, np.ndarray],
               moist_start: Union[int, float, np.ndarray],
               precip_ow: Union[int, float, np.ndarray],
               temp: Union[int, float, np.ndarray],
-              month: Union[int, str]) -> Union[float, np.ndarray]:
+              month: Union[int, str],
+              lat: Union[int, float, np.ndarray],
+              lat_adjust: bool = True) -> Union[float, np.ndarray]:
     """
     Function to calculate the DC startup values after overwintering.\n
     This function implements new procedures outlined in Hanes and Wotton (2024).
@@ -859,6 +860,8 @@ def startupDC(dc_stop: Union[int, float, np.ndarray],
     :param precip_ow: total precipitation throughout the overwintering period (mm)
     :param temp: today's temperature value (C)
     :param month: the current month (e.g., 9, '09', 'September')
+    :param lat: latitude value (decimal degrees, e.g., 45.0)
+    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is True)
     :return: startup DC value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
@@ -912,10 +915,59 @@ def startupDC(dc_stop: Union[int, float, np.ndarray],
     if not isinstance(month, (int, str)):
         raise TypeError('month must be either int or string data types')
     elif isinstance(month, int):
-        month = str(month).zfill(2)
+        if not (1 <= month <= 12):
+            raise ValueError(f'month value is invalid: {month}')
+    else:
+        month = month_dict.get(month, None)
+        if month is None:
+            raise ValueError(f'month value is invalid: {month}')
+
+    # Verify lat
+    if not isinstance(lat, (int, float, np.ndarray)):
+        raise TypeError('lat must be either int, float or numpy ndarray data types')
+    elif isinstance(lat, np.ndarray):
+        lat = np.ma.array(lat, mask=np.isnan(lat))
+    else:
+        lat = np.ma.array([lat], mask=np.isnan([lat]))
+    lat = np.ma.clip(lat, -90, 90)  # Ensure lat is within valid range
+
+    # Verify lat_adjust
+    if not isinstance(lat_adjust, bool):
+        raise TypeError('lat_adjust must be a boolean value (True or False)')
+
+    # ### DRYING PHASE
+    # Day length factor for DC Calculations (per CFS cffdrs_r/cffwis module)
+    # 20N: For latitude >= 20
+    lat_20n = [-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5, 2.4, 0.4, -1.6, -1.6]
+    # Equator: For -20 <= latitude < 20 (near equator), use a factor of 1.4 for all months
+    lat_eq = [1.4] * 12
+    # 20S: For latitude < -20
+    lat_20s = [6.4, 5, 2.4, 0.4, -1.6, -1.6, -1.6, -1.6, -1.6, 0.9, 3.8, 5.8]
+
+    def _get_dc_lat_daylength(_month, _lat, _lat_adjust):
+        # Get the default DC daylength adjustment (Lf) based on latitude and month
+        lf_default = np.take(lat_20n, _month - 1)
+        if _lat_adjust:
+            _lat = np.asarray(_lat)
+            _month = np.asarray(_month)
+            if _month.shape != _lat.shape:
+                _month = np.full(_lat.shape, _month)
+            # Define masks
+            condlist = [
+                (_lat >= -20) & (_lat < 20),
+                (_lat < -20)
+            ]
+            # Daylength arrays must be defined in the global scope
+            lf_choices = [
+                np.take(lat_eq, _month - 1),
+                np.take(lat_20s, _month - 1)
+            ]
+            return np.select(condlist, lf_choices, default=lf_default)
+        else:
+            return lf_default
 
     # Potential Evapotranspiration (v)
-    lf = dc_daylength_dict.get(month, None)
+    lf = _get_dc_lat_daylength(month, lat, lat_adjust)
     if lf is None:
         raise ValueError(f'Month value is invalid: {month}')
     v = 0.36 * (temp + 2.8) + lf
