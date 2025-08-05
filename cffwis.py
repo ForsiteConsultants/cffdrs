@@ -471,9 +471,8 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
             return le_default
 
     le = _get_dmc_lat_daylength(lat, month, lat_adjust)
-    scale = np.full(np.asarray(lat).shape, 1e-04)
     # Log drying rate (k)
-    k = 1.894 * (temp + 1.1) * (100 - rh) * le * scale
+    k = 1.894 * (temp + 1.1) * (100 - rh) * le * 1e-04
 
     # ### RAINFALL PHASE
     np.seterr(divide='ignore')
