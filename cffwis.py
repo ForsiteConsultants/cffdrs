@@ -453,7 +453,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
     lat_30n = [6.5, 7.5, 9, 12.8, 13.9, 13.9, 12.4, 10.9, 9.4, 8, 7, 6]
     # 10N: For 10 <= latitude < 30
     lat_10n = [7.9, 8.4, 8.9, 9.5, 9.9, 10.2, 10.1, 9.7, 9.1, 8.6, 8.1, 7.8]
-    # For -10 <= latitude < 10 (near equator), use a factor of 9 for all months
+    # Equator: For -10 <= latitude < 10 (near equator), use a factor of 9 for all months
     lat_eq = [9] * 12
     # 10S: For -30 <= latitude < -10
     lat_10s = [10.1, 9.6, 9.1, 8.5, 8.1, 7.8, 7.9, 8.3, 8.9, 9.4, 9.9, 10.2]
@@ -587,9 +587,9 @@ def dailyDC(dc0: Union[int, float, np.ndarray],
     # Day length factor for DC Calculations (per CFS cffdrs_r/cffwis module)
     # 20N: For latitude >= 20
     lat_20n = [-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5, 2.4, 0.4, -1.6, -1.6]
-    # For -20 <= latitude < 20 (near equator), use a factor of 1.4 for all months
+    # Equator: For -20 <= latitude < 20 (near equator), use a factor of 1.4 for all months
     lat_eq = [1.4] * 12
-    # 20S: FOr latitude < -20
+    # 20S: For latitude < -20
     lat_20s = [6.4, 5, 2.4, 0.4, -1.6, -1.6, -1.6, -1.6, -1.6, 0.9, 3.8, 5.8]
 
     def _get_dc_lat_daylength(_lat, _month, _lat_adjust):
