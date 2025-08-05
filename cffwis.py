@@ -9,32 +9,44 @@ __author__ = ['Gregory A. Greene, map.n.trowel@gmail.com']
 import numpy as np
 from typing import Union
 
-# ### DRYING PHASE
-dc_daylength_dict = {
-    'January': -1.6,
-    'February': -1.6,
-    'March': -1.6,
-    'April': 0.9,
-    'May': 3.8,
-    'June': 5.8,
-    'July': 6.4,
-    'August': 5,
-    'September': 2.4,
-    'October': 0.4,
-    'November': -1.6,
-    'December': -1.6,
-    '01': -1.6,
-    '02': -1.6,
-    '03': -1.6,
-    '04': 0.9,
-    '05': 3.8,
-    '06': 5.8,
-    '07': 6.4,
-    '08': 5,
-    '09': 2.4,
-    '10': 0.4,
-    '11': -1.6,
-    '12': -1.6
+# Month dictionary for converting month names or zero-padded strings to integers
+month_dict = {
+    'January': 1,
+    'February': 2,
+    'March': 3,
+    'April': 4,
+    'May': 5,
+    'June': 6,
+    'July': 7,
+    'August': 8,
+    'September': 9,
+    'October': 10,
+    'November': 11,
+    'December': 12,
+    'Jan': 1,
+    'Feb': 2,
+    'Mar': 3,
+    'Apr': 4,
+    'May': 5,
+    'Jun': 6,
+    'Jul': 7,
+    'Aug': 8,
+    'Sep': 9,
+    'Oct': 10,
+    'Nov': 11,
+    'Dec': 12,
+    '01': 1,
+    '02': 2,
+    '03': 3,
+    '04': 4,
+    '05': 5,
+    '06': 6,
+    '07': 7,
+    '08': 8,
+    '09': 9,
+    '10': 10,
+    '11': 11,
+    '12': 12
 }
 
 
@@ -351,14 +363,18 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
              temp: Union[int, float, np.ndarray],
              rh: Union[int, float, np.ndarray],
              precip: Union[int, float, np.ndarray],
-             month: Union[int, str]) -> Union[float, np.ndarray]:
+             month: Union[int, str],
+             lat: Union[int, float, np.ndarray],
+             lat_adjust: bool = True) -> Union[float, np.ndarray]:
     """
     Function to calculate today's DMC per Van Wagner (1987).
     :param dmc0: yesterday's DMC value (unitless code)
     :param temp: today's temperature value (C)
     :param rh: today's relative humidity value (%)
     :param precip: today's precipitation value (mm)
-    :param month: the current month (e.g., 9, '09', 'September')
+    :param month: the current month (e.g., 9, '09', 'September', 'Sep')
+    :param lat: latitude value (decimal degrees, e.g., 45.0)
+    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is True)
     :return: the current DMC value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
@@ -383,6 +399,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
         temp = np.ma.array(temp, mask=np.isnan(temp))
     else:
         temp = np.ma.array([temp], mask=np.isnan([temp]))
+    temp = np.clip(temp, -1.1, None)  # Ensure temp >= -1.1C
 
     # Verify rh
     if not isinstance(rh, (int, float, np.ndarray)):
@@ -404,7 +421,25 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
     if not isinstance(month, (int, str)):
         raise TypeError('month must be either int or string data types')
     elif isinstance(month, int):
-        month = str(month).zfill(2)
+        if not (1 <= month <= 12):
+            raise ValueError(f'month value is invalid: {month}')
+    else:
+        month = month_dict.get(month, None)
+        if month is None:
+            raise ValueError(f'month value is invalid: {month}')
+
+    # Verify lat
+    if not isinstance(lat, (int, float, np.ndarray)):
+        raise TypeError('lat must be either int, float or numpy ndarray data types')
+    elif isinstance(lat, np.ndarray):
+        lat = np.ma.array(lat, mask=np.isnan(lat))
+    else:
+        lat = np.ma.array([lat], mask=np.isnan([lat]))
+    lat = np.clip(lat, -90, 90)  # Ensure lat is within valid range
+
+    # Verify lat_adjust
+    if not isinstance(lat_adjust, bool):
+        raise TypeError('lat_adjust must be a boolean value (True or False)')
 
     # ### YESTERDAYS MOISTURE CONTENT
     np.seterr(over='ignore')
@@ -412,37 +447,49 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
     np.seterr(over='warn')
 
     # ### DRYING PHASE
-    dmc_daylength_dict = {
-        'January': 6.5,
-        'February': 7.5,
-        'March': 9,
-        'April': 12.8,
-        'May': 13.9,
-        'June': 13.9,
-        'July': 12.4,
-        'August': 10.9,
-        'September': 9.4,
-        'October': 8,
-        'November': 7,
-        'December': 6,
-        '01': 6.5,
-        '02': 7.5,
-        '03': 9,
-        '04': 12.8,
-        '05': 13.9,
-        '06': 13.9,
-        '07': 12.4,
-        '08': 10.9,
-        '09': 9.4,
-        '10': 8,
-        '11': 7,
-        '12': 6
-    }
-    # Log Drying Rate
-    le = dmc_daylength_dict.get(month, None)
-    if le is None:
-        raise ValueError(f'Month value is invalid: {month}')
-    k = 1.894 * (temp + 1.1) * (100 - rh) * le * 10 ** -6
+    # Reference latitude for DMC day length adjustment, addressing latitudinal differences
+    # brought up in Van Wagner 1987.
+    # 30N: Canadian standard, latitude >= 30N
+    lat_30n = [6.5, 7.5, 9, 12.8, 13.9, 13.9, 12.4, 10.9, 9.4, 8, 7, 6]
+    # 10N: For 10 <= latitude < 30
+    lat_10n = [7.9, 8.4, 8.9, 9.5, 9.9, 10.2, 10.1, 9.7, 9.1, 8.6, 8.1, 7.8]
+    # For -10 <= latitude < 10 (near equator), use a factor of 9 for all months
+    lat_eq = [9] * 12
+    # 10S: For -30 <= latitude < -10
+    lat_10s = [10.1, 9.6, 9.1, 8.5, 8.1, 7.8, 7.9, 8.3, 8.9, 9.4, 9.9, 10.2]
+    # 30S: For latitude < -30
+    lat_30s = [11.5, 10.5, 9.2, 7.9, 6.8, 6.2, 6.5, 7.4, 8.7, 10, 11.2, 11.8]
+
+    def _get_dmc_lat_daylength(_lat, _month, _lat_adjust):
+        # Get the default DMC daylength adjustment (Le) based on latitude and month
+        le_default = np.take(lat_30n, _month - 1)
+        if _lat_adjust:
+            _lat = np.asarray(_lat)
+            _month = np.asarray(_month)
+            if _month.shape != _lat.shape:
+                _month = np.full(_lat.shape, _month)
+            # Define masks
+            condlist = [
+                (_lat >= 10) & (_lat < 30),
+                (_lat >= -10) & (_lat < 10),
+                (_lat >= -30) & (_lat < -10),
+                (_lat < -30)
+            ]
+            # Daylength arrays must be defined in the global scope
+            le_choices = [
+                np.take(lat_10n, _month - 1),
+                np.take(lat_eq, _month - 1),
+                np.take(lat_10s, _month - 1),
+                np.take(lat_30s, _month - 1)
+            ]
+            return np.select(condlist, le_choices, default=le_default)
+        else:
+            return le_default
+
+    le = _get_dmc_lat_daylength(lat, month, lat_adjust)
+    scale = np.full(np.asarray(lat).shape, 1e-04)
+    # Log drying rate (k)
+    k = 1.894 * (temp + 1.1) * (100 - rh) * le * scale
 
     # ### RAINFALL PHASE
     np.seterr(divide='ignore')
@@ -463,12 +510,11 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
     mr[mr < 0] = 0
 
     # ### RETURN FINAL DMC VALUES
-    dmc = np.ma.where(precip > 1.5,
-                      (244.72 - 43.43 * np.log(mr - 20)) + 100 * k,
-                      dmc0 + 100 * k)
-
+    dmc = np.ma.where(precip > 1.5, (244.72 - 43.43 * np.log(mr - 20)), dmc0)
     # Ensure DMC >= 0
-    dmc[dmc < 0] = 0
+    dmc = np.clip(dmc, 0, None)
+    # Add the log drying rate (k) to the DMC value
+    dmc += k
 
     if return_array:
         return dmc.data
@@ -479,13 +525,17 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
 def dailyDC(dc0: Union[int, float, np.ndarray],
             temp: Union[int, float, np.ndarray],
             precip: Union[int, float, np.ndarray],
-            month: Union[int, str]) -> Union[float, np.ndarray]:
+            month: Union[int, str],
+            lat: Union[int, float, np.ndarray],
+            lat_adjust: bool = True) -> Union[float, np.ndarray]:
     """
     Function to calculate today's DMC per Van Wagner (1987).
     :param dc0: yesterday's DC value (unitless code)
     :param temp: today's temperature value (C)
     :param precip: today's precipitation value (mm)
     :param month: the current month (e.g., 9, '09', 'September')
+    :param lat: latitude value (decimal degrees, e.g., 45.0)
+    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is True)
     :return: the current DC value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
@@ -523,15 +573,49 @@ def dailyDC(dc0: Union[int, float, np.ndarray],
     if not isinstance(month, (int, str)):
         raise TypeError('month must be either int or string data types')
     elif isinstance(month, int):
-        month = str(month).zfill(2)
+        if not (1 <= month <= 12):
+            raise ValueError(f'month value is invalid: {month}')
+    else:
+        month = month_dict.get(month, None)
+        if month is None:
+            raise ValueError(f'month value is invalid: {month}')
 
     # ### YESTERDAYS MOISTURE EQUIVALENT VALUE
     q0 = 800 / np.exp(dc0 / 400)
 
+    # ### DRYING PHASE
+    # Day length factor for DC Calculations (per CFS cffdrs_r/cffwis module)
+    # 20N: For latitude >= 20
+    lat_20n = [-1.6, -1.6, -1.6, 0.9, 3.8, 5.8, 6.4, 5, 2.4, 0.4, -1.6, -1.6]
+    # For -20 <= latitude < 20 (near equator), use a factor of 1.4 for all months
+    lat_eq = [1.4] * 12
+    # 20S: FOr latitude < -20
+    lat_20s = [6.4, 5, 2.4, 0.4, -1.6, -1.6, -1.6, -1.6, -1.6, 0.9, 3.8, 5.8]
+
+    def _get_dc_lat_daylength(_lat, _month, _lat_adjust):
+        # Get the default DC daylength adjustment (Lf) based on latitude and month
+        lf_default = np.take(lat_20n, _month - 1)
+        if _lat_adjust:
+            _lat = np.asarray(_lat)
+            _month = np.asarray(_month)
+            if _month.shape != _lat.shape:
+                _month = np.full(_lat.shape, _month)
+            # Define masks
+            condlist = [
+                (_lat >= -20) & (_lat < 20),
+                (_lat < -20)
+            ]
+            # Daylength arrays must be defined in the global scope
+            lf_choices = [
+                np.take(lat_eq, _month - 1),
+                np.take(lat_20s, _month - 1)
+            ]
+            return np.select(condlist, lf_choices, default=lf_default)
+        else:
+            return lf_default
+
     # Potential Evapotranspiration (v)
-    lf = dc_daylength_dict.get(month, None)
-    if lf is None:
-        raise ValueError(f'Month value is invalid: {month}')
+    lf = _get_dc_lat_daylength(lat, month, lat_adjust)
     v = 0.36 * (temp + 2.8) + lf
 
     # ### RAINFALL PHASE
@@ -559,7 +643,8 @@ def dailyDC(dc0: Union[int, float, np.ndarray],
 
 
 def dailyISI(wind: Union[int, float, np.ndarray],
-             ffmc: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
+             ffmc: Union[int, float, np.ndarray],
+             fbp_mod: bool = False) -> Union[float, np.ndarray]:
     """
     Function to calculate ISI per Van Wagner (1987).
     The daily ISI equation is used for both hourly and daily ISI calculations.\n
@@ -567,6 +652,7 @@ def dailyISI(wind: Union[int, float, np.ndarray],
     -- For daily ISI, use the current day's noon-time (1200) wind, and the prior day's noon-time (1200) FFMC value.\n
     :param wind: 10-m wind speed (km/h)
     :param ffmc: current FFMC value (unitless code)
+    :param fbp_mod: use the CFFBPS modification for wind speeds > 40 km/h (default: False)
     :return: the current ISI value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
@@ -592,11 +678,18 @@ def dailyISI(wind: Union[int, float, np.ndarray],
     else:
         ffmc = np.ma.array([ffmc], mask=np.isnan([ffmc]))
 
+    # Verify method
+    if not isinstance(fbp_mod, bool):
+        raise ValueError('fbp_mod must be True or False')
+
     # ### CURRENT ESTIMATED FINE FUEL MOISTURE CONTENT
     m = 147.2 * (101 - ffmc) / (59.5 + ffmc)
 
     # ### WIND COMPONENT OF ISI
-    fw = np.exp(0.05039 * wind)
+    # The CFFBPS version includes a modification when wind speeds exceed 40 km/h, per Equation 53a in FCFDG (1992).
+    fw = np.ma.where(wind > 40 and fbp_mod,
+                     (12 * (1 - np.exp(-0.0818 * (wind - 28)))),
+                     np.exp(0.05039 * wind))
 
     # ### FFMC COMPONENT OF ISI
     ff = 91.9 * np.exp(-0.1386 * m) * (1 + ((m ** 5.31) / 49300000))
