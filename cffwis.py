@@ -397,7 +397,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
         temp = np.ma.array(temp, mask=np.isnan(temp))
     else:
         temp = np.ma.array([temp], mask=np.isnan([temp]))
-    temp = np.clip(temp, -1.1, None)  # Ensure temp >= -1.1C
+    temp = np.ma.clip(temp, -1.1, None)  # Ensure temp >= -1.1C
 
     # Verify rh
     if not isinstance(rh, (int, float, np.ndarray)):
@@ -433,7 +433,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
         lat = np.ma.array(lat, mask=np.isnan(lat))
     else:
         lat = np.ma.array([lat], mask=np.isnan([lat]))
-    lat = np.clip(lat, -90, 90)  # Ensure lat is within valid range
+    lat = np.ma.clip(lat, -90, 90)  # Ensure lat is within valid range
 
     # Verify lat_adjust
     if not isinstance(lat_adjust, bool):
@@ -510,7 +510,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
     # ### RETURN FINAL DMC VALUES
     dmc = np.ma.where(precip > 1.5, (244.72 - 43.43 * np.log(mr - 20)), dmc0)
     # Ensure DMC >= 0
-    dmc = np.clip(dmc, 0, None)
+    dmc = np.ma.clip(dmc, 0, None)
     # Add the log drying rate (k) to the DMC value
     dmc += k
 
@@ -696,7 +696,7 @@ def dailyISI(wind: Union[int, float, np.ndarray],
     isi = 0.208 * fw * ff
 
     # Ensure ISI >= 0
-    isi = np.clip(isi, 0, None)
+    isi = np.ma.clip(isi, 0, None)
 
     if return_array:
         return isi.data
@@ -743,7 +743,7 @@ def dailyBUI(dmc: Union[int, float, np.ndarray],
                                   dmc - (1 - (0.8 * dc / (dmc + 0.4 * dc))) * (0.92 + (0.0114 * dmc) ** 1.7)))
 
     # Ensure BUI >= 0
-    bui = np.clip(bui, 0, None)
+    bui = np.ma.clip(bui, 0, None)
 
     if return_array:
         return bui.data
@@ -803,7 +803,7 @@ def dailyFWI(isi: Union[int, float, np.ndarray],
     np.seterr(divide='warn')
 
     # Ensure FWI >= 0
-    fwi = np.clip(fwi, 0, None)
+    fwi = np.ma.clip(fwi, 0, None)
 
     if return_array:
         return fwi.data
@@ -836,7 +836,7 @@ def dailyDSR(fwi: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
     dsr = 0.0272 * fwi ** 1.77
 
     # Ensure DSR >= 0
-    dsr = np.clip(dsr, 0, None)
+    dsr = np.ma.clip(dsr, 0, None)
 
     if return_array:
         return dsr.data
