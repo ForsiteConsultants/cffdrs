@@ -348,8 +348,8 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
              rh: Union[int, float, np.ndarray],
              precip: Union[int, float, np.ndarray],
              month: Union[int, str],
-             lat: Union[int, float, np.ndarray],
-             lat_adjust: bool = True) -> Union[float, np.ndarray]:
+             lat: Union[int, float, np.ndarray] = 49.0,
+             lat_adjust: bool = False) -> Union[float, np.ndarray]:
     """
     Function to calculate today's DMC per Van Wagner (1987).
     :param dmc0: yesterday's DMC value (unitless code)
@@ -358,7 +358,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
     :param precip: today's precipitation value (mm)
     :param month: the current month (e.g., 9, '09', 'September', 'Sep')
     :param lat: latitude value (decimal degrees, e.g., 45.0)
-    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is True)
+    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is False)
     :return: the current DMC value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
@@ -509,8 +509,8 @@ def dailyDC(dc0: Union[int, float, np.ndarray],
             temp: Union[int, float, np.ndarray],
             precip: Union[int, float, np.ndarray],
             month: Union[int, str],
-            lat: Union[int, float, np.ndarray],
-            lat_adjust: bool = True) -> Union[float, np.ndarray]:
+            lat: Union[int, float, np.ndarray] = 49.0,
+            lat_adjust: bool = False) -> Union[float, np.ndarray]:
     """
     Function to calculate today's DMC per Van Wagner (1987).
     :param dc0: yesterday's DC value (unitless code)
@@ -518,7 +518,7 @@ def dailyDC(dc0: Union[int, float, np.ndarray],
     :param precip: today's precipitation value (mm)
     :param month: the current month (e.g., 9, '09', 'September')
     :param lat: latitude value (decimal degrees, e.g., 45.0)
-    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is True)
+    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is False)
     :return: the current DC value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
@@ -848,8 +848,8 @@ def startupDC(dc_stop: Union[int, float, np.ndarray],
               precip_ow: Union[int, float, np.ndarray],
               temp: Union[int, float, np.ndarray],
               month: Union[int, str],
-              lat: Union[int, float, np.ndarray],
-              lat_adjust: bool = True) -> Union[float, np.ndarray]:
+              lat: Union[int, float, np.ndarray] = 49.0,
+              lat_adjust: bool = False) -> Union[float, np.ndarray]:
     """
     Function to calculate the DC startup values after overwintering.\n
     This function implements new procedures outlined in Hanes and Wotton (2024).
@@ -860,7 +860,7 @@ def startupDC(dc_stop: Union[int, float, np.ndarray],
     :param temp: today's temperature value (C)
     :param month: the current month (e.g., 9, '09', 'September')
     :param lat: latitude value (decimal degrees, e.g., 45.0)
-    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is True)
+    :param lat_adjust: whether to apply latitude-based daylength adjustment (default is False)
     :return: startup DC value (unitless code)
     """
     # ### CHECK FOR NUMPY ARRAYS IN INPUT PARAMETERS
