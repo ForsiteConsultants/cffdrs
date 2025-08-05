@@ -223,8 +223,7 @@ def hourlyFFMC(ffmc0: Union[int, float, np.ndarray],
         ffmc = 59.5 * (250 - m) / (147.2 + m)
 
     # Restrict FFMC values to range between 0 and 101
-    ffmc[ffmc > 101] = 101
-    ffmc[ffmc < 0] = 0
+    ffmc = np.ma.clip(ffmc, 0, 101)
 
     if return_array:
         return ffmc.data
@@ -350,8 +349,7 @@ def dailyFFMC(ffmc0: Union[int, float, np.ndarray],
     ffmc = 59.5 * (250 - m) / (147.2 + m)
 
     # Restrict FFMC values to range between 0 and 101
-    ffmc[ffmc > 101] = 101
-    ffmc[ffmc < 0] = 0
+    ffmc = np.ma.clip(ffmc, 0, 101)
 
     if return_array:
         return ffmc.data
@@ -507,7 +505,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
 
     # Moisture content after rain (mr)
     mr = m0 + 1000 * re / (48.77 + b * re)
-    mr[mr < 0] = 0
+    mr = np.ma.clip(mr, 0, None)
 
     # ### RETURN FINAL DMC VALUES
     dmc = np.ma.where(precip > 1.5, (244.72 - 43.43 * np.log(mr - 20)), dmc0)
@@ -634,7 +632,7 @@ def dailyDC(dc0: Union[int, float, np.ndarray],
     np.seterr(divide='warn')
 
     # Ensure DC >= 0
-    dc[dc < 0] = 0
+    dc = np.ma.clip(dc, 0, None)
 
     if return_array:
         return dc.data
@@ -696,6 +694,10 @@ def dailyISI(wind: Union[int, float, np.ndarray],
 
     # ### RETURN FINAL ISI VALUE
     isi = 0.208 * fw * ff
+
+    # Ensure ISI >= 0
+    isi = np.clip(isi, 0, None)
+
     if return_array:
         return isi.data
     else:
@@ -739,6 +741,10 @@ def dailyBUI(dmc: Union[int, float, np.ndarray],
                       np.ma.where(dmc <= 0.4 * dc,
                                   0.8 * dmc * dc / (dmc + 0.4 * dc),
                                   dmc - (1 - (0.8 * dc / (dmc + 0.4 * dc))) * (0.92 + (0.0114 * dmc) ** 1.7)))
+
+    # Ensure BUI >= 0
+    bui = np.clip(bui, 0, None)
+
     if return_array:
         return bui.data
     else:
@@ -795,6 +801,10 @@ def dailyFWI(isi: Union[int, float, np.ndarray],
                       np.exp(2.72 * (0.434 * np.log(b)) ** 0.647),
                       b)
     np.seterr(divide='warn')
+
+    # Ensure FWI >= 0
+    fwi = np.clip(fwi, 0, None)
+
     if return_array:
         return fwi.data
     else:
@@ -824,6 +834,10 @@ def dailyDSR(fwi: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
 
     # ### RETURN DSR VALUE
     dsr = 0.0272 * fwi ** 1.77
+
+    # Ensure DSR >= 0
+    dsr = np.clip(dsr, 0, None)
+
     if return_array:
         return dsr.data
     else:
