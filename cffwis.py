@@ -674,7 +674,7 @@ def dailyISI(wind: Union[int, float, np.ndarray],
     else:
         ffmc = np.ma.array([ffmc], mask=np.isnan([ffmc]))
 
-    # Verify method
+    # Verify fbp_mod
     if not isinstance(fbp_mod, bool):
         raise ValueError('fbp_mod must be True or False')
 
@@ -683,7 +683,7 @@ def dailyISI(wind: Union[int, float, np.ndarray],
 
     # ### WIND COMPONENT OF ISI
     # The CFFBPS version includes a modification when wind speeds exceed 40 km/h, per Equation 53a in FCFDG (1992).
-    fw = np.ma.where(wind > 40 & fbp_mod,
+    fw = np.ma.where((wind > 40) & fbp_mod,
                      (12 * (1 - np.exp(-0.0818 * (wind - 28)))),
                      np.exp(0.05039 * wind))
 
