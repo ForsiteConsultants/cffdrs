@@ -344,7 +344,7 @@ class FBP:
 
         return
 
-    def _init_array(self, fill_value=0, dtype: Optional[cp.dtype] = None) -> cp.ndarray:
+    def _init_array(self, fill_value: Union[int, float] = 0, dtype: Optional[cp.dtype] = None) -> cp.ndarray:
         if dtype is None:
             dtype = self.cupy_float_type
         return cp.full(self.ref_array.shape, fill_value, dtype=dtype)
