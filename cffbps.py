@@ -1641,7 +1641,7 @@ class FBP:
         :return: None
         """
         self.fi_class = mask.where(
-            (self.hfi >= 0) & (self.hfi <= 10), 1,
+            (self.hfi > 0) & (self.hfi <= 10), 1,
             mask.where((self.hfi > 10) & (self.hfi <= 500), 2,
                        mask.where((self.hfi > 500) & (self.hfi <= 2000), 3,
                                   mask.where((self.hfi > 2000) & (self.hfi <= 4000), 4,
