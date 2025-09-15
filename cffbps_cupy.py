@@ -342,6 +342,10 @@ class FBP:
                 val = default
             setattr(self, attr, cp.asarray(val, dtype=self.cupy_float_type))
 
+        if self.return_array:
+            if self.return_array_as not in ['cupy', 'numpy']:
+                raise ValueError('The "return_array_as" parameter must be set to either "cupy" or "numpy".')
+
         return
 
     def _init_array(self, fill_value: Union[int, float] = 0, dtype: Optional[cp.dtype] = None) -> cp.ndarray:
