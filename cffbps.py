@@ -1641,7 +1641,7 @@ class FBP:
         :return: None
         """
         self.fi_class = mask.where(
-            self.hfi <= 10, 1,
+            (self.hfi >= 0) & (self.hfi <= 10), 1,
             mask.where((self.hfi > 10) & (self.hfi <= 500), 2,
                        mask.where((self.hfi > 500) & (self.hfi <= 2000), 3,
                                   mask.where((self.hfi > 2000) & (self.hfi <= 4000), 4,
@@ -2387,7 +2387,7 @@ def _testFBP(test_functions: list,
 
 if __name__ == '__main__':
     # _test_functions options: ['all', 'numeric', 'array', 'raster', 'raster_multiprocessing']
-    _test_functions = ['all']
+    _test_functions = ['numeric']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
@@ -2402,7 +2402,7 @@ if __name__ == '__main__':
     _pdf = 50
     _gfl = 0.35
     _gcf = 80
-    _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hfros', 'hfi', 'fire_type']
+    _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hfros', 'hfi', 'fire_type', 'fi_class']
     _out_folder = None
     _num_processors = 14
     _block_size = None
