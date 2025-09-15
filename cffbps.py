@@ -247,6 +247,9 @@ class FBP:
         # Initialize point ignition acceleration parameter
         self.accel_param = None
 
+        # Initialize fire intensity class parameter
+        self.fi_class = None
+
         # ### Lists for CFFBPS Crown Fire Metric variables
         self.csfiVarList = ['cbh', 'fmc']
         self.rsoVarList = ['csfi', 'sfc']
@@ -348,6 +351,11 @@ class FBP:
                 self.ref_array = mask.array(
                     [np.full(first_array.shape, 0, dtype=np.float64)],
                     mask=np.isnan([first_array])
+                )
+
+                self.ref_int_array = mask.array(
+                    [np.full(first_array.shape, 0, dtype=np.int8)],
+                    mask=-99
                 )
         else:
             self.return_array = False
@@ -739,6 +747,9 @@ class FBP:
 
         # Initialize point ignition acceleration parameter
         self.accel_param = self.ref_array
+
+        # Initialize fire intensity class parameter
+        self.fi_class = self.ref_int_array
 
         # List of required parameters
         required_params = [
@@ -1622,6 +1633,28 @@ class FBP:
 
         return
 
+    def calcFireIntensityClass(self) -> None:
+        """
+        Function to calculate the fire intensity class based on fire intensity (FI).
+
+        :return: None
+        """
+        self.fi_class = mask.where(
+            self.hfi <= 10, 1,
+            mask.where((self.hfi > 10) & (self.hfi <= 500), 2,
+                       mask.where((self.hfi > 500) & (self.hfi <= 2000), 3,
+                                  mask.where((self.hfi > 2000) & (self.hfi <= 4000), 4,
+                                             mask.where((self.hfi > 4000) & (self.hfi <= 10000), 5,
+                                                        mask.where((self.hfi > 10000), 6,
+                                                                   -99)
+                                                        )
+                                             )
+                                  )
+                       )
+        )
+
+        return
+
     def setParams(self, set_dict: dict) -> None:
         """
         Function to set FBP parameters to specific values.
@@ -1718,7 +1751,10 @@ class FBP:
             'tfc': self.tfc,  # Total fuel consumed
 
             # Acceleration parameter
-            'accel': self.accel_param
+            'accel': self.accel_param,  # Acceleration parameter for point source ignition
+
+            # Fire Intensity Class parameter
+            'fi_class': self.fi_class,  # Fire intensity class (1-6)
         }
 
         # Retrieve requested parameters
@@ -1750,6 +1786,11 @@ class FBP:
 
         if block is not None:
             self.block = block
+
+        # Check output requests values
+        if self.out_request is None:
+            # Set default output requests if none provided
+            self.out_request = ['hfros', 'hfi', 'fire_type']
 
         # ### Model fire behavior with CFFBPS
         # Invert wind direction and aspect
@@ -1790,10 +1831,10 @@ class FBP:
         self.calcTFC()
         # Calculate head fire intensity
         self.calcHFI()
+        # Calculate fire intensity class
+        self.calcFireIntensityClass()
 
         # Return requested values
-        if self.out_request is None:
-            self.out_request = ['hfros', 'hfi', 'fire_type']
         return self.getParams(self.out_request)
 
 
