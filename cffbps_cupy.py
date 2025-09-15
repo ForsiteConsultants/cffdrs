@@ -1392,7 +1392,7 @@ class FBP:
                     else 'Invalid output variable'
                     for var in out_request
                 ]
-            elif self.return_array_as == 'numpy':
+            else:  # if self.return_array_as == 'numpy':
                 return [
                     np.array(cp.asnumpy(fbp_params.get(var))) if fbp_params.get(var) is not None
                     else 'Invalid output variable'
