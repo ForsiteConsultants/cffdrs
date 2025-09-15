@@ -16,7 +16,6 @@ import rasterio as rio
 from scipy.stats import t
 from datetime import datetime as dt
 
-
 # Define lookup tables as in the original code
 fbpFTCode_NumToAlpha_LUT = {
     1: 'C1', 2: 'C2', 3: 'C3', 4: 'C4', 5: 'C5', 6: 'C6',
@@ -206,6 +205,9 @@ class FBP:
         # Initialize point ignition acceleration parameter
         self.accel_param = cp.array([0], dtype=self.cupy_float_type)
 
+        # Initialize fire intensity class parameter
+        self.fi_class = cp.array([0], dtype=cp.int8)
+
         # ### Lists for CFFBPS Crown Fire Metric variables
         self.csfiVarList = ['cbh', 'fmc']
         self.rsoVarList = ['csfi', 'sfc']
@@ -342,9 +344,13 @@ class FBP:
                 val = default
             setattr(self, attr, cp.asarray(val, dtype=self.cupy_float_type))
 
+        if self.return_array:
+            if self.return_array_as not in ['cupy', 'numpy']:
+                raise ValueError('The "return_array_as" parameter must be set to either "cupy" or "numpy".')
+
         return
 
-    def _init_array(self, fill_value=0, dtype: Optional[cp.dtype] = None) -> cp.ndarray:
+    def _init_array(self, fill_value: Union[int, float] = 0, dtype: Optional[cp.dtype] = None) -> cp.ndarray:
         if dtype is None:
             dtype = self.cupy_float_type
         return cp.full(self.ref_array.shape, fill_value, dtype=dtype)
@@ -551,6 +557,7 @@ class FBP:
         self.sfros = self._init_array()
         self.cfros = self._init_array()
         self.accel_param = self._init_array()
+        self.fi_class = self._init_array(0, dtype=cp.int8)
 
         # List of required parameters
         required_params = [
@@ -1283,6 +1290,28 @@ class FBP:
 
         return
 
+    def calcFireIntensityClass(self) -> None:
+        """
+        Function to calculate the fire intensity class based on fire intensity (FI).
+
+        :return: None
+        """
+        self.fi_class = cp.where(
+            self.hfi <= 10, 1,
+            cp.where((self.hfi > 10) & (self.hfi <= 500), 2,
+                     cp.where((self.hfi > 500) & (self.hfi <= 2000), 3,
+                              cp.where((self.hfi > 2000) & (self.hfi <= 4000), 4,
+                                       cp.where((self.hfi > 4000) & (self.hfi <= 10000), 5,
+                                                cp.where((self.hfi > 10000), 6,
+                                                         -99)
+                                                )
+                                       )
+                              )
+                     )
+        )
+
+        return
+
     def setParams(self, set_dict: dict) -> None:
         """
         Function to set FBP parameters to specific values using CuPy.
@@ -1381,7 +1410,10 @@ class FBP:
             'cfc': self.cfc,  # Crown fuel consumed
 
             # Acceleration parameter
-            'accel': self.accel_param
+            'accel': self.accel_param,  # Acceleration parameter for point source ignition
+
+            # Fire Intensity Class parameter
+            'fi_class': self.fi_class,  # Fire intensity class (1-6)
         }
 
         # Retrieve requested parameters
@@ -1392,7 +1424,7 @@ class FBP:
                     else 'Invalid output variable'
                     for var in out_request
                 ]
-            elif self.return_array_as == 'numpy':
+            else:  # if self.return_array_as == 'numpy':
                 return [
                     np.array(cp.asnumpy(fbp_params.get(var))) if fbp_params.get(var) is not None
                     else 'Invalid output variable'
@@ -1420,6 +1452,11 @@ class FBP:
 
         if block is not None:
             self.block = cp.asarray(block)
+
+        # Check output requests values
+        if self.out_request is None:
+            # Set default output requests if none provided
+            self.out_request = ['hfros', 'hfi', 'fire_type']
 
         # ### Model fire behavior with CFFBPS
         # Invert wind direction and aspect
@@ -1458,10 +1495,10 @@ class FBP:
         self.calcTFC()
         # Calculate head fire intensity
         self.calcHFI()
+        # Calculate fire intensity class
+        self.calcFireIntensityClass()
 
         # Return requested values
-        if self.out_request is None:
-            self.out_request = ['hfros', 'hfi', 'fire_type']
         return self.getParams(self.out_request)
 
 
