@@ -403,12 +403,26 @@ class FBP:
 
         # Verify wx_date
         if not isinstance(self.wx_date, int):
-            raise TypeError('wx_date must be either int or numpy ndarray data types')
+            raise TypeError('wx_date must be int data type')
         try:
             date_string = str(self.wx_date)
             dt.fromisoformat(f'{date_string[:4]}-{date_string[4:6]}-{date_string[6:]}')
         except ValueError:
             raise ValueError('wx_date must be formatted as: YYYYMMDD')
+
+        # Verify d0
+        if self.d0 is not None:
+            if not isinstance(self.d0, int):
+                raise TypeError('d0 must be int data type')
+            else:
+                self.d0 = mask.array([self.d0], mask=np.isnan([self.d0]))
+
+        # Verify dj
+        if self.dj is not None:
+            if not isinstance(self.dj, int):
+                raise TypeError('dj must be int data type')
+            else:
+                self.dj = mask.array([self.dj], mask=np.isnan([self.dj]))
 
         # Verify lat
         if not isinstance(self.lat, (int, float, np.ndarray)):
@@ -535,7 +549,9 @@ class FBP:
 
     def initialize(self,
                    fuel_type: Union[int, str, np.ndarray] = None,
-                   wx_date: int = None,
+                   wx_date: Optional[int] = None,
+                   d0: Optional[int] = None,
+                   dj: Optional[int] = None,
                    lat: Union[float, int, np.ndarray] = None,
                    long: Union[float, int, np.ndarray] = None,
                    elevation: Union[float, int, np.ndarray] = None,
@@ -577,6 +593,8 @@ class FBP:
             Model 19: Non-fuel (NF)
             Model 20: Water (WA)
         :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
+        :param d0: Julian date of minimum foliar moisture content (if None, it will be calculated based on latitude)
+        :param dj: Julian date of modelled fire (if None, it will be calculated from wx_date)
         :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
         :param long: Longitude of area being modelled (Decimal Degrees, floating point)
         :param elevation: Elevation of area being modelled (m)
@@ -655,6 +673,8 @@ class FBP:
         # Initialize CFFBPS input parameters
         self.fuel_type = fuel_type
         self.wx_date = wx_date
+        self.d0 = d0
+        self.dj = dj
         self.lat = lat
         self.long = long
         self.elevation = elevation
@@ -812,6 +832,8 @@ class FBP:
         return
 
     def calcFMC(self,
+                d0: Optional[int] = None,
+                dj: Optional[int] = None,
                 lat: Optional[float] = None,
                 long: Optional[float] = None,
                 elevation: Optional[float] = None,
@@ -834,17 +856,25 @@ class FBP:
                                43 + (33.7 * np.exp(-0.0351 * (150 - np.abs(self.long)))),
                                46 + (23.4 * (np.exp(-0.036 * (150 - np.abs(self.long))))))
 
-        # Calculate date of minimum foliar moisture content (D0)
-        # This value is rounded to mimic the approach used in the cffdrs R package.
-        self.d0 = mask.MaskedArray.round(mask.where((self.elevation is not None) & (self.elevation > 0),
-                                                    142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
-                                                    151 * (self.lat / self.latn)),
-                                         0)
+        if self.d0 is None:
+            if d0 is None:
+                # Calculate date of minimum foliar moisture content (D0)
+                # This value is rounded to mimic the approach used in the cffdrs R package.
+                self.d0 = mask.MaskedArray.round(mask.where((self.elevation is not None) & (self.elevation > 0),
+                                                            142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
+                                                            151 * (self.lat / self.latn)),
+                                                 0)
+            else:
+                self.d0 = mask.array(d0, mask=np.isnan(d0))
 
-        # Calculate Julian date (Dj)
-        self.dj = mask.where(np.isfinite(self.latn),
-                             dt.strptime(str(self.wx_date), '%Y%m%d').timetuple().tm_yday,
-                             0)
+        if self.dj is None:
+            if dj is None:
+                # Calculate Julian date (Dj)
+                self.dj = mask.where(np.isfinite(self.latn),
+                                     dt.strptime(str(self.wx_date), '%Y%m%d').timetuple().tm_yday,
+                                     0)
+            else:
+                self.dj = mask.array(dj, mask=np.isnan(dj))
 
         # Number of days between Dj and D0 (ND)
         self.nd = np.absolute(self.dj - self.d0)
@@ -871,19 +901,19 @@ class FBP:
         """
 
         def _calcISI_slopeWind() -> None:
-            # Calculate the slope equivalent wind speed (for lower wind speeds)
-            np.seterr(divide='ignore')
-            self.wse1 = mask.where(self.fuel_type == ftype,
-                                   (1 / 0.05039) * np.log(self.isf / (0.208 * self.fF)),
-                                   self.wse1)
-            np.seterr(divide='warn')
+            # Temporarily ignore runtime warnings for invalid value encountered in log
+            with np.errstate(divide='ignore', invalid='ignore'):
+                # Calculate the slope equivalent wind speed (for lower wind speeds)
+                self.wse1 = mask.where(self.fuel_type == ftype,
+                                       (1 / 0.05039) * np.log(self.isf / (0.208 * self.fF)),
+                                       self.wse1)
 
-            # Calculate the slope equivalent wind speed (for higher wind speeds)
-            self.wse2 = mask.where(self.fuel_type == ftype,
-                                   mask.where(self.isf < (0.999 * 2.496 * self.fF),
-                                              28 - (1 / 0.0818) * np.log(1 - (self.isf / (2.496 * self.fF))),
-                                              112.45),
-                                   self.wse2)
+                # Calculate the slope equivalent wind speed (for higher wind speeds)
+                self.wse2 = mask.where(self.fuel_type == ftype,
+                                       mask.where(self.isf < (0.999 * 2.496 * self.fF),
+                                                  28 - (1 / 0.0818) * np.log(1 - (self.isf / (2.496 * self.fF))),
+                                                  112.45),
+                                       self.wse2)
 
             # Assign slope equivalent wind speed
             self.wse = mask.where(self.fuel_type == ftype,
@@ -1020,15 +1050,16 @@ class FBP:
                                       self.rsz * self.sf,
                                       self.rsf)
 
-                # Calculate initial spread index with slope effect (no wind)
-                self.isf = mask.where(self.fuel_type == ftype,
-                                      mask.where((1 - np.power(self.rsf / self.a, 1 / self.c)) >= 0.01,
-                                                 (self.pdf / 100) *
-                                                 (np.log(1 - np.power(self.rsf / self.a, 1 / self.c)) / -self.b) +
-                                                 (1 - self.pdf / 100) *
-                                                 isf_d1_2,
-                                                 np.log(0.01) / -self.b),
-                                      self.isf)
+                # Temporarily ignore runtime warnings for invalid value encountered in log
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    # Calculate initial spread index with slope effect (no wind)
+                    self.isf = mask.where(self.fuel_type == ftype,
+                                          (self.pdf / 100) *
+                                          mask.where((1 - np.power(self.rsf / self.a, 1 / self.c)) >= 0.01,
+                                                     (np.log(1 - np.power(self.rsf / self.a, 1 / self.c)) / -self.b),
+                                                     np.log(0.01) / -self.b) +
+                                          (1 - self.pdf / 100) * isf_d1_2,
+                                          self.isf)
 
                 # Calculate ISI with slope and wind effects
                 _calcISI_slopeWind()
@@ -1094,13 +1125,13 @@ class FBP:
                 isf_numer = mask.where(self.fuel_type == ftype,
                                        (1 - np.power(self.rsf / self.a, 1 / self.c)),
                                        0)
-                np.seterr(divide='ignore')
-                self.isf = mask.where(self.fuel_type == ftype,
-                                      mask.where(isf_numer >= 0.01,
-                                                 np.log(isf_numer) / -self.b,
-                                                 np.log(0.01) / -self.b),
-                                      self.isf)
-                np.seterr(divide='warn')
+                # Temporarily ignore runtime warnings for invalid value encountered in log
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    self.isf = mask.where(self.fuel_type == ftype,
+                                          mask.where(isf_numer >= 0.01,
+                                                     np.log(isf_numer) / -self.b,
+                                                     np.log(0.01) / -self.b),
+                                          self.isf)
 
                 # Calculate slope effects on wind and ISI
                 _calcISI_slopeWind()
