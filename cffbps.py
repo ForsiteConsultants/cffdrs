@@ -159,6 +159,8 @@ class FBP:
         self.pdf = None
         self.gfl = None
         self.gcf = None
+        self.d0 = None
+        self.dj = None
         self.out_request = None
         self.convert_fuel_type_codes = False
         self.percentile_growth = None
@@ -213,8 +215,6 @@ class FBP:
 
         # Initialize foliar moisture content parameters
         self.latn = None
-        self.dj = None
-        self.d0 = None
         self.nd = None
         self.fmc = None
         self.fme = None
@@ -410,20 +410,6 @@ class FBP:
         except ValueError:
             raise ValueError('wx_date must be formatted as: YYYYMMDD')
 
-        # Verify d0
-        if self.d0 is not None:
-            if not isinstance(self.d0, int):
-                raise TypeError('d0 must be int data type')
-            else:
-                self.d0 = mask.array([self.d0], mask=np.isnan([self.d0]))
-
-        # Verify dj
-        if self.dj is not None:
-            if not isinstance(self.dj, int):
-                raise TypeError('dj must be int data type')
-            else:
-                self.dj = mask.array([self.dj], mask=np.isnan([self.dj]))
-
         # Verify lat
         if not isinstance(self.lat, (int, float, np.ndarray)):
             raise TypeError('lat must be either int, float, or numpy ndarray data types')
@@ -543,6 +529,20 @@ class FBP:
             self.gcf = mask.array([self.gcf])
         self.gcf = mask.where(self.gcf == 0, 0.1, self.gcf)  # Set curing factor to 0.1% if 0%
 
+        # Verify d0
+        if self.d0 is not None:
+            if not isinstance(self.d0, int):
+                raise TypeError('d0 must be int data type')
+            else:
+                self.d0 = mask.array([self.d0], mask=np.isnan([self.d0]))
+
+        # Verify dj
+        if self.dj is not None:
+            if not isinstance(self.dj, int):
+                raise TypeError('dj must be int data type')
+            else:
+                self.dj = mask.array([self.dj], mask=np.isnan([self.dj]))
+
         # Verify out_request
         if not isinstance(self.out_request, (list, tuple, type(None))):
             raise TypeError('out_request must be a list, tuple, or None')
@@ -550,8 +550,6 @@ class FBP:
     def initialize(self,
                    fuel_type: Union[int, str, np.ndarray] = None,
                    wx_date: Optional[int] = None,
-                   d0: Optional[int] = None,
-                   dj: Optional[int] = None,
                    lat: Union[float, int, np.ndarray] = None,
                    long: Union[float, int, np.ndarray] = None,
                    elevation: Union[float, int, np.ndarray] = None,
@@ -565,6 +563,8 @@ class FBP:
                    pdf: Optional[Union[float, int, np.ndarray]] = 35,
                    gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
                    gcf: Optional[Union[float, int, np.ndarray]] = 80,
+                   d0: Optional[int] = None,
+                   dj: Optional[int] = None,
                    out_request: Optional[Union[list, tuple]] = None,
                    convert_fuel_type_codes: Optional[bool] = False,
                    percentile_growth: Optional[Union[float, int]] = 50) -> None:
@@ -593,8 +593,6 @@ class FBP:
             Model 19: Non-fuel (NF)
             Model 20: Water (WA)
         :param wx_date: Date of weather observation (used for fmc calculation) (YYYYMMDD)
-        :param d0: Julian date of minimum foliar moisture content (if None, it will be calculated based on latitude)
-        :param dj: Julian date of modelled fire (if None, it will be calculated from wx_date)
         :param lat: Latitude of area being modelled (Decimal Degrees, floating point)
         :param long: Longitude of area being modelled (Decimal Degrees, floating point)
         :param elevation: Elevation of area being modelled (m)
@@ -608,6 +606,8 @@ class FBP:
         :param pdf: Percent dead fir (%, value from 0-100)
         :param gfl: Grass fuel load (kg/m^2)
         :param gcf: Grass curing factor (%, value from 0-100)
+        :param d0: Julian date of minimum foliar moisture content (if None, it will be calculated based on latitude)
+        :param dj: Julian date of modelled fire (if None, it will be calculated from wx_date)
         :param out_request: Tuple or list of CFFBPS output variables
             # Default output variables
             fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
@@ -672,9 +672,7 @@ class FBP:
         """
         # Initialize CFFBPS input parameters
         self.fuel_type = fuel_type
-        self.wx_date = wx_date
-        self.d0 = d0
-        self.dj = dj
+        self.wx_date = wx_date  # For FMC calculations
         self.lat = lat
         self.long = long
         self.elevation = elevation
@@ -688,6 +686,8 @@ class FBP:
         self.pdf = pdf
         self.gfl = gfl
         self.gcf = gcf
+        self.d0 = d0  # For FMC calculations
+        self.dj = dj  # For FMC calculations
         self.out_request = out_request
         self.convert_fuel_type_codes = convert_fuel_type_codes
         self.percentile_growth = percentile_growth
@@ -856,6 +856,7 @@ class FBP:
                                43 + (33.7 * np.exp(-0.0351 * (150 - np.abs(self.long)))),
                                46 + (23.4 * (np.exp(-0.036 * (150 - np.abs(self.long))))))
 
+        # D0 calculation
         if self.d0 is None:
             if d0 is None:
                 # Calculate date of minimum foliar moisture content (D0)
@@ -867,6 +868,7 @@ class FBP:
             else:
                 self.d0 = mask.array(d0, mask=np.isnan(d0))
 
+        # Julian Date
         if self.dj is None:
             if dj is None:
                 # Calculate Julian date (Dj)
