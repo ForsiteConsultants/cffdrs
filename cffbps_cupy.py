@@ -102,8 +102,7 @@ class FBP:
         # Initialize CFFBPS input parameters
         self.cupy_float_type = cupy_float_type
         self.fuel_type = cp.array([0], dtype=self.cupy_float_type)
-        self.wx_date = cp.array([0], dtype=self.cupy_float_type)
-        self.lat = cp.array([0], dtype=self.cupy_float_type)
+        self.wx_date = cp.array([0], dtype=self.cupy_float_type)  # For FMC calculations
         self.long = cp.array([0], dtype=self.cupy_float_type)
         self.elevation = cp.array([0], dtype=self.cupy_float_type)
         self.slope = cp.array([0], dtype=self.cupy_float_type)
@@ -116,6 +115,8 @@ class FBP:
         self.pdf = cp.array([0], dtype=self.cupy_float_type)
         self.gfl = cp.array([0], dtype=self.cupy_float_type)
         self.gcf = cp.array([0], dtype=self.cupy_float_type)
+        self.d0 = cp.array([0], dtype=self.cupy_float_type)  # For FMC calculations
+        self.dj = cp.array([0], dtype=self.cupy_float_type)  # For FMC calculations
         self.out_request = cp.array([0], dtype=self.cupy_float_type)
         self.convert_fuel_type_codes = cp.array([0], dtype=self.cupy_float_type)
         self.percentile_growth = 50,
@@ -169,10 +170,8 @@ class FBP:
         self.sfc = cp.array([0], dtype=self.cupy_float_type)
         self.rss = cp.array([0], dtype=self.cupy_float_type)
 
-        # Initialize foliar moisture content parameters
+        # Initialize foliar moisture content (FMC) parameters
         self.latn = cp.array([0], dtype=self.cupy_float_type)
-        self.dj = cp.array([0], dtype=self.cupy_float_type)
-        self.d0 = cp.array([0], dtype=self.cupy_float_type)
         self.nd = cp.array([0], dtype=self.cupy_float_type)
         self.fmc = cp.array([0], dtype=self.cupy_float_type)
         self.fme = cp.array([0], dtype=self.cupy_float_type)
@@ -371,6 +370,8 @@ class FBP:
                    pdf: Optional[Union[float, int, cp.ndarray]] = 35,
                    gfl: Optional[Union[float, int, cp.ndarray]] = 0.35,
                    gcf: Optional[Union[float, int, cp.ndarray]] = 80,
+                   d0: Optional[int] = None,
+                   dj: Optional[int] = None,
                    out_request: Optional[Union[list, tuple]] = None,
                    convert_fuel_type_codes: Optional[bool] = False,
                    percentile_growth: Optional[Union[float, int]] = 50,
@@ -413,6 +414,8 @@ class FBP:
         :param pdf: Percent dead fir (%, value from 0-100)
         :param gfl: Grass fuel load (kg/m^2)
         :param gcf: Grass curing factor (%, value from 0-100)
+        :param d0: Julian date of minimum foliar moisture content (if None, calculated from latitude)
+        :param dj: Julian date of modelled fire (if None, calculated from wx_date)
         :param out_request: Tuple or list of CFFBPS output variables
             # Default output variables
             fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
@@ -608,6 +611,8 @@ class FBP:
         self.isz = 0.208 * self.fF
 
     def calcFMC(self,
+                d0: Optional[int] = None,
+                dj: Optional[int] = None,
                 lat: Optional[float] = None,
                 long: Optional[float] = None,
                 elevation: Optional[float] = None,
@@ -636,20 +641,28 @@ class FBP:
         )
 
         # Julian date
-        dj_value = dt.strptime(str(self.wx_date), '%Y%m%d').timetuple().tm_yday
-        self.dj = cp.full_like(self.latn, dj_value, dtype=cp.int16)
+        if self.dj is None:
+            if dj is None:
+                dj_value = dt.strptime(str(self.wx_date), '%Y%m%d').timetuple().tm_yday
+                self.dj = cp.full_like(self.latn, dj_value, dtype=cp.int16)
+            else:
+                self.dj = cp.full_like(self.latn, dj, dtype=cp.int16)
 
         # D0 calculation
-        self.d0 = cp.round(cp.where(
-            use_elev,
-            142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
-            151 * (self.lat / self.latn)
-        ), 0).astype(cp.int16)
+        if self.d0 is None:
+            if d0 is None:
+                self.d0 = cp.round(cp.where(
+                    use_elev,
+                    142.1 * (self.lat / self.latn) + (0.0172 * self.elevation),
+                    151 * (self.lat / self.latn)
+                ), 0).astype(cp.int16)
+            else:
+                self.d0 = cp.full_like(self.latn, d0, dtype=cp.int16)
 
-        # ND (difference between dates)
+        # Number of days between Dj and D0 (ND)
         self.nd = cp.abs(self.dj - self.d0)
 
-        # FMC calculation with fused condition
+        # Foliar moisture content (FMC) calculation
         nd_lt_30 = self.nd < 30
         nd_lt_50 = (self.nd >= 30) & (self.nd < 50)
 
