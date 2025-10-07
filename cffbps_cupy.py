@@ -498,6 +498,8 @@ class FBP:
         self.pdf = pdf
         self.gfl = gfl
         self.gcf = gcf
+        self.d0 = d0
+        self.dj = dj
         self.out_request = out_request
         self.convert_fuel_type_codes = convert_fuel_type_codes
         self.percentile_growth = percentile_growth
@@ -537,8 +539,6 @@ class FBP:
         self.sfc = self._init_array(cp.nan)
         self.rss = self._init_array()
         self.latn = self._init_array()
-        self.dj = self._init_array()
-        self.d0 = self._init_array()
         self.nd = self._init_array()
         self.fmc = self._init_array()
         self.fme = self._init_array()
@@ -751,7 +751,7 @@ class FBP:
 
         # Generate masks
         m12_mask = (ft == 10) | (ft == 11)
-        # m34_mask = (ft == 12) | (ft == 13)
+        m34_mask = (ft == 12) | (ft == 13)
         o1_mask = (ft == 14) | (ft == 15)
 
         # Precompute C2, D1 and D2 parameters
@@ -785,10 +785,16 @@ class FBP:
         rsz_d1 = d1[0] * cp.power(1 - cp.exp(-d1[1] * self.isz), d1[2])
         rsz_m1 = (self.pc / 100) * rsz_c2 + (1 - self.pc / 100) * rsz_d1
         rsz_m2 = (self.pc / 100) * rsz_c2 + 0.2 * (1 - self.pc / 100) * rsz_d1
+        # M3/4
+        rsz_m3 = (self.pdf / 100) * rsz_c2 + (1 - self.pdf / 100) * rsz_d1
+        rsz_m4 = (self.pdf / 100) * rsz_c2 + 0.2 * (1 - self.pdf / 100) * rsz_d1
         # O1a/b
         rsz_o1 = rsz_core * cf
+        # Final calculation
         self.rsz = cp.where(ft == 10, rsz_m1, rsz_core)
         self.rsz = cp.where(ft == 11, rsz_m2, self.rsz)
+        self.rsz = cp.where(ft == 12, rsz_m3, self.rsz)
+        self.rsz = cp.where(ft == 13, rsz_m4, self.rsz)
         self.rsz = cp.where(o1_mask, rsz_o1, self.rsz)
 
         # Compute RSF
@@ -801,7 +807,8 @@ class FBP:
         isf_d1_numer = 1 - cp.power(rsf_d1 / d1[0], 1 / d1[2])
         isf_c2_core = cp.where(isf_c2_numer >= 0.01, cp.log(isf_c2_numer) / -c2[1], cp.log(0.01) / -c2[1])
         isf_d1_core = cp.where(isf_d1_numer >= 0.01, cp.log(isf_d1_numer) / -d1[1], cp.log(0.01) / -d1[1])
-        isf_blended = (self.pc / 100) * isf_c2_core + (1 - self.pc / 100) * isf_d1_core
+        isf_blended_m12 = (self.pc / 100) * isf_c2_core + (1 - self.pc / 100) * isf_d1_core
+        isf_blended_m34 = (self.pdf / 100) * isf_c2_core + (1 - self.pdf / 100) * isf_d1_core
         del rsz_core, rsz_m1, rsz_m2, rsz_o1
         del rsf_c2, rsf_d1
         del isf_c2_numer, isf_d1_numer, isf_c2_core, isf_d1_core
@@ -809,7 +816,8 @@ class FBP:
         # Compute ISF
         isf_numer = cp.where(o1_mask, 1 - cp.power(self.rsf / (a * cf), 1 / c), 1 - cp.power(self.rsf / a, 1 / c))
         isf_final = cp.where(isf_numer >= 0.01, cp.log(isf_numer) / -b, cp.log(0.01) / -b)
-        self.isf = cp.where(m12_mask, isf_blended, isf_final)
+        self.isf = cp.where(m12_mask, isf_blended_m12, isf_final)
+        self.isf = cp.where(m34_mask, isf_blended_m34, self.isf)
         del isf_numer, isf_final
 
         # Wind and slope adjusted ISI
@@ -869,7 +877,13 @@ class FBP:
         )
 
         # Compute BE and clip
-        raw_be = cp.where(self.bui == 0, 0.0, cp.exp(50 * cp.log(q) * ((1 / self.bui) - (1 / bui0))))
+        raw_be = cp.where(self.bui == 0,
+                          0.0,
+                          cp.where(bui0 == 0,
+                                   1,
+                                   cp.exp(50 * cp.log(q) * ((1 / self.bui) - (1 / bui0)))
+                                   )
+                          )
         self.be = cp.clip(raw_be, 0, be_max)
 
         del raw_be, ft, c2, d1, d2, a, b, c, q, bui0, be_max, cf, m12_mask, o1_mask
@@ -1421,6 +1435,9 @@ class FBP:
             'cfb': self.cfb,  # Crown fraction burned (proportion, value ranging from 0-1)
             'cfl': self.cfl,  # Crown fuel load (kg/m^2)
             'cfc': self.cfc,  # Crown fuel consumed
+
+            # Final fuel parameters
+            'tfc': self.tfc,  # Total fuel consumed
 
             # Acceleration parameter
             'accel': self.accel_param,  # Acceleration parameter for point source ignition
