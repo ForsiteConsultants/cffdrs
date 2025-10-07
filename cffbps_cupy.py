@@ -1555,6 +1555,8 @@ def _testFBP(test_functions: list,
              pdf: Optional[Union[float, int, cp.ndarray]] = 35,
              gfl: Optional[Union[float, int, cp.ndarray]] = 0.35,
              gcf: Optional[Union[float, int, cp.ndarray]] = 80,
+             d0: Optional[int] = None,
+             dj: Optional[int] = None,
              out_request: Optional[list[str]] = None,
              out_folder: Optional[str] = None) -> None:
     """
@@ -1575,6 +1577,8 @@ def _testFBP(test_functions: list,
     :param pdf: Percent dead fir (%, value from 0-100)
     :param gfl: Grass fuel load (kg/m^2)
     :param gcf: Grass curing factor (%, value from 0-100)
+    :param d0: Julian date of minimum foliar moisture content (if None, calculated internally)
+    :param dj: Julian date of day being modelled (if None, calculated internally)
     :param out_request: Tuple or list of CFFBPS output variables
         # Default output variables
         fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
@@ -1648,7 +1652,7 @@ def _testFBP(test_functions: list,
     # Put inputs into list
     input_data = [wx_date, lat, long,
                   elevation, slope, aspect, ws, wd, ffmc, bui,
-                  pc, pdf, gfl, gcf, out_request]
+                  pc, pdf, gfl, gcf, d0, dj, out_request]
 
     # ### Test non-raster modelling
     if any(var in test_functions for var in ['numeric', 'all']):
@@ -1711,6 +1715,7 @@ def _testFBP(test_functions: list,
             ws=raster_data['ws'], wd=raster_data['wd'], ffmc=raster_data['ffmc'],
             bui=raster_data['bui'], pc=raster_data['pc'], pdf=raster_data['pdf'],
             gfl=raster_data['gfl'], gcf=raster_data['gcf'],
+            d0=_d0, dj=_dj,
             out_request=out_request,
             convert_fuel_type_codes=False
         )
@@ -1759,7 +1764,6 @@ def _testFBP(test_functions: list,
 
         # Read raster data into CuPy arrays
         # Check dtype and conditionally convert datasets > float32 to float32
-        # to maximize GTX1650 performance
         raster_data = {}
         for key, path in raster_paths.items():
             with rio.open(path) as src:
@@ -1781,6 +1785,7 @@ def _testFBP(test_functions: list,
             ws=raster_data['ws'], wd=wd, ffmc=raster_data['ffmc'],
             bui=raster_data['bui'], pc=raster_data['pc'], pdf=raster_data['pdf'],
             gfl=raster_data['gfl'], gcf=getSeasonGrassCuring(season='summer', province='BC'),
+            d0=_d0, dj=_dj,
             out_request=out_request,
             convert_fuel_type_codes=True
         )
@@ -1809,7 +1814,7 @@ def _testFBP(test_functions: list,
 
 if __name__ == '__main__':
     # _test_functions options: ['all', 'numeric', 'array', 'raster', 'raster_multiprocessing']
-    _test_functions = ['all']
+    _test_functions = ['numeric']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
@@ -1824,7 +1829,9 @@ if __name__ == '__main__':
     _pdf = 50
     _gfl = 0.35
     _gcf = 80
-    _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hfros', 'hfi', 'fire_type']
+    _d0 = None
+    _dj = None
+    _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hfros', 'hfi', 'fire_type', 'fi_class']
     _out_folder = None
 
     # Test the FBP functions
@@ -1833,5 +1840,6 @@ if __name__ == '__main__':
              elevation=_elevation, slope=_slope, aspect=_aspect,
              ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
              pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf,
+             d0=_d0, dj=_dj,
              out_request=_out_request,
              out_folder=_out_folder)
