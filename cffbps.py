@@ -735,8 +735,6 @@ class FBP:
 
         # Initialize foliar moisture content parameters
         self.latn = self.ref_array
-        self.dj = self.ref_array
-        self.d0 = self.ref_array
         self.nd = self.ref_array
         self.fmc = self.ref_array
         self.fme = self.ref_array
@@ -1944,6 +1942,8 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
                          pdf: Optional[Union[float, int, np.ndarray]] = 35,
                          gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
                          gcf: Optional[Union[float, int, np.ndarray]] = 80,
+                         d0: Optional[int] = None,
+                         dj: Optional[int] = None,
                          out_request: Optional[list[str]] = None,
                          convert_fuel_type_codes: Optional[bool] = False,
                          num_processors: int = 2,
@@ -1986,6 +1986,8 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
     :param pdf: Percent dead fir (%, value from 0-100)
     :param gfl: Grass fuel load (kg/m^2)
     :param gcf: Grass curing factor (%, value from 0-100)
+    :param d0: Julian date of minimum foliar moisture content (if None, will be calculated based on latitude)
+    :param dj: Julian date of the day being modelled (if None, will be calculated from wx_date)
     :param out_request: Tuple or list of CFFBPS output variables
         # Default output variables
         fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
@@ -2053,7 +2055,7 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
     """
     # Add input parameters to list
     input_list = [fuel_type, wx_date, lat, long, elevation, slope, aspect,
-                  ws, wd, ffmc, bui, pc, pdf, gfl, gcf, out_request,
+                  ws, wd, ffmc, bui, pc, pdf, gfl, gcf, out_request, d0, dj,
                   convert_fuel_type_codes]
 
     # Split input arrays into chunks for each worker
@@ -2154,6 +2156,8 @@ def _testFBP(test_functions: list,
              pdf: Optional[Union[float, int, np.ndarray]] = 35,
              gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
              gcf: Optional[Union[float, int, np.ndarray]] = 80,
+             d0: Optional[int] = None,
+             dj: Optional[int] = None,
              out_request: Optional[list[str]] = None,
              out_folder: Optional[str] = None,
              num_processors: int = 2,
@@ -2176,6 +2180,8 @@ def _testFBP(test_functions: list,
     :param pdf: Percent dead fir (%, value from 0-100)
     :param gfl: Grass fuel load (kg/m^2)
     :param gcf: Grass curing factor (%, value from 0-100)
+    :param d0: Julian date of minimum foliar moisture content (if None, will be calculated based on latitude)
+    :param dj: Julian date of the day being modelled (if None, will be
     :param out_request: Tuple or list of CFFBPS output variables
         # Default output variables
         fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
@@ -2251,7 +2257,7 @@ def _testFBP(test_functions: list,
     # Put inputs into list
     input_data = [wx_date, lat, long,
                   elevation, slope, aspect, ws, wd, ffmc, bui,
-                  pc, pdf, gfl, gcf, out_request]
+                  pc, pdf, gfl, gcf, d0, dj, out_request]
 
     # ### Test non-raster modelling
     if any(var in test_functions for var in ['numeric', 'all']):
@@ -2446,6 +2452,7 @@ if __name__ == '__main__':
              elevation=_elevation, slope=_slope, aspect=_aspect,
              ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
              pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf,
+             d0=None, dj=None,
              out_request=_out_request,
              out_folder=_out_folder,
              num_processors=_num_processors,
