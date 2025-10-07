@@ -785,16 +785,11 @@ class FBP:
         rsz_d1 = d1[0] * cp.power(1 - cp.exp(-d1[1] * self.isz), d1[2])
         rsz_m1 = (self.pc / 100) * rsz_c2 + (1 - self.pc / 100) * rsz_d1
         rsz_m2 = (self.pc / 100) * rsz_c2 + 0.2 * (1 - self.pc / 100) * rsz_d1
-        # M3/4
-        rsz_m3 = (self.pdf / 100) * rsz_c2 + (1 - self.pdf / 100) * rsz_d1
-        rsz_m4 = (self.pdf / 100) * rsz_c2 + 0.2 * (1 - self.pdf / 100) * rsz_d1
         # O1a/b
         rsz_o1 = rsz_core * cf
         # Final calculation
         self.rsz = cp.where(ft == 10, rsz_m1, rsz_core)
         self.rsz = cp.where(ft == 11, rsz_m2, self.rsz)
-        self.rsz = cp.where(ft == 12, rsz_m3, self.rsz)
-        self.rsz = cp.where(ft == 13, rsz_m4, self.rsz)
         self.rsz = cp.where(o1_mask, rsz_o1, self.rsz)
 
         # Compute RSF
@@ -802,13 +797,15 @@ class FBP:
         rsf_d1 = rsz_d1 * self.sf
         self.rsf = self.rsz * self.sf
 
-        # Compute ISF for M1/M2 blending logic
+        # Compute ISF for M1/2 & M3/4 blending logic
         isf_c2_numer = 1 - cp.power(rsf_c2 / c2[0], 1 / c2[2])
         isf_d1_numer = 1 - cp.power(rsf_d1 / d1[0], 1 / d1[2])
+        isf_m34_numer = 1 - cp.power(self.rsf / a, 1 / c)
         isf_c2_core = cp.where(isf_c2_numer >= 0.01, cp.log(isf_c2_numer) / -c2[1], cp.log(0.01) / -c2[1])
         isf_d1_core = cp.where(isf_d1_numer >= 0.01, cp.log(isf_d1_numer) / -d1[1], cp.log(0.01) / -d1[1])
+        isf_m34_core = cp.where(isf_m34_numer >= 0.01, cp.log(isf_m34_numer) / -b, cp.log(0.01) / -b)
         isf_blended_m12 = (self.pc / 100) * isf_c2_core + (1 - self.pc / 100) * isf_d1_core
-        isf_blended_m34 = (self.pdf / 100) * isf_c2_core + (1 - self.pdf / 100) * isf_d1_core
+        isf_blended_m34 = (self.pdf / 100) * isf_m34_core + (1 - self.pdf / 100) * isf_d1_core
         del rsz_core, rsz_m1, rsz_m2, rsz_o1
         del rsf_c2, rsf_d1
         del isf_c2_numer, isf_d1_numer, isf_c2_core, isf_d1_core
