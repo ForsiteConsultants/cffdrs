@@ -2322,6 +2322,7 @@ def _testFBP(test_functions: list,
             ws=raster_data['ws'], wd=raster_data['wd'], ffmc=raster_data['ffmc'],
             bui=raster_data['bui'], pc=raster_data['pc'], pdf=raster_data['pdf'],
             gfl=raster_data['gfl'], gcf=raster_data['gcf'],
+            d0=_d0, dj=_dj,
             out_request=out_request,
             convert_fuel_type_codes=False
         )
@@ -2397,6 +2398,7 @@ def _testFBP(test_functions: list,
             elevation=elev_array, slope=slope_array, aspect=aspect_array,
             ws=ws_array, wd=wd, ffmc=ffmc_array, bui=bui_array,
             pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=getSeasonGrassCuring(season='summer', province='BC'),
+            d0=_d0, dj=_dj,
             out_request=out_request,
             convert_fuel_type_codes=True,
             num_processors=num_processors,
@@ -2441,6 +2443,8 @@ if __name__ == '__main__':
     _pdf = 50
     _gfl = 0.35
     _gcf = 80
+    _d0 = None
+    _dj = None
     _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hfros', 'hfi', 'fire_type', 'fi_class']
     _out_folder = None
     _num_processors = 14
@@ -2452,7 +2456,7 @@ if __name__ == '__main__':
              elevation=_elevation, slope=_slope, aspect=_aspect,
              ws=_ws, wd=_wd, ffmc=_ffmc, bui=_bui,
              pc=_pc, pdf=_pdf, gfl=_gfl, gcf=_gcf,
-             d0=None, dj=None,
+             d0=_d0, dj=_dj,
              out_request=_out_request,
              out_folder=_out_folder,
              num_processors=_num_processors,
