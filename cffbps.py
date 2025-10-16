@@ -237,12 +237,12 @@ class FBP:
 
         # Initialize default CFFBPS output parameters
         self.fire_type = None
-        self.hfros = None
+        self.hros = None
         self.hfi = None
 
         # Initialize C-6 rate of spread parameters
-        self.sfros = None
-        self.cfros = None
+        self.sros = None
+        self.cros = None
 
         # Initialize point ignition acceleration parameter
         self.accel_param = None
@@ -253,9 +253,9 @@ class FBP:
         # ### Lists for CFFBPS Crown Fire Metric variables
         self.csfiVarList = ['cbh', 'fmc']
         self.rsoVarList = ['csfi', 'sfc']
-        self.cfbVarList = ['cfros', 'rso']
+        self.cfbVarList = ['cros', 'rso']
         self.cfcVarList = ['cfb', 'cfl']
-        self.cfiVarList = ['cfros', 'cfc']
+        self.cfiVarList = ['cros', 'cfc']
 
         # List of open fuel type codes
         self.open_fuel_types = [1, 7, 9, 14, 15, 16, 17, 18]
@@ -611,7 +611,7 @@ class FBP:
         :param out_request: Tuple or list of CFFBPS output variables
             # Default output variables
             fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
-            hfros = Head fire rate of spread (m/min)
+            hros = Head fire rate of spread (m/min)
             hfi = head fire intensity (kW/m)
 
             # Weather variables
@@ -757,12 +757,12 @@ class FBP:
 
         # Initialize default CFFBPS output parameters
         self.fire_type = self.ref_array
-        self.hfros = self.ref_array
+        self.hros = self.ref_array
         self.hfi = self.ref_array
 
         # Initialize C-6 rate of spread parameters
-        self.sfros = self.ref_array
-        self.cfros = self.ref_array
+        self.sros = self.ref_array
+        self.cros = self.ref_array
 
         # Initialize point ignition acceleration parameter
         self.accel_param = self.ref_array
@@ -1263,9 +1263,9 @@ class FBP:
         if ftype == 6:
             # C6 fuel type
             # Head Surface Fire ROS
-            self.sfros = mask.where(self.fuel_type == ftype,
+            self.sros = mask.where(self.fuel_type == ftype,
                                     self.rsi * self.be,
-                                    self.sfros)
+                                    self.sros)
             # Back Surface Fire ROS
             self.bros = mask.where(self.fuel_type == ftype,
                                    self.brsi * self.be,
@@ -1273,20 +1273,20 @@ class FBP:
         else:
             # All other fuel types
             # Head Fire ROS
-            self.hfros = mask.where(self.fuel_type == ftype,
+            self.hros = mask.where(self.fuel_type == ftype,
                                     self.rsi * self.be,
-                                    self.hfros)
-            # backing fire ROS
+                                    self.hros)
+            # Back Fire ROS
             self.bros = mask.where(self.fuel_type == ftype,
                                    self.brsi * self.be,
                                    self.bros)
             if ftype == 9:
                 # D2 fuel type
-                self.hfros = mask.where(self.fuel_type == ftype,
+                self.hros = mask.where(self.fuel_type == ftype,
                                         mask.where(self.bui < 70,
                                                    0,
-                                                   self.hfros * 0.2),
-                                        self.hfros)
+                                                   self.hros * 0.2),
+                                        self.hros)
                 # D2 fuel type
                 self.bros = mask.where(self.fuel_type == ftype,
                                        mask.where(self.bui < 70,
@@ -1466,12 +1466,12 @@ class FBP:
         is_other = mask.where(np.isin(self.fuel_type, self.ftypes) & ~is_c6 & ~non_crowning, True, False)
 
         # Precompute rate of spread differences
-        delta_sfros_c6 = self.sfros - self.rso
-        delta_hfros_other = self.hfros - self.rso
+        delta_sros_c6 = self.sros - self.rso
+        delta_hros_other = self.hros - self.rso
 
         # Compute CFB for C-6 and other fuel types
-        cfb_c6 = mask.where(delta_sfros_c6 < -3086, 0, 1 - np.exp(-0.23 * delta_sfros_c6))
-        cfb_other = mask.where(delta_hfros_other < -3086, 0, 1 - np.exp(-0.23 * delta_hfros_other))
+        cfb_c6 = mask.where(delta_sros_c6 < -3086, 0, 1 - np.exp(-0.23 * delta_sros_c6))
+        cfb_other = mask.where(delta_hros_other < -3086, 0, 1 - np.exp(-0.23 * delta_hros_other))
 
         # Apply the calculations
         self.cfb = mask.where(is_c6, cfb_c6, self.cfb)
@@ -1483,14 +1483,14 @@ class FBP:
         self.cfb = mask.clip(self.cfb, 0, 1)  # Prevent extremely high values causing overflow
 
         # Clean up memory
-        del is_c6, non_crowning, is_other, delta_sfros_c6, delta_hfros_other, cfb_c6, cfb_other, is_finite
+        del is_c6, non_crowning, is_other, delta_sros_c6, delta_hros_other, cfb_c6, cfb_other, is_finite
 
         return
 
     def calcRosPercentileGrowth(self) -> None:
         """
         Calculates the rate of spread (ROS) percentile growth for head fire and backing fire rates of spread.
-        This function adjusts the `hfros` and `bros` attributes based on the percentile growth value and
+        This function adjusts the `hros` and `bros` attributes based on the percentile growth value and
         crown/surface spread parameters.
 
         This function is pulled from the WISE code base, and was apparently conceived by John Braun,
@@ -1532,7 +1532,7 @@ class FBP:
             e = tinv_value * crown_s
 
             # Iterate over head fire and backing fire ROS attributes
-            for ros_attr in ['hfros', 'bros']:
+            for ros_attr in ['hros', 'bros']:
                 ros_in = getattr(self, ros_attr)  # Get the current ROS value
                 d = mask.power(ros_in, 0.6)  # Apply a power transformation to the ROS value
 
@@ -1627,21 +1627,21 @@ class FBP:
 
         return
 
-    def calcC6hfros(self) -> None:
+    def calcC6hros(self) -> None:
         """
         Function to calculate crown and total head fire rate of spread for the C6 fuel type
 
         :returns: None
         """
-        self.cfros = mask.where(self.fuel_type == 6,
+        self.cros = mask.where(self.fuel_type == 6,
                                 mask.where(self.cfc == 0,
                                            0,
                                            60 * np.power(1 - np.exp(-0.0497 * self.isi), 1) * (self.fme / 0.778237)),
-                                self.cfros)
+                                self.cros)
 
-        self.hfros = mask.where(self.fuel_type == 6,
-                                self.sfros + (self.cfb * (self.cfros - self.sfros)),
-                                self.hfros)
+        self.hros = mask.where(self.fuel_type == 6,
+                                self.sros + (self.cfb * (self.cros - self.sros)),
+                                self.hros)
 
         return
 
@@ -1661,7 +1661,7 @@ class FBP:
 
         :returns: None
         """
-        self.hfi = 300 * self.hfros * self.tfc
+        self.hfi = 300 * self.hros * self.tfc
 
         return
 
@@ -1714,7 +1714,7 @@ class FBP:
         fbp_params = {
             # Default output variables
             'fire_type': self.fire_type,  # Type of fire (surface, intermittent crown, active crown)
-            'hfros': self.hfros,  # Head fire rate of spread (m/min)
+            'hros': self.hros,  # Head fire rate of spread (m/min)
             'hfi': self.hfi,  # Head fire intensity (kW/m)
 
             # Fuel type variables
@@ -1768,10 +1768,14 @@ class FBP:
             'csfi': self.csfi,  # Critical intensity (kW/m)
             'rso': self.rso,  # Critical rate of spread (m/min)
 
-            # backing fire spread variables
+            # Backing fire spread variables
             'bfw': self.bfW,  # The backing fire wind function
             'bisi': self.bisi,  # The ISI associated with the backing fire rate of spread
             'bros': self.bros,  # Backing rate of spread (m/min)
+
+            # C-6 specific variables
+            'sros': self.sros,  # Surface fire rate of spread (m/min)
+            'cros': self.cros,  # Crown fire rate of spread (m/min)
 
             # Crown fuel parameters
             'cbh': self.cbh,  # Height to live crown base (m)
@@ -1811,7 +1815,7 @@ class FBP:
 
         :param block: The array of partial data (block) to run FBP with.
         :returns:
-            Tuple of values requested through out_request parameter. Default values are fire_type, hfros, and hfi.
+            Tuple of values requested through out_request parameter. Default values are fire_type, hros, and hfi.
         """
         if not self.initialized:
             raise ValueError('FBP class must be initialized before running calculations. Call "initialize" first.')
@@ -1822,7 +1826,7 @@ class FBP:
         # Check output requests values
         if self.out_request is None:
             # Set default output requests if none provided
-            self.out_request = ['hfros', 'hfi', 'fire_type']
+            self.out_request = ['hros', 'hfi', 'fire_type']
 
         # ### Model fire behavior with CFFBPS
         # Invert wind direction and aspect
@@ -1858,7 +1862,7 @@ class FBP:
         # Calculate crown fuel consumed
         self.calcCFC()
         # Calculate C6 head fire rate of spread
-        self.calcC6hfros()
+        self.calcC6hros()
         # Calculate total fuel consumption
         self.calcTFC()
         # Calculate head fire intensity
@@ -1991,7 +1995,7 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
     :param out_request: Tuple or list of CFFBPS output variables
         # Default output variables
         fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
-        hfros = Head fire rate of spread (m/min)
+        hros = Head fire rate of spread (m/min)
         hfi = head fire intensity (kW/m)
 
         # Weather variables
@@ -2185,7 +2189,7 @@ def _testFBP(test_functions: list,
     :param out_request: Tuple or list of CFFBPS output variables
         # Default output variables
         fire_type = Type of fire predicted to occur (surface, intermittent crown, active crown)
-        hfros = Head fire rate of spread (m/min)
+        hros = Head fire rate of spread (m/min)
         hfi = head fire intensity (kW/m)
 
         # Weather variables
@@ -2312,7 +2316,7 @@ def _testFBP(test_functions: list,
         raster_data = {key: pr.getRaster(path).read() for key, path in raster_paths.items()}
 
         # Generate the output request
-        out_request = ['wsv', 'raz', 'fire_type', 'hfi', 'hfros', 'bros', 'ffc', 'wfc', 'sfc']
+        out_request = ['wsv', 'raz', 'fire_type', 'hfi', 'hros', 'bros', 'ffc', 'wfc', 'sfc']
 
         # Run the FBP modeling
         fbp.initialize(
@@ -2390,7 +2394,7 @@ def _testFBP(test_functions: list,
         # gcf_array = pr.getRaster(gcf_path).read()
 
         # Generate the output request
-        out_request = ['wsv', 'raz', 'fire_type', 'hfi', 'hfros', 'bros', 'ffc', 'wfc', 'sfc']
+        out_request = ['wsv', 'raz', 'fire_type', 'hfi', 'hros', 'bros', 'ffc', 'wfc', 'sfc']
 
         # Run the FBP multiprocessing
         fbp_multiprocess_result = fbpMultiprocessArray(
@@ -2445,7 +2449,7 @@ if __name__ == '__main__':
     _gcf = 80
     _d0 = None
     _dj = None
-    _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hfros', 'hfi', 'fire_type', 'fi_class']
+    _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hros', 'hfi', 'fire_type', 'fi_class']
     _out_folder = None
     _num_processors = 14
     _block_size = None
