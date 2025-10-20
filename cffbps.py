@@ -697,78 +697,78 @@ class FBP:
         self._verifyInputs()
 
         # Initialize weather parameters
-        self.isi = self.ref_array
-        self.m = self.ref_array
-        self.fF = self.ref_array
-        self.fW = self.ref_array
+        self.isi = self.ref_array.copy()
+        self.m = self.ref_array.copy()
+        self.fF = self.ref_array.copy()
+        self.fW = self.ref_array.copy()
 
         # Initialize slope effect parameters
-        self.a = self.ref_array
-        self.b = self.ref_array
-        self.c = self.ref_array
-        self.rsz = self.ref_array
-        self.isz = self.ref_array
-        self.sf = self.ref_array
-        self.rsf = self.ref_array
-        self.isf = self.ref_array
-        self.rsi = self.ref_array
-        self.wse1 = self.ref_array
-        self.wse2 = self.ref_array
-        self.wse = self.ref_array
-        self.wsx = self.ref_array
-        self.wsy = self.ref_array
-        self.wsv = self.ref_array
-        self.raz = self.ref_array
+        self.a = self.ref_array.copy()
+        self.b = self.ref_array.copy()
+        self.c = self.ref_array.copy()
+        self.rsz = self.ref_array.copy()
+        self.isz = self.ref_array.copy()
+        self.sf = self.ref_array.copy()
+        self.rsf = self.ref_array.copy()
+        self.isf = self.ref_array.copy()
+        self.rsi = self.ref_array.copy()
+        self.wse1 = self.ref_array.copy()
+        self.wse2 = self.ref_array.copy()
+        self.wse = self.ref_array.copy()
+        self.wsx = self.ref_array.copy()
+        self.wsy = self.ref_array.copy()
+        self.wsv = self.ref_array.copy()
+        self.raz = self.ref_array.copy()
 
         # Initialize BUI effect parameters
-        self.q = self.ref_array
-        self.bui0 = self.ref_array
-        self.be = self.ref_array
-        self.be_max = self.ref_array
+        self.q = self.ref_array.copy()
+        self.bui0 = self.ref_array.copy()
+        self.be = self.ref_array.copy()
+        self.be_max = self.ref_array.copy()
 
         # Initialize surface parameters
-        self.cf = self.ref_array
+        self.cf = self.ref_array.copy()
         self.ffc = np.full_like(self.ref_array, np.nan, dtype=np.float64)
         self.wfc = np.full_like(self.ref_array, np.nan, dtype=np.float64)
         self.sfc = np.full_like(self.ref_array, np.nan, dtype=np.float64)
-        self.rss = self.ref_array
+        self.rss = self.ref_array.copy()
 
         # Initialize foliar moisture content parameters
-        self.latn = self.ref_array
-        self.nd = self.ref_array
-        self.fmc = self.ref_array
-        self.fme = self.ref_array
+        self.latn = self.ref_array.copy()
+        self.nd = self.ref_array.copy()
+        self.fmc = self.ref_array.copy()
+        self.fme = self.ref_array.copy()
 
         # Initialize crown and total fuel consumed parameters
-        self.cbh = self.ref_array
-        self.csfi = self.ref_array
-        self.rso = self.ref_array
-        self.rsc = self.ref_array
-        self.cfb = self.ref_array
-        self.cfl = self.ref_array
-        self.cfc = self.ref_array
-        self.tfc = self.ref_array
+        self.cbh = self.ref_array.copy()
+        self.csfi = self.ref_array.copy()
+        self.rso = self.ref_array.copy()
+        self.rsc = self.ref_array.copy()
+        self.cfb = self.ref_array.copy()
+        self.cfl = self.ref_array.copy()
+        self.cfc = self.ref_array.copy()
+        self.tfc = self.ref_array.copy()
 
         # Initialize the backing fire rate of spread parameters
-        self.bfW = self.ref_array
-        self.brsi = self.ref_array
-        self.bisi = self.ref_array
-        self.bros = self.ref_array
+        self.bfW = self.ref_array.copy()
+        self.brsi = self.ref_array.copy()
+        self.bisi = self.ref_array.copy()
+        self.bros = self.ref_array.copy()
 
         # Initialize default CFFBPS output parameters
-        self.fire_type = self.ref_array
-        self.hros = self.ref_array
-        self.hfi = self.ref_array
+        self.fire_type = self.ref_array.copy()
+        self.hros = self.ref_array.copy()
+        self.hfi = self.ref_array.copy()
 
         # Initialize C-6 rate of spread parameters
-        self.sros = self.ref_array
-        self.cros = self.ref_array
+        self.sros = self.ref_array.copy()
+        self.cros = self.ref_array.copy()
 
         # Initialize point ignition acceleration parameter
-        self.accel_param = self.ref_array
+        self.accel_param = self.ref_array.copy()
 
         # Initialize fire intensity class parameter
-        self.fi_class = self.ref_int_array
+        self.fi_class = self.ref_int_array.copy()
 
         # List of required parameters
         required_params = [
