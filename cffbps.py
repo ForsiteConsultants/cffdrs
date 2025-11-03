@@ -351,12 +351,12 @@ class FBP:
                     first_array = converted_fuel_type.astype(np.int8)
 
                 self.ref_array = mask.array(
-                    [np.full(first_array.shape, 0, dtype=np.float64)],
+                    np.full(first_array.shape, 0, dtype=np.float64),
                     mask=np.isnan([first_array])
                 )
 
                 self.ref_int_array = mask.array(
-                    [np.full(first_array.shape, 0, dtype=np.int8)],
+                    np.full(first_array.shape, 0, dtype=np.int8),
                     mask=-99
                 )
         else:
@@ -963,7 +963,7 @@ class FBP:
         d1 = self.rosParams[8]
         d2 = self.rosParams[9]
 
-        for ftype in range(1, 21):
+        for ftype in mask.unique(ft):
             a_val, b_val, c_val, q_val, bui0_val, be_max_val = self.rosParams.get(ftype, (0, 0, 0, 0, 1, 1))
 
             ft_mask = (ft == ftype)
@@ -1050,22 +1050,22 @@ class FBP:
             )
         )
 
+        brsi_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.bisi), c2[2])
+        brsi_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.bisi), d1[2])
         self.brsi = mask.where(
             (ft == 12),
             (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
-            (1 - self.pdf / 100) * d1[0] * np.power(1 - np.exp(-d1[1] * self.bisi), d1[2]),
+            (1 - self.pdf / 100) * brsi_d1,
             mask.where(
                 (ft == 13),
                 (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
-                0.2 * (1 - self.pdf / 100) * d2[0] * np.power(1 - np.exp(-d2[1] * self.bisi), d2[2]),
+                0.2 * (1 - self.pdf / 100) * brsi_d1,
                 mask.where(
                     (ft == 11),
-                    (self.pc / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
-                    0.2 * (1 - self.pc / 100) * d2[0] * np.power(1 - np.exp(-d2[1] * self.bisi), d2[2]),
+                    (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
                     mask.where(
                         (ft == 10),
-                        (self.pc / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
-                        (1 - self.pc / 100) * d1[0] * np.power(1 - np.exp(-d1[1] * self.bisi), d1[2]),
+                        (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
                         mask.where(
                             o1_mask,
                             self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) * cf,
@@ -2288,7 +2288,7 @@ if __name__ == '__main__':
     _gcf = 80
     _d0 = None
     _dj = None
-    _out_request = ['wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hros', 'hfi', 'fire_type', 'fi_class']
+    _out_request = ['bros', 'wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hros', 'hfi', 'fire_type', 'fi_class']
     _out_folder = None
     _num_processors = 14
     _block_size = None

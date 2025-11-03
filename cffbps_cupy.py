@@ -847,22 +847,22 @@ class FBP:
             )
         )
 
+        brsi_c2 = c2[0] * cp.power(1 - cp.exp(-c2[1] * self.bisi), c2[2])
+        brsi_d1 = d1[0] * cp.power(1 - cp.exp(-d1[1] * self.bisi), d1[2])
         self.brsi = cp.where(
             (ft == 12),
-            (self.pdf / 100) * a * cp.power(1 - cp.exp(-b * self.bisi), c) +
-            (1 - self.pdf / 100) * d1[0] * cp.power(1 - cp.exp(-d1[1] * self.bisi), d1[2]),
+            (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
+            (1 - self.pdf / 100) * brsi_d1,
             cp.where(
                 (ft == 13),
-                (self.pdf / 100) * a * cp.power(1 - cp.exp(-b * self.bisi), c) +
-                0.2 * (1 - self.pdf / 100) * d2[0] * cp.power(1 - cp.exp(-d2[1] * self.bisi), d2[2]),
+                (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
+                0.2 * (1 - self.pdf / 100) * brsi_d1,
                 cp.where(
                     (ft == 11),
-                    (self.pc / 100) * a * cp.power(1 - cp.exp(-b * self.bisi), c) +
-                    0.2 * (1 - self.pc / 100) * d2[0] * cp.power(1 - cp.exp(-d2[1] * self.bisi), d2[2]),
+                    (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
                     cp.where(
                         (ft == 10),
-                        (self.pc / 100) * a * cp.power(1 - cp.exp(-b * self.bisi), c) +
-                        (1 - self.pc / 100) * d1[0] * cp.power(1 - cp.exp(-d1[1] * self.bisi), d1[2]),
+                        (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
                         cp.where(
                             o1_mask,
                             a * cp.power(1 - cp.exp(-b * self.bisi), c) * cf,
