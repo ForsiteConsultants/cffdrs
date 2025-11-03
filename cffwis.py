@@ -352,6 +352,7 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
              lat_adjust: bool = False) -> Union[float, np.ndarray]:
     """
     Function to calculate today's DMC per Van Wagner (1987).
+
     :param dmc0: yesterday's DMC value (unitless code)
     :param temp: today's temperature value (C)
     :param rh: today's relative humidity value (%)
