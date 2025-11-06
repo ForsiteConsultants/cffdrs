@@ -951,22 +951,19 @@ class FBP:
 
         :return: None
         """
-        ft = self.fuel_type
+        # Generate mixed-wood and grass masks
+        m12_mask = (self.fuel_type == 10) | (self.fuel_type == 11)
+        m34_mask = (self.fuel_type == 12) | (self.fuel_type == 13)
+        o1_mask = (self.fuel_type == 14) | (self.fuel_type == 15)
 
-        # Generate masks
-        m12_mask = (ft == 10) | (ft == 11)
-        m34_mask = (ft == 12) | (ft == 13)
-        o1_mask = (ft == 14) | (ft == 15)
-
-        # Precompute C2, D1 and D2 parameters
+        # Precompute C2 and D1 parameters
         c2 = self.rosParams[2]
         d1 = self.rosParams[8]
-        d2 = self.rosParams[9]
 
-        for ftype in mask.unique(ft):
+        # Assign fuel type specific parameters
+        for ftype in mask.unique(self.fuel_type[~self.fuel_type.mask]):
             a_val, b_val, c_val, q_val, bui0_val, be_max_val = self.rosParams.get(ftype, (0, 0, 0, 0, 1, 1))
-
-            ft_mask = (ft == ftype)
+            ft_mask = (self.fuel_type == ftype)
             self.a[ft_mask] = a_val
             self.b[ft_mask] = b_val
             self.c[ft_mask] = c_val
@@ -991,8 +988,8 @@ class FBP:
         # O1a/b
         rsz_o1 = rsz_core * cf
         # Final calculation
-        self.rsz = mask.where(ft == 10, rsz_m1, rsz_core)
-        self.rsz = mask.where(ft == 11, rsz_m2, self.rsz)
+        self.rsz = mask.where(self.fuel_type == 10, rsz_m1, rsz_core)
+        self.rsz = mask.where(self.fuel_type == 11, rsz_m2, self.rsz)
         self.rsz = mask.where(o1_mask, rsz_o1, self.rsz)
 
         # Compute RSF
@@ -1027,18 +1024,18 @@ class FBP:
         rsi_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.isi), c2[2])
         rsi_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.isi), d1[2])
         self.rsi = mask.where(
-            (ft == 12),  # M3
+            (self.fuel_type == 12),  # M3
             (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) +
             (1 - self.pdf / 100) * rsi_d1,
             mask.where(
-                (ft == 13),  # M4
+                (self.fuel_type == 13),  # M4
                 (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) +
                 0.2 * (1 - self.pdf / 100) * rsi_d1,
                 mask.where(
-                    (ft == 10),  # M1
+                    (self.fuel_type == 10),  # M1
                     (self.pc / 100) * rsi_c2 + (1 - self.pc / 100) * rsi_d1,
                     mask.where(
-                        (ft == 11),  # M2
+                        (self.fuel_type == 11),  # M2
                         (self.pc / 100) * rsi_c2 + 0.2 * (1 - self.pc / 100) * rsi_d1,
                         mask.where(
                             o1_mask,
@@ -1053,18 +1050,18 @@ class FBP:
         brsi_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.bisi), c2[2])
         brsi_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.bisi), d1[2])
         self.brsi = mask.where(
-            (ft == 12),
+            (self.fuel_type == 12),
             (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
             (1 - self.pdf / 100) * brsi_d1,
             mask.where(
-                (ft == 13),
+                (self.fuel_type == 13),
                 (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
                 0.2 * (1 - self.pdf / 100) * brsi_d1,
                 mask.where(
-                    (ft == 11),
+                    (self.fuel_type == 11),
                     (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
                     mask.where(
-                        (ft == 10),
+                        (self.fuel_type == 10),
                         (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
                         mask.where(
                             o1_mask,
@@ -1096,18 +1093,16 @@ class FBP:
 
         :return: None
         """
-        ft = self.fuel_type
-
         # Initialize hfros and bros
         self.hros = self.rsi * self.be
         self.bros = self.brsi * self.be
 
         # Special handling for C6 (fuel_type == 6)
-        is_c6 = ft == 6
+        is_c6 = self.fuel_type == 6
         self.sros = mask.where(is_c6, self.rsi * self.be, self.sros)
 
         # D2 correction: zero out if BUI < 70, then scale by 0.2
-        is_d2 = ft == 9
+        is_d2 = self.fuel_type == 9
         self.hros = mask.where(
             is_d2,
             mask.where(self.bui < 70, 0.0, self.hros * 0.2),
@@ -1118,7 +1113,7 @@ class FBP:
             mask.where(self.bui < 70, 0.0, self.bros * 0.2),
             self.bros
         )
-        del is_c6, is_d2, ft
+        del is_c6, is_d2
 
         return
 
@@ -1260,7 +1255,7 @@ class FBP:
                     raise ValueError('Only the C-6 fuel type can have the cfl value adjusted.')
             self.cfl[ftype_mask] = cfl
         else:
-            for ftype in mask.unique(self.fuel_type):
+            for ftype in mask.unique(self.fuel_type[~self.fuel_type.mask]):
                 ftype_mask = self.fuel_type == ftype
                 self.cbh[ftype_mask], self.cfl[ftype_mask] = self.fbpCBH_CFL_HT_LUT[ftype][:2]
 
