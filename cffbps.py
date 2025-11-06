@@ -395,7 +395,7 @@ class FBP:
         if self.convert_fuel_type_codes:
             self.fuel_type = convert_grid_codes(self.fuel_type)
 
-        # Apply an additional mask to remove fuel types that are not in the LUT dictionary
+        # Apply an additional mask to assign invalid fuel types as non-fuel (19)
         valid_fuel_types = fbpFTCode_NumToAlpha_LUT.keys()  # Get valid numeric codes
         invalid_mask = ~np.isin(self.fuel_type, list(valid_fuel_types))
         self.fuel_type = mask.where(invalid_mask, 19, self.fuel_type)
