@@ -859,7 +859,7 @@ def startupDC(dc_stop: Union[int, float, np.ndarray],
     :param moist_start: moisture value for the first day of FWI System calculations since overwintering (%)
     :param precip_ow: total precipitation throughout the overwintering period (mm)
     :param temp: today's temperature value (C)
-    :param month: the current month (e.g., 9, '09', 'September')
+    :param month: the current month (e.g., 5, '05', 'May')
     :param lat: latitude value (decimal degrees, e.g., 45.0)
     :param lat_adjust: whether to apply latitude-based daylength adjustment (default is False)
     :return: startup DC value (unitless code)
