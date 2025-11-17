@@ -1632,16 +1632,16 @@ class FBP:
         # Retrieve requested parameters
         if self.return_array:
             return [
-                fbp_params.get(var).data[0] if fbp_params.get(var).ndim > 3
+                fbp_params.get(var).data[0] if fbp_params.get(var, None) is not None and fbp_params.get(var).ndim > 3
                 else fbp_params.get(var).data if fbp_params.get(var, None) is not None
-                else 'Invalid output variable'
+                else np.nan
                 for var in out_request
             ]
         else:
             return [
-                fbp_params.get(var).item() if fbp_params.get(var).ndim == 0
-                else (fbp_params.get(var))[0].item() if fbp_params.get(var) is not None
-                else 'Invalid output variable'
+                fbp_params.get(var).item() if fbp_params.get(var, None) is not None and fbp_params.get(var).ndim == 0
+                else (fbp_params.get(var))[0].item() if fbp_params.get(var, None) is not None
+                else np.nan
                 for var in out_request
             ]
 
