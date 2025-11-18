@@ -898,30 +898,30 @@ class FBP:
         Vectorized slope and wind adjustment function for ISI and RSI.
         Uses NumPy masked arrays to compute slope-equivalent wind and directional vectors across all cells.
         """
-        # Calculate slope-equivalent wind speeds using two formulas
-        self.wse1 = (1 / 0.05039) * mask.log(self.isf / (0.208 * self.fF))
-        self.wse2 = mask.where(
-            self.isf < 0.999 * 2.496 * self.fF,
-            28 - (1 / 0.0818) * np.log(1 - (self.isf / (2.496 * self.fF))),
-            112.45  # cap maximum WSE
-        )
-
-        # Assign slope equivalent wind speed
-        self.wse = mask.where(self.wse1 <= 40, self.wse1, self.wse2)
-
-        # Compute directional components for wind and slope
-        sin_wd = mask.sin(np.radians(self.wd))
-        cos_wd = mask.cos(np.radians(self.wd))
-        sin_asp = mask.sin(np.radians(self.aspect))
-        cos_asp = mask.cos(np.radians(self.aspect))
-
-        # Net wind vectors
-        self.wsx = self.ws * sin_wd + self.wse * sin_asp
-        self.wsy = self.ws * cos_wd + self.wse * cos_asp
-        self.wsv = mask.sqrt(self.wsx ** 2 + self.wsy ** 2)
-
-        # Wind azimuth calculation (RAZ)
         with np.errstate(invalid='ignore', divide='ignore'):
+            # Calculate slope-equivalent wind speeds using two formulas
+            self.wse1 = (1 / 0.05039) * mask.log(self.isf / (0.208 * self.fF))
+            self.wse2 = mask.where(
+                self.isf < 0.999 * 2.496 * self.fF,
+                28 - (1 / 0.0818) * np.log(1 - (self.isf / (2.496 * self.fF))),
+                112.45  # cap maximum WSE
+            )
+
+            # Assign slope equivalent wind speed
+            self.wse = mask.where(self.wse1 <= 40, self.wse1, self.wse2)
+
+            # Compute directional components for wind and slope
+            sin_wd = mask.sin(np.radians(self.wd))
+            cos_wd = mask.cos(np.radians(self.wd))
+            sin_asp = mask.sin(np.radians(self.aspect))
+            cos_asp = mask.cos(np.radians(self.aspect))
+
+            # Net wind vectors
+            self.wsx = self.ws * sin_wd + self.wse * sin_asp
+            self.wsy = self.ws * cos_wd + self.wse * cos_asp
+            self.wsv = mask.sqrt(self.wsx ** 2 + self.wsy ** 2)
+
+            # Wind azimuth calculation (RAZ)
             acos_val = mask.clip(self.wsy / self.wsv, -1, 1)
             angle_rad = mask.arccos(acos_val)
             self.raz = mask.where(
@@ -930,18 +930,17 @@ class FBP:
                 np.degrees(angle_rad)
             )
 
-        # Compute head fire and backfire wind function
-        self.fW = mask.where(
-            self.wsv > 40,
-            12 * (1 - np.exp(-0.0818 * (self.wsv - 28))),
-            np.exp(0.05039 * self.wsv)
-        )
-        self.bfW = mask.exp(-0.05039 * self.wsv)
+            # Compute head fire and backfire wind function
+            self.fW = mask.where(
+                self.wsv > 40,
+                12 * (1 - np.exp(-0.0818 * (self.wsv - 28))),
+                np.exp(0.05039 * self.wsv)
+            )
+            self.bfW = mask.exp(-0.05039 * self.wsv)
 
-        # Final head fire and backfire ISI
-        self.isi = 0.208 * self.fF * self.fW
-        self.bisi = 0.208 * self.fF * self.bfW
-
+            # Final head fire and backfire ISI
+            self.isi = 0.208 * self.fF * self.fW
+            self.bisi = 0.208 * self.fF * self.bfW
         return
 
     def calcISI_RSI_BE(self) -> None:
@@ -951,130 +950,128 @@ class FBP:
 
         :return: None
         """
-        # Generate mixed-wood and grass masks
-        m12_mask = (self.fuel_type == 10) | (self.fuel_type == 11)
-        m34_mask = (self.fuel_type == 12) | (self.fuel_type == 13)
-        o1_mask = (self.fuel_type == 14) | (self.fuel_type == 15)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # Generate mixed-wood and grass masks
+            m12_mask = (self.fuel_type == 10) | (self.fuel_type == 11)
+            m34_mask = (self.fuel_type == 12) | (self.fuel_type == 13)
+            o1_mask = (self.fuel_type == 14) | (self.fuel_type == 15)
 
-        # Precompute C2 and D1 parameters
-        c2 = self.rosParams[2]
-        d1 = self.rosParams[8]
+            # Precompute C2 and D1 parameters
+            c2 = self.rosParams[2]
+            d1 = self.rosParams[8]
 
-        # Assign fuel type specific parameters
-        for ftype in mask.unique(self.fuel_type[~self.fuel_type.mask]):
-            a_val, b_val, c_val, q_val, bui0_val, be_max_val = self.rosParams.get(ftype, (0, 0, 0, 0, 1, 1))
-            ft_mask = (self.fuel_type == ftype)
-            self.a[ft_mask] = a_val
-            self.b[ft_mask] = b_val
-            self.c[ft_mask] = c_val
-            self.q[ft_mask] = q_val
-            self.bui0[ft_mask] = bui0_val
-            self.be_max[ft_mask] = be_max_val
+            # Assign fuel type specific parameters
+            for ftype in mask.unique(self.fuel_type[~self.fuel_type.mask]):
+                a_val, b_val, c_val, q_val, bui0_val, be_max_val = self.rosParams.get(ftype, (0, 0, 0, 0, 1, 1))
+                ft_mask = (self.fuel_type == ftype)
+                self.a[ft_mask] = a_val
+                self.b[ft_mask] = b_val
+                self.c[ft_mask] = c_val
+                self.q[ft_mask] = q_val
+                self.bui0[ft_mask] = bui0_val
+                self.be_max[ft_mask] = be_max_val
 
-        # Handle O1a/b (ftype 14 and 15) curing factor logic
-        cf = mask.where(
-            self.gcf < 58.8,
-            0.005 * (np.exp(0.061 * self.gcf) - 1),
-            0.176 + 0.02 * (self.gcf - 58.8)
-        )
+            # Handle O1a/b (ftype 14 and 15) curing factor logic
+            cf = mask.where(
+                self.gcf < 58.8,
+                0.005 * (np.exp(0.061 * self.gcf) - 1),
+                0.176 + 0.02 * (self.gcf - 58.8)
+            )
 
-        # Compute RSZ
-        rsz_core = self.a * np.power(1 - np.exp(-self.b * self.isz), self.c)
-        # M1/2
-        rsz_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.isz), c2[2])
-        rsz_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.isz), d1[2])
-        rsz_m1 = (self.pc / 100) * rsz_c2 + (1 - self.pc / 100) * rsz_d1
-        rsz_m2 = (self.pc / 100) * rsz_c2 + 0.2 * (1 - self.pc / 100) * rsz_d1
-        # O1a/b
-        rsz_o1 = rsz_core * cf
-        # Final calculation
-        self.rsz = mask.where(self.fuel_type == 10, rsz_m1, rsz_core)
-        self.rsz = mask.where(self.fuel_type == 11, rsz_m2, self.rsz)
-        self.rsz = mask.where(o1_mask, rsz_o1, self.rsz)
+            # Compute RSZ
+            rsz_core = self.a * np.power(1 - np.exp(-self.b * self.isz), self.c)
+            # M1/2
+            rsz_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.isz), c2[2])
+            rsz_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.isz), d1[2])
+            rsz_m1 = (self.pc / 100) * rsz_c2 + (1 - self.pc / 100) * rsz_d1
+            rsz_m2 = (self.pc / 100) * rsz_c2 + 0.2 * (1 - self.pc / 100) * rsz_d1
+            # O1a/b
+            rsz_o1 = rsz_core * cf
+            # Final calculation
+            self.rsz = mask.where(self.fuel_type == 10, rsz_m1, rsz_core)
+            self.rsz = mask.where(self.fuel_type == 11, rsz_m2, self.rsz)
+            self.rsz = mask.where(o1_mask, rsz_o1, self.rsz)
 
-        # Compute RSF
-        rsf_c2 = rsz_c2 * self.sf
-        rsf_d1 = rsz_d1 * self.sf
-        self.rsf = self.rsz * self.sf
+            # Compute RSF
+            rsf_c2 = rsz_c2 * self.sf
+            rsf_d1 = rsz_d1 * self.sf
+            self.rsf = self.rsz * self.sf
 
-        # Compute ISF for M1/2 & M3/4 blending logic
-        isf_c2_numer = 1 - np.power(rsf_c2 / c2[0], 1 / c2[2])
-        isf_d1_numer = 1 - np.power(rsf_d1 / d1[0], 1 / d1[2])
-        isf_m34_numer = 1 - np.power(self.rsf / self.a, 1 / self.c)
-        isf_c2_core = mask.where(isf_c2_numer >= 0.01, np.log(isf_c2_numer) / -c2[1], np.log(0.01) / -c2[1])
-        isf_d1_core = mask.where(isf_d1_numer >= 0.01, np.log(isf_d1_numer) / -d1[1], np.log(0.01) / -d1[1])
-        with np.errstate(divide='ignore'):
+            # Compute ISF for M1/2 & M3/4 blending logic
+            isf_c2_numer = 1 - np.power(rsf_c2 / c2[0], 1 / c2[2])
+            isf_d1_numer = 1 - np.power(rsf_d1 / d1[0], 1 / d1[2])
+            isf_m34_numer = 1 - np.power(self.rsf / self.a, 1 / self.c)
+            isf_c2_core = mask.where(isf_c2_numer >= 0.01, np.log(isf_c2_numer) / -c2[1], np.log(0.01) / -c2[1])
+            isf_d1_core = mask.where(isf_d1_numer >= 0.01, np.log(isf_d1_numer) / -d1[1], np.log(0.01) / -d1[1])
             isf_m34_core = mask.where(isf_m34_numer >= 0.01, np.log(isf_m34_numer) / -self.b, np.log(0.01) / -self.b)
             isf_blended_m12 = (self.pc / 100) * isf_c2_core + (1 - self.pc / 100) * isf_d1_core
             isf_blended_m34 = (self.pdf / 100) * isf_m34_core + (1 - self.pdf / 100) * isf_d1_core
 
-        # Compute ISF
-        isf_numer = mask.where(o1_mask,
-                               1 - np.power(self.rsf / (self.a * cf), 1 / self.c),
-                               1 - np.power(self.rsf / self.a, 1 / self.c))
-        with np.errstate(divide='ignore'):
+            # Compute ISF
+            isf_numer = mask.where(o1_mask,
+                                   1 - np.power(self.rsf / (self.a * cf), 1 / self.c),
+                                   1 - np.power(self.rsf / self.a, 1 / self.c))
             isf_final = mask.where(isf_numer >= 0.01, np.log(isf_numer) / -self.b, np.log(0.01) / -self.b)
-        self.isf = mask.where(m12_mask, isf_blended_m12, isf_final)
-        self.isf = mask.where(m34_mask, isf_blended_m34, self.isf)
+            self.isf = mask.where(m12_mask, isf_blended_m12, isf_final)
+            self.isf = mask.where(m34_mask, isf_blended_m34, self.isf)
 
-        # Wind and slope adjusted ISI
-        self._calcISI_slopeWind_vectorized()
+            # Wind and slope adjusted ISI
+            self._calcISI_slopeWind_vectorized()
 
-        # Final RSI and BRSI
-        rsi_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.isi), c2[2])
-        rsi_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.isi), d1[2])
-        self.rsi = mask.where(
-            (self.fuel_type == 12),  # M3
-            (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) +
-            (1 - self.pdf / 100) * rsi_d1,
-            mask.where(
-                (self.fuel_type == 13),  # M4
+            # Final RSI and BRSI
+            rsi_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.isi), c2[2])
+            rsi_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.isi), d1[2])
+            self.rsi = mask.where(
+                (self.fuel_type == 12),  # M3
                 (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) +
-                0.2 * (1 - self.pdf / 100) * rsi_d1,
+                (1 - self.pdf / 100) * rsi_d1,
                 mask.where(
-                    (self.fuel_type == 10),  # M1
-                    (self.pc / 100) * rsi_c2 + (1 - self.pc / 100) * rsi_d1,
+                    (self.fuel_type == 13),  # M4
+                    (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) +
+                    0.2 * (1 - self.pdf / 100) * rsi_d1,
                     mask.where(
-                        (self.fuel_type == 11),  # M2
-                        (self.pc / 100) * rsi_c2 + 0.2 * (1 - self.pc / 100) * rsi_d1,
+                        (self.fuel_type == 10),  # M1
+                        (self.pc / 100) * rsi_c2 + (1 - self.pc / 100) * rsi_d1,
                         mask.where(
-                            o1_mask,
-                            self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) * cf,
-                            self.a * np.power(1 - np.exp(-self.b * self.isi), self.c)
+                            (self.fuel_type == 11),  # M2
+                            (self.pc / 100) * rsi_c2 + 0.2 * (1 - self.pc / 100) * rsi_d1,
+                            mask.where(
+                                o1_mask,
+                                self.a * np.power(1 - np.exp(-self.b * self.isi), self.c) * cf,
+                                self.a * np.power(1 - np.exp(-self.b * self.isi), self.c)
+                            )
                         )
                     )
                 )
             )
-        )
 
-        brsi_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.bisi), c2[2])
-        brsi_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.bisi), d1[2])
-        self.brsi = mask.where(
-            (self.fuel_type == 12),
-            (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
-            (1 - self.pdf / 100) * brsi_d1,
-            mask.where(
-                (self.fuel_type == 13),
+            brsi_c2 = c2[0] * np.power(1 - np.exp(-c2[1] * self.bisi), c2[2])
+            brsi_d1 = d1[0] * np.power(1 - np.exp(-d1[1] * self.bisi), d1[2])
+            self.brsi = mask.where(
+                (self.fuel_type == 12),
                 (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
-                0.2 * (1 - self.pdf / 100) * brsi_d1,
+                (1 - self.pdf / 100) * brsi_d1,
                 mask.where(
-                    (self.fuel_type == 11),
-                    (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
+                    (self.fuel_type == 13),
+                    (self.pdf / 100) * self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) +
+                    0.2 * (1 - self.pdf / 100) * brsi_d1,
                     mask.where(
-                        (self.fuel_type == 10),
-                        (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
+                        (self.fuel_type == 11),
+                        (self.pc / 100) * brsi_c2 + 0.2 * (1 - self.pc / 100) * brsi_d1,
                         mask.where(
-                            o1_mask,
-                            self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) * cf,
-                            self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c)
+                            (self.fuel_type == 10),
+                            (self.pc / 100) * brsi_c2 + (1 - self.pc / 100) * brsi_d1,
+                            mask.where(
+                                o1_mask,
+                                self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c) * cf,
+                                self.a * np.power(1 - np.exp(-self.b * self.bisi), self.c)
+                            )
                         )
                     )
                 )
             )
-        )
 
-        # Compute BE and clip
-        with np.errstate(divide='ignore', invalid='ignore'):
+            # Compute BE and clip
             raw_be = mask.where(self.bui == 0,
                               0.0,
                               mask.where(self.bui0 == 0,
@@ -1082,7 +1079,7 @@ class FBP:
                                        np.exp(50 * np.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))
                                        )
                               )
-        self.be = mask.clip(raw_be, 0, self.be_max)
+            self.be = mask.clip(raw_be, 0, self.be_max)
         return
 
     def calcROS(self) -> None:
