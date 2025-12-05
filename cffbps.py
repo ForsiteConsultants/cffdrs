@@ -820,14 +820,15 @@ class FBP:
         Function to calculate the initial spread index with no wind/no slope effects
         :return: None
         """
-        # Calculate fine fuel moisture content in percent (default CFFBPS equation)
-        self.m = (250 * (59.5 / 101) * (101 - self.ffmc)) / (59.5 + self.ffmc)
+        with np.errstate(invalid='ignore'):
+            # Calculate fine fuel moisture content in percent (default CFFBPS equation)
+            self.m = (250 * (59.5 / 101) * (101 - self.ffmc)) / (59.5 + self.ffmc)
 
-        # Calculate the FFMC function from ISI equation (fF)
-        self.fF = (91.9 * np.exp(-0.1386 * self.m)) * (1 + (np.power(self.m, 5.31) / (4.93 * np.power(10, 7))))
+            # Calculate the FFMC function from ISI equation (fF)
+            self.fF = (91.9 * np.exp(-0.1386 * self.m)) * (1 + (np.power(self.m, 5.31) / (4.93 * np.power(10, 7))))
 
-        # Calculate no slope/no wind Initial Spread Index
-        self.isz = 0.208 * self.fF
+            # Calculate no slope/no wind Initial Spread Index
+            self.isz = 0.208 * self.fF
 
         return
 
@@ -1120,103 +1121,103 @@ class FBP:
             and total surface fuel consumption (SFC) for all fuel types using a masked approach.
             :return: None
             """
-            # FFC, WFC, SFC default to nan
-            ffc = np.full_like(self.ffc, np.nan, dtype=np.float64)
-            wfc = np.full_like(self.wfc, np.nan, dtype=np.float64)
-            sfc = np.full_like(self.sfc, np.nan, dtype=np.float64)
 
-            # ftype == 1
-            mask1 = self.fuel_type == 1
-            np.seterr(invalid='ignore', over='ignore')
-            sfc1 = np.where(self.ffmc > 84,
-                            0.75 + 0.75 * np.sqrt(1 - np.exp(-0.23 * (self.ffmc - 84))),
-                            0.75 - 0.75 * np.sqrt(1 - np.exp(0.23 * (self.ffmc - 84))))
-            np.seterr(invalid='warn', over='warn')
-            sfc = np.where(mask1, sfc1, sfc)
+            with np.errstate(invalid='ignore', over='ignore'):
+                # FFC, WFC, SFC default to nan
+                ffc = np.full_like(self.ffc, np.nan, dtype=np.float64)
+                wfc = np.full_like(self.wfc, np.nan, dtype=np.float64)
+                sfc = np.full_like(self.sfc, np.nan, dtype=np.float64)
 
-            # ftype == 2
-            mask2 = self.fuel_type == 2
-            sfc2 = 5 * (1 - np.exp(-0.0115 * self.bui))
-            sfc = np.where(mask2, sfc2, sfc)
+                # ftype == 1
+                mask1 = self.fuel_type == 1
+                sfc1 = np.where(self.ffmc > 84,
+                                0.75 + 0.75 * np.sqrt(1 - np.exp(-0.23 * (self.ffmc - 84))),
+                                0.75 - 0.75 * np.sqrt(1 - np.exp(0.23 * (self.ffmc - 84))))
+                sfc = np.where(mask1, sfc1, sfc)
 
-            # ftype in [3, 4]
-            mask34 = np.isin(self.fuel_type, [3, 4])
-            sfc34 = 5 * np.power(1 - np.exp(-0.0164 * self.bui), 2.24)
-            sfc = np.where(mask34, sfc34, sfc)
+                # ftype == 2
+                mask2 = self.fuel_type == 2
+                sfc2 = 5 * (1 - np.exp(-0.0115 * self.bui))
+                sfc = np.where(mask2, sfc2, sfc)
 
-            # ftype in [5, 6]
-            mask56 = np.isin(self.fuel_type, [5, 6])
-            sfc56 = 5 * np.power(1 - np.exp(-0.0149 * self.bui), 2.48)
-            sfc = np.where(mask56, sfc56, sfc)
+                # ftype in [3, 4]
+                mask34 = np.isin(self.fuel_type, [3, 4])
+                sfc34 = 5 * np.power(1 - np.exp(-0.0164 * self.bui), 2.24)
+                sfc = np.where(mask34, sfc34, sfc)
 
-            # ftype == 7
-            mask7 = self.fuel_type == 7
-            ffc7 = 2 * (1 - np.exp(-0.104 * (self.ffmc - 70)))
-            ffc7 = np.where(ffc7 < 0, 0, ffc7)
-            wfc7 = 1.5 * (1 - np.exp(-0.0201 * self.bui))
-            sfc7 = ffc7 + wfc7
-            ffc = np.where(mask7, ffc7, ffc)
-            wfc = np.where(mask7, wfc7, wfc)
-            sfc = np.where(mask7, sfc7, sfc)
+                # ftype in [5, 6]
+                mask56 = np.isin(self.fuel_type, [5, 6])
+                sfc56 = 5 * np.power(1 - np.exp(-0.0149 * self.bui), 2.48)
+                sfc = np.where(mask56, sfc56, sfc)
 
-            # ftype in [8, 9]
-            mask89 = np.isin(self.fuel_type, [8, 9])
-            sfc89 = 1.5 * (1 - np.exp(-0.0183 * self.bui))
-            sfc = np.where(mask89, sfc89, sfc)
+                # ftype == 7
+                mask7 = self.fuel_type == 7
+                ffc7 = 2 * (1 - np.exp(-0.104 * (self.ffmc - 70)))
+                ffc7 = np.where(ffc7 < 0, 0, ffc7)
+                wfc7 = 1.5 * (1 - np.exp(-0.0201 * self.bui))
+                sfc7 = ffc7 + wfc7
+                ffc = np.where(mask7, ffc7, ffc)
+                wfc = np.where(mask7, wfc7, wfc)
+                sfc = np.where(mask7, sfc7, sfc)
 
-            # ftype in [10, 11]
-            mask1011 = np.isin(self.fuel_type, [10, 11])
-            c2_sfc = 5 * (1 - np.exp(-0.0115 * self.bui))
-            d1_sfc = 1.5 * (1 - np.exp(-0.0183 * self.bui))
-            sfc1011 = ((self.pc / 100) * c2_sfc) + (((100 - self.pc) / 100) * d1_sfc)
-            sfc = np.where(mask1011, sfc1011, sfc)
+                # ftype in [8, 9]
+                mask89 = np.isin(self.fuel_type, [8, 9])
+                sfc89 = 1.5 * (1 - np.exp(-0.0183 * self.bui))
+                sfc = np.where(mask89, sfc89, sfc)
 
-            # ftype in [12, 13]
-            mask1213 = np.isin(self.fuel_type, [12, 13])
-            sfc1213 = 5 * (1 - np.exp(-0.0115 * self.bui))
-            sfc = np.where(mask1213, sfc1213, sfc)
+                # ftype in [10, 11]
+                mask1011 = np.isin(self.fuel_type, [10, 11])
+                c2_sfc = 5 * (1 - np.exp(-0.0115 * self.bui))
+                d1_sfc = 1.5 * (1 - np.exp(-0.0183 * self.bui))
+                sfc1011 = ((self.pc / 100) * c2_sfc) + (((100 - self.pc) / 100) * d1_sfc)
+                sfc = np.where(mask1011, sfc1011, sfc)
 
-            # ftype in [14, 15]
-            mask1415 = np.isin(self.fuel_type, [14, 15])
-            sfc = np.where(mask1415, self.gfl, sfc)
+                # ftype in [12, 13]
+                mask1213 = np.isin(self.fuel_type, [12, 13])
+                sfc1213 = 5 * (1 - np.exp(-0.0115 * self.bui))
+                sfc = np.where(mask1213, sfc1213, sfc)
 
-            # ftype == 16
-            mask16 = self.fuel_type == 16
-            ffc16 = 4 * (1 - np.exp(-0.025 * self.bui))
-            wfc16 = 4 * (1 - np.exp(-0.034 * self.bui))
-            sfc16 = ffc16 + wfc16
-            ffc = np.where(mask16, ffc16, ffc)
-            wfc = np.where(mask16, wfc16, wfc)
-            sfc = np.where(mask16, sfc16, sfc)
+                # ftype in [14, 15]
+                mask1415 = np.isin(self.fuel_type, [14, 15])
+                sfc = np.where(mask1415, self.gfl, sfc)
 
-            # ftype == 17
-            mask17 = self.fuel_type == 17
-            ffc17 = 10 * (1 - np.exp(-0.013 * self.bui))
-            wfc17 = 6 * (1 - np.exp(-0.06 * self.bui))
-            sfc17 = ffc17 + wfc17
-            ffc = np.where(mask17, ffc17, ffc)
-            wfc = np.where(mask17, wfc17, wfc)
-            sfc = np.where(mask17, sfc17, sfc)
+                # ftype == 16
+                mask16 = self.fuel_type == 16
+                ffc16 = 4 * (1 - np.exp(-0.025 * self.bui))
+                wfc16 = 4 * (1 - np.exp(-0.034 * self.bui))
+                sfc16 = ffc16 + wfc16
+                ffc = np.where(mask16, ffc16, ffc)
+                wfc = np.where(mask16, wfc16, wfc)
+                sfc = np.where(mask16, sfc16, sfc)
 
-            # ftype == 18
-            mask18 = self.fuel_type == 18
-            ffc18 = 12 * (1 - np.exp(-0.0166 * self.bui))
-            wfc18 = 20 * (1 - np.exp(-0.021 * self.bui))
-            sfc18 = ffc18 + wfc18
-            ffc = np.where(mask18, ffc18, ffc)
-            wfc = np.where(mask18, wfc18, wfc)
-            sfc = np.where(mask18, sfc18, sfc)
+                # ftype == 17
+                mask17 = self.fuel_type == 17
+                ffc17 = 10 * (1 - np.exp(-0.013 * self.bui))
+                wfc17 = 6 * (1 - np.exp(-0.06 * self.bui))
+                sfc17 = ffc17 + wfc17
+                ffc = np.where(mask17, ffc17, ffc)
+                wfc = np.where(mask17, wfc17, wfc)
+                sfc = np.where(mask17, sfc17, sfc)
 
-            # ftype == 19 or 20 or unknown
-            mask1920 = np.isin(self.fuel_type, [19, 20])
-            ffc = np.where(mask1920, np.nan, ffc)
-            wfc = np.where(mask1920, np.nan, wfc)
-            sfc = np.where(mask1920, np.nan, sfc)
+                # ftype == 18
+                mask18 = self.fuel_type == 18
+                ffc18 = 12 * (1 - np.exp(-0.0166 * self.bui))
+                wfc18 = 20 * (1 - np.exp(-0.021 * self.bui))
+                sfc18 = ffc18 + wfc18
+                ffc = np.where(mask18, ffc18, ffc)
+                wfc = np.where(mask18, wfc18, wfc)
+                sfc = np.where(mask18, sfc18, sfc)
 
-            # Assign FFC, WFC, SFC as masked arrays
-            self.ffc = mask.array(ffc, mask=np.isnan(ffc))
-            self.wfc = mask.array(wfc, mask=np.isnan(wfc))
-            self.sfc = mask.array(sfc, mask=np.isnan(sfc))
+                # ftype == 19 or 20 or unknown
+                mask1920 = np.isin(self.fuel_type, [19, 20])
+                ffc = np.where(mask1920, np.nan, ffc)
+                wfc = np.where(mask1920, np.nan, wfc)
+                sfc = np.where(mask1920, np.nan, sfc)
+
+                # Assign FFC, WFC, SFC as masked arrays
+                self.ffc = mask.array(ffc, mask=np.isnan(ffc))
+                self.wfc = mask.array(wfc, mask=np.isnan(wfc))
+                self.sfc = mask.array(sfc, mask=np.isnan(sfc))
 
             return
 
