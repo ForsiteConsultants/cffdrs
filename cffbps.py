@@ -1651,7 +1651,7 @@ class FBP:
                 for var in out_request
             ]
 
-    def runFBP(self, block: Optional[np.ndarray] = None) -> list[any]:
+    def runFBP(self, block: Optional[np.ndarray] = None) -> list:
         """
         Function to automatically run CFFBPS modelling.
 
