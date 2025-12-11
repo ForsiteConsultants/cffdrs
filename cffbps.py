@@ -1568,6 +1568,8 @@ class FBP:
             'm': self.m,  # Moisture content equivalent of the FFMC (%, value from 0-100+)
             'fF': self.fF,  # Fine fuel moisture function in the ISI
             'fW': self.fW,  # Wind function in the ISI
+            'ffmc': self.ffmc,  # Fine fuel moisture code
+            'bui': self.bui,  # Build-up index
             'isi': self.isi,  # Final ISI, accounting for wind and slope
 
             # Slope + wind effect variables
