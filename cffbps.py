@@ -64,6 +64,14 @@ fbpFTCode_AlphaToNum_LUT = {
     'WA': 20,  # WA (water)
 }
 
+# List of valid CFFBPS output parameters
+valid_outputs = [
+    'fire_type', 'hros', 'fuel_type', 'ws', 'wd', 'm', 'fF', 'fW', 'ffmc', 'bui', 'isi',
+    'a', 'b', 'c', 'rsz', 'sf', 'rsf', 'isf', 'rsi', 'wse1', 'wse2', 'wse', 'wsx', 'wsy', 'wsv', 'raz',
+    'q', 'bui0', 'be', 'be_max', 'ffc', 'wfc', 'sfc', 'latn', 'dj', 'd0', 'nd', 'fmc', 'fme',
+    'csfi', 'rso', 'bfw', 'bisi', 'cbh', 'cfb', 'cfl', 'cfc', 'tfc', 'accel', 'fi_class'
+]
+
 
 def convert_grid_codes(fuel_type_array: np.ndarray) -> np.ndarray:
     """
