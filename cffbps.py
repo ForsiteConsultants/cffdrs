@@ -1545,7 +1545,7 @@ class FBP:
                     setattr(self, key, mask.array([value], mask=np.isnan([value])))
         return
 
-    def getParams(self, out_request: list[str]) -> list[any]:
+    def getParams(self, out_request: list[str]) -> list:
         """
         Function to output requested dataset parameters from the FBP class.
 
