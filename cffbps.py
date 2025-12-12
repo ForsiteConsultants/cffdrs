@@ -644,7 +644,7 @@ class FBP:
             ISF = ISI, with zero wind upslope
             RSI = Initial spread rate without BUI effect
             WSE1 = Original slope equivalent wind speed value
-            WSE2 = New slope equivalent sind speed value for cases where WSE1 > 40 (capped at max of 112.45)
+            WSE2 = New slope equivalent wind speed value for cases where WSE1 > 40 (capped at max of 112.45)
             WSE = Slope equivalent wind speed
             WSX = Net vectorized wind speed in the x-direction
             WSY = Net vectorized wind speed in the y-direction
@@ -1600,7 +1600,7 @@ class FBP:
             'isf': self.isf,  # ISI, with zero wind upslope
             'rsi': self.rsi,  # Initial spread rate without BUI effect
             'wse1': self.wse1,  # Original slope equivalent wind speed value for cases where WSE1 <= 40
-            'wse2': self.wse2,  # New slope equivalent sind speed value for cases where WSE1 > 40
+            'wse2': self.wse2,  # New slope equivalent wind speed value for cases where WSE1 > 40
             'wse': self.wse,  # Slope equivalent wind speed
             'wsx': self.wsx,  # Net vectorized wind speed in the x-direction
             'wsy': self.wsy,  # Net vectorized wind speed in the y-direction
@@ -1876,7 +1876,7 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
         ISF = ISI, with zero wind upslope
         RSI = Initial spread rate without BUI effect
         WSE1 = Original slope equivalent wind speed value
-        WSE2 = New slope equivalent sind speed value for cases where WSE1 > 40 (capped at max of 112.45)
+        WSE2 = New slope equivalent wind speed value for cases where WSE1 > 40 (capped at max of 112.45)
         WSE = Slope equivalent wind speed
         WSX = Net vectorized wind speed in the x-direction
         WSY = Net vectorized wind speed in the y-direction
@@ -2070,7 +2070,7 @@ def _testFBP(test_functions: list,
         ISF = ISI, with zero wind upslope
         RSI = Initial spread rate without BUI effect
         WSE1 = Original slope equivalent wind speed value
-        WSE2 = New slope equivalent sind speed value for cases where WSE1 > 40 (capped at max of 112.45)
+        WSE2 = New slope equivalent wind speed value for cases where WSE1 > 40 (capped at max of 112.45)
         WSE = Slope equivalent wind speed
         WSX = Net vectorized wind speed in the x-direction
         WSY = Net vectorized wind speed in the y-direction
