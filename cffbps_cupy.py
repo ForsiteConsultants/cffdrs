@@ -31,6 +31,14 @@ fbpFTCode_AlphaToNum_LUT = {
     'NF': 19, 'WA': 20
 }
 
+# List of valid CFFBPS output parameters
+valid_outputs = [
+    'fire_type', 'hros', 'hfi', 'fuel_type', 'ws', 'wd', 'm', 'fF', 'fW', 'ffmc', 'bui', 'isi',
+    'a', 'b', 'c', 'rsz', 'sf', 'rsf', 'isf', 'rsi', 'wse1', 'wse2', 'wse', 'wsx', 'wsy', 'wsv', 'raz',
+    'q', 'bui0', 'be', 'be_max', 'ffc', 'wfc', 'sfc', 'latn', 'dj', 'd0', 'nd', 'fmc', 'fme',
+    'csfi', 'rso', 'bfw', 'bisi', 'bros', 'sros', 'cros', 'cbh', 'cfb', 'cfl', 'cfc', 'tfc', 'accel', 'fi_class'
+]
+
 
 def convert_grid_codes(fuel_type_array: cp.ndarray) -> cp.ndarray:
     """
@@ -428,7 +436,9 @@ class FBP:
             m = Moisture content equivalent of the FFMC (%, value from 0-100+)
             fF = Fine fuel moisture function in the ISI
             fW = Wind function in the ISI
-            isi = Final ISI, accounting for wind and slope
+            ffmc = Fine Fuel Moisture Code
+            bui = Buildup Index
+            isi = Final calculated ISI, accounting for wind and slope
 
             # Slope + wind effect variables
             a = Rate of spread equation coefficient
@@ -473,10 +483,16 @@ class FBP:
             cbh = Height to live crown base (m)
             cfb = Crown fraction burned (proportion, value ranging from 0-1)
             cfl = Crown fuel load (kg/m^2)
-            cfc = Crown fuel consumed
+            cfc = Crown fuel consumed (kg/m^2)
 
-            # Total fuel variables
-            tfc = Estimated total fuel consumption
+            # Final fuel parameters
+            tfc = Total fuel consumed
+
+            # Acceleration parameter
+            accel = Acceleration parameter for point source ignition
+
+            # Fire Intensity Class parameter
+            fi_class = Fire intensity class (1-6)
 
         :param convert_fuel_type_codes: Convert from CFS cffdrs R fuel type grid codes
             to the grid codes used in this module.
@@ -1378,9 +1394,11 @@ class FBP:
             'ws': self.ws,  # Observed wind speed (km/h)
             'wd': self.wd,  # Wind azimuth/direction (degrees)
             'm': self.m,  # Moisture content equivalent of the FFMC (%, value from 0-100+)
-            'fF': self.fF,  # Fine fuel moisture function in the ISI
-            'fW': self.fW,  # Wind function in the ISI
-            'isi': self.isi,  # Final ISI, accounting for wind and slope
+            'fF': self.fF,  # Fine fuel moisture function in the ISI equation
+            'fW': self.fW,  # Wind function in the ISI equation
+            'ffmc': self.ffmc,  # Fine fuel moisture code
+            'bui': self.bui,  # Build-up index
+            'isi': self.isi,  # Final calculated ISI, accounting for wind and slope
 
             # Slope + wind effect variables
             'a': self.a,  # Rate of spread equation coefficient
