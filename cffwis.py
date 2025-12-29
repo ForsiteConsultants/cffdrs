@@ -8,6 +8,7 @@ __author__ = ['Gregory A. Greene, map.n.trowel@gmail.com']
 
 import numpy as np
 from typing import Union
+import warnings
 
 # Month dictionary for converting month names or zero-padded strings to integers
 month_dict = {
@@ -426,79 +427,79 @@ def dailyDMC(dmc0: Union[int, float, np.ndarray],
     if not isinstance(lat_adjust, bool):
         raise TypeError('lat_adjust must be a boolean value (True or False)')
 
-    # ### YESTERDAYS MOISTURE CONTENT
-    np.seterr(over='ignore')
-    m0 = 20 + np.exp((244.72 - dmc0) / 43.43)
-    np.seterr(over='warn')
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning)
+        warnings.filterwarnings('ignore', category=RuntimeWarning)
 
-    # ### DRYING PHASE
-    # Reference latitude for DMC day length adjustment, addressing latitudinal differences
-    # brought up in Van Wagner 1987.
-    # 30N: Canadian standard, latitude >= 30N
-    lat_30n = [6.5, 7.5, 9, 12.8, 13.9, 13.9, 12.4, 10.9, 9.4, 8, 7, 6]
-    # 10N: For 10 <= latitude < 30
-    lat_10n = [7.9, 8.4, 8.9, 9.5, 9.9, 10.2, 10.1, 9.7, 9.1, 8.6, 8.1, 7.8]
-    # Equator: For -10 <= latitude < 10 (near equator), use a factor of 9 for all months
-    lat_eq = [9] * 12
-    # 10S: For -30 <= latitude < -10
-    lat_10s = [10.1, 9.6, 9.1, 8.5, 8.1, 7.8, 7.9, 8.3, 8.9, 9.4, 9.9, 10.2]
-    # 30S: For latitude < -30
-    lat_30s = [11.5, 10.5, 9.2, 7.9, 6.8, 6.2, 6.5, 7.4, 8.7, 10, 11.2, 11.8]
+        # ### YESTERDAYS MOISTURE CONTENT
+        m0 = 20 + np.exp((244.72 - dmc0) / 43.43)
 
-    def _get_dmc_lat_daylength(_lat, _month, _lat_adjust):
-        # Get the default DMC daylength adjustment (Le) based on latitude and month
-        le_default = np.take(lat_30n, _month - 1)
-        if _lat_adjust:
-            _lat = np.asarray(_lat)
-            _month = np.asarray(_month)
-            if _month.shape != _lat.shape:
-                _month = np.full(_lat.shape, _month)
-            # Define masks
-            condlist = [
-                (_lat >= 10) & (_lat < 30),
-                (_lat >= -10) & (_lat < 10),
-                (_lat >= -30) & (_lat < -10),
-                (_lat < -30)
-            ]
-            # Daylength arrays must be defined in the global scope
-            le_choices = [
-                np.take(lat_10n, _month - 1),
-                np.take(lat_eq, _month - 1),
-                np.take(lat_10s, _month - 1),
-                np.take(lat_30s, _month - 1)
-            ]
-            return np.select(condlist, le_choices, default=le_default)
-        else:
-            return le_default
+        # ### DRYING PHASE
+        # Reference latitude for DMC day length adjustment, addressing latitudinal differences
+        # brought up in Van Wagner 1987.
+        # 30N: Canadian standard, latitude >= 30N
+        lat_30n = [6.5, 7.5, 9, 12.8, 13.9, 13.9, 12.4, 10.9, 9.4, 8, 7, 6]
+        # 10N: For 10 <= latitude < 30
+        lat_10n = [7.9, 8.4, 8.9, 9.5, 9.9, 10.2, 10.1, 9.7, 9.1, 8.6, 8.1, 7.8]
+        # Equator: For -10 <= latitude < 10 (near equator), use a factor of 9 for all months
+        lat_eq = [9] * 12
+        # 10S: For -30 <= latitude < -10
+        lat_10s = [10.1, 9.6, 9.1, 8.5, 8.1, 7.8, 7.9, 8.3, 8.9, 9.4, 9.9, 10.2]
+        # 30S: For latitude < -30
+        lat_30s = [11.5, 10.5, 9.2, 7.9, 6.8, 6.2, 6.5, 7.4, 8.7, 10, 11.2, 11.8]
 
-    le = _get_dmc_lat_daylength(lat, month, lat_adjust)
-    # Log drying rate (k)
-    k = 1.894 * (temp + 1.1) * (100 - rh) * le * 1e-04
+        def _get_dmc_lat_daylength(_lat, _month, _lat_adjust):
+            # Get the default DMC daylength adjustment (Le) based on latitude and month
+            le_default = np.take(lat_30n, _month - 1)
+            if _lat_adjust:
+                _lat = np.asarray(_lat)
+                _month = np.asarray(_month)
+                if _month.shape != _lat.shape:
+                    _month = np.full(_lat.shape, _month)
+                # Define masks
+                condlist = [
+                    (_lat >= 10) & (_lat < 30),
+                    (_lat >= -10) & (_lat < 10),
+                    (_lat >= -30) & (_lat < -10),
+                    (_lat < -30)
+                ]
+                # Daylength arrays must be defined in the global scope
+                le_choices = [
+                    np.take(lat_10n, _month - 1),
+                    np.take(lat_eq, _month - 1),
+                    np.take(lat_10s, _month - 1),
+                    np.take(lat_30s, _month - 1)
+                ]
+                return np.select(condlist, le_choices, default=le_default)
+            else:
+                return le_default
 
-    # ### RAINFALL PHASE
-    np.seterr(divide='ignore')
-    b = np.ma.where(dmc0 <= 33,
-                    100 / (0.5 + 0.3 * dmc0),
-                    np.ma.where(dmc0 <= 65,
-                                14 - 1.3 * np.log(dmc0),
-                                6.2 * np.log(dmc0) - 17.2))
-    np.seterr(divide='warn')
+        le = _get_dmc_lat_daylength(lat, month, lat_adjust)
+        # Log drying rate (k)
+        k = 1.894 * (temp + 1.1) * (100 - rh) * le * 1e-04
 
-    # Effective rain (re)
-    re = np.ma.where(precip > 1.5,
-                     (0.92 * precip) - 1.27,
-                     0)
+        # ### RAINFALL PHASE
+        b = np.ma.where(dmc0 <= 33,
+                        100 / (0.5 + 0.3 * dmc0),
+                        np.ma.where(dmc0 <= 65,
+                                    14 - 1.3 * np.log(dmc0),
+                                    6.2 * np.log(dmc0) - 17.2))
 
-    # Moisture content after rain (mr)
-    mr = m0 + 1000 * re / (48.77 + b * re)
-    mr = np.ma.clip(mr, 0, None)
+        # Effective rain (re)
+        re = np.ma.where(precip > 1.5,
+                         (0.92 * precip) - 1.27,
+                         0)
 
-    # ### RETURN FINAL DMC VALUES
-    dmc = np.ma.where(precip > 1.5, (244.72 - 43.43 * np.log(mr - 20)), dmc0)
-    # Ensure DMC >= 0
-    dmc = np.ma.clip(dmc, 0, None)
-    # Add the log drying rate (k) to the DMC value
-    dmc += k
+        # Moisture content after rain (mr)
+        mr = m0 + 1000 * re / (48.77 + b * re)
+        mr = np.ma.clip(mr, 0, None)
+
+        # ### RETURN FINAL DMC VALUES
+        dmc = np.ma.where(precip > 1.5, (244.72 - 43.43 * np.log(mr - 20)), dmc0)
+        # Ensure DMC >= 0
+        dmc = np.ma.clip(dmc, 0, None)
+        # Add the log drying rate (k) to the DMC value
+        dmc += k
 
     if return_array:
         return dmc.data
