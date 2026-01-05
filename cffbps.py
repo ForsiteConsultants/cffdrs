@@ -348,25 +348,25 @@ class FBP:
                     raise ValueError(f'All arrays must have the same dimensions. '
                                      f'The following range of dimensions exists: {shapes}')
 
-                # Get first input array as a masked array
-                first_array = input_list[array_indices[0]]
-                if (array_indices[0] == 0) and ('<U' in str(first_array.dtype)):
-                    # Convert the string representations to numeric codes using the lookup table
-                    convert_to_numeric = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)
-                    converted_fuel_type = convert_to_numeric(self.fuel_type)
-                    if None in converted_fuel_type:
-                        raise ValueError('Unknown fuel type code found, conversion failed.')
-                    first_array = converted_fuel_type.astype(np.int8)
+            # Get first input array as a masked array
+            first_array = input_list[array_indices[0]]
+            if (array_indices[0] == 0) and ('<U' in str(first_array.dtype)):
+                # Convert the string representations to numeric codes using the lookup table
+                convert_to_numeric = np.vectorize(fbpFTCode_AlphaToNum_LUT.get)
+                converted_fuel_type = convert_to_numeric(self.fuel_type)
+                if None in converted_fuel_type:
+                    raise ValueError('Unknown fuel type code found, conversion failed.')
+                first_array = converted_fuel_type.astype(np.int8)
 
-                self.ref_array = mask.array(
-                    np.full(first_array.shape, 0, dtype=np.float64),
-                    mask=np.isnan([first_array])
-                )
+            self.ref_array = mask.array(
+                np.full(first_array.shape, 0, dtype=np.float64),
+                mask=np.isnan([first_array])
+            )
 
-                self.ref_int_array = mask.array(
-                    np.full(first_array.shape, 0, dtype=np.int8),
-                    mask=-99
-                )
+            self.ref_int_array = mask.array(
+                np.full(first_array.shape, 0, dtype=np.int8),
+                mask=-99
+            )
         else:
             self.return_array = False
             # Get first input parameter array as a masked array
@@ -573,8 +573,8 @@ class FBP:
                    pdf: Optional[Union[float, int, np.ndarray]] = 35,
                    gfl: Optional[Union[float, int, np.ndarray]] = 0.35,
                    gcf: Optional[Union[float, int, np.ndarray]] = 80,
-                   d0: Optional[int] = None,
-                   dj: Optional[int] = None,
+                   d0: Optional[Union[int, None]] = None,
+                   dj: Optional[Union[int, None]] = None,
                    out_request: Optional[Union[list, tuple]] = None,
                    convert_fuel_type_codes: Optional[bool] = False,
                    percentile_growth: Optional[Union[float, int]] = 50) -> None:
@@ -1921,7 +1921,7 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
     """
     # Add input parameters to list
     input_list = [fuel_type, wx_date, lat, long, elevation, slope, aspect,
-                  ws, wd, ffmc, bui, pc, pdf, gfl, gcf, out_request, d0, dj,
+                  ws, wd, ffmc, bui, pc, pdf, gfl, gcf, d0, dj, out_request,
                   convert_fuel_type_codes]
 
     # Split input arrays into chunks for each worker
@@ -1943,8 +1943,8 @@ def fbpMultiprocessArray(fuel_type: Union[int, str, np.ndarray],
     # Verify num_processors is greater than 1
     if num_processors < 2:
         num_processors = 2
-        raise UserWarning('Multiprocessing requires at least two cores.\n'
-                          'Defaulting num_processors to 2 for this run')
+        print('Multiprocessing requires at least two cores.\n'
+              'Defaulting num_processors to 2 for this run')
 
     # Verify block size
     if block_size is None:
@@ -2114,8 +2114,6 @@ def _testFBP(test_functions: list,
     import ProcessRasters as pr
     import generate_test_fbp_rasters as genras
 
-    fbp = FBP()
-
     # Create fuel type list
     fuel_type_list = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'D1', 'D2', 'M1', 'M2', 'M3', 'M4',
                       'O1a', 'O1b', 'S1', 'S2', 'S3', 'NF', 'WA']
@@ -2127,6 +2125,7 @@ def _testFBP(test_functions: list,
 
     # ### Test non-raster modelling
     if any(var in test_functions for var in ['numeric', 'all']):
+        fbp = FBP()
         print('Testing non-raster modelling')
         for ft in fuel_type_list:
             fbp.initialize(*([fbpFTCode_AlphaToNum_LUT.get(ft)] + input_data))
@@ -2134,15 +2133,16 @@ def _testFBP(test_functions: list,
 
     # ### Test array modelling
     if any(var in test_functions for var in ['array', 'all']):
+        fbp = FBP()
         print('Testing array modelling')
         fbp.initialize(*([np.array(fuel_type_list)] + input_data))
         print('\t', fbp.runFBP())
 
     # Get test folders
-    input_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Inputs')
-    multiprocess_folder = os.path.join(input_folder, 'Multiprocessing')
+    input_folder = os.path.join(os.path.dirname(__file__), 'tests', 'cffbps', 'data', 'inputs')
+    multiprocess_folder = os.path.join(input_folder, 'multiprocessing')
     if out_folder is None:
-        output_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Outputs')
+        output_folder = os.path.join(os.path.dirname(__file__), 'tests', 'cffbps', 'data', 'outputs')
     else:
         output_folder = out_folder
     os.makedirs(output_folder, exist_ok=True)
@@ -2151,7 +2151,7 @@ def _testFBP(test_functions: list,
     if any(var in test_functions for var in ['raster', 'all']):
         print('Testing raster modelling')
         # Generate test raster datasets using user-provided input values
-        genras.gen_test_data(*input_data[:-2], dtype=np.float64)
+        genras.gen_test_data(*input_data[:-3], dtype=np.float64)
 
         # Get input dataset paths
         raster_paths = {
@@ -2181,6 +2181,7 @@ def _testFBP(test_functions: list,
         out_request = ['wsv', 'raz', 'fire_type', 'hfi', 'hros', 'bros', 'ffc', 'wfc', 'sfc']
 
         # Run the FBP modeling
+        fbp = FBP()
         fbp.initialize(
             fuel_type=raster_data['fuel_type'], wx_date=wx_date,
             lat=raster_data['lat'], long=raster_data['long'], elevation=raster_data['elevation'],
@@ -2188,7 +2189,7 @@ def _testFBP(test_functions: list,
             ws=raster_data['ws'], wd=raster_data['wd'], ffmc=raster_data['ffmc'],
             bui=raster_data['bui'], pc=raster_data['pc'], pdf=raster_data['pdf'],
             gfl=raster_data['gfl'], gcf=raster_data['gcf'],
-            d0=_d0, dj=_dj,
+            d0=d0, dj=dj,
             out_request=out_request,
             convert_fuel_type_codes=False
         )
@@ -2217,8 +2218,8 @@ def _testFBP(test_functions: list,
     # ### Test raster multiprocessing
     if any(var in test_functions for var in ['raster_multiprocessing', 'all']):
         print('Testing raster multiprocessing')
-        if not os.path.exists(os.path.join(output_folder, 'Multiprocessing')):
-            os.mkdir(os.path.join(output_folder, 'Multiprocessing'))
+        if not os.path.exists(os.path.join(output_folder, 'multiprocessing')):
+            os.mkdir(os.path.join(output_folder, 'multiprocessing'))
 
         # Get input dataset paths
         fuel_type_path = os.path.join(multiprocess_folder, 'FuelType.tif')
@@ -2229,8 +2230,8 @@ def _testFBP(test_functions: list,
         aspect_path = os.path.join(multiprocess_folder, 'Aspect.tif')
         ws_path = os.path.join(multiprocess_folder, 'WS.tif')
         # wd_path = os.path.join(multiprocess_folder, 'WD.tif')
-        ffmc_path = os.path.join(multiprocess_folder, 'FFMC.tif')
-        bui_path = os.path.join(multiprocess_folder, 'BUI.tif')
+        # ffmc_path = os.path.join(multiprocess_folder, 'FFMC.tif')
+        # bui_path = os.path.join(multiprocess_folder, 'BUI.tif')
         pc_path = os.path.join(multiprocess_folder, 'PC.tif')
         pdf_path = os.path.join(multiprocess_folder, 'PDF.tif')
         gfl_path = os.path.join(multiprocess_folder, 'GFL.tif')
@@ -2248,8 +2249,8 @@ def _testFBP(test_functions: list,
         aspect_array = pr.getRaster(aspect_path).read()
         ws_array = pr.getRaster(ws_path).read()
         # wd_array = pr.getRaster(wd_path).read()
-        ffmc_array = pr.getRaster(ffmc_path).read()
-        bui_array = pr.getRaster(bui_path).read()
+        # ffmc_array = pr.getRaster(ffmc_path).read()
+        # bui_array = pr.getRaster(bui_path).read()
         pc_array = pr.getRaster(pc_path).read()
         pdf_array = pr.getRaster(pdf_path).read()
         gfl_array = pr.getRaster(gfl_path).read()
@@ -2262,9 +2263,9 @@ def _testFBP(test_functions: list,
         fbp_multiprocess_result = fbpMultiprocessArray(
             fuel_type=fuel_type_array, wx_date=wx_date, lat=lat_array, long=long_array,
             elevation=elev_array, slope=slope_array, aspect=aspect_array,
-            ws=ws_array, wd=wd, ffmc=ffmc_array, bui=bui_array,
+            ws=ws_array, wd=wd, ffmc=ffmc, bui=bui,
             pc=pc_array, pdf=pdf_array, gfl=gfl_array, gcf=getSeasonGrassCuring(season='summer', province='BC'),
-            d0=_d0, dj=_dj,
+            d0=d0, dj=dj,
             out_request=out_request,
             convert_fuel_type_codes=True,
             num_processors=num_processors,
@@ -2273,7 +2274,7 @@ def _testFBP(test_functions: list,
 
         # Get output dataset paths
         out_path_list = [
-            os.path.join(output_folder, 'Multiprocessing', name + '.tif') for name in out_request
+            os.path.join(output_folder, 'multiprocessing', name + '.tif') for name in out_request
         ]
 
         for dset, path in zip(fbp_multiprocess_result, out_path_list):
@@ -2294,7 +2295,7 @@ def _testFBP(test_functions: list,
 
 if __name__ == '__main__':
     # _test_functions options: ['all', 'numeric', 'array', 'raster', 'raster_multiprocessing']
-    _test_functions = ['numeric']
+    _test_functions = ['all']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
@@ -2313,7 +2314,7 @@ if __name__ == '__main__':
     _dj = None
     _out_request = ['bros', 'wsv', 'raz', 'isi', 'rsi', 'sfc', 'csfi', 'rso', 'cfb', 'hros', 'hfi', 'fire_type', 'fi_class']
     _out_folder = None
-    _num_processors = 14
+    _num_processors = os.cpu_count() - 1 if os.cpu_count() > 2 else 2
     _block_size = None
 
     # Test the FBP functions

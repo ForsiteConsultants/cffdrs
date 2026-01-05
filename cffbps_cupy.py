@@ -1686,10 +1686,10 @@ def _testFBP(test_functions: list,
         print('\t', fbp.runFBP())
 
     # Get test folders
-    input_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Inputs')
-    multiprocess_folder = os.path.join(input_folder, 'Multiprocessing')
+    input_folder = os.path.join(os.path.dirname(__file__), 'tests', 'cffbps', 'data', 'inputs')
+    multiprocess_folder = os.path.join(input_folder, 'multiprocessing')
     if out_folder is None:
-        output_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Outputs', 'CuPy')
+        output_folder = os.path.join(os.path.dirname(__file__), 'tests', 'cffbps', 'data', 'outputs', 'cupy')
     else:
         output_folder = out_folder
     os.makedirs(output_folder, exist_ok=True)
@@ -1698,7 +1698,7 @@ def _testFBP(test_functions: list,
     if any(var in test_functions for var in ['raster', 'all']):
         print('Testing simple raster GPU processing')
         # Generate test raster datasets using user-provided input values
-        genras.gen_test_data(*input_data[:-2], dtype=cp.float32)
+        genras.gen_test_data(*input_data[:-3], dtype=cp.float32)
 
         # Get input dataset paths
         raster_paths = {
@@ -1733,7 +1733,7 @@ def _testFBP(test_functions: list,
             ws=raster_data['ws'], wd=raster_data['wd'], ffmc=raster_data['ffmc'],
             bui=raster_data['bui'], pc=raster_data['pc'], pdf=raster_data['pdf'],
             gfl=raster_data['gfl'], gcf=raster_data['gcf'],
-            d0=_d0, dj=_dj,
+            d0=d0, dj=dj,
             out_request=out_request,
             convert_fuel_type_codes=False
         )
@@ -1755,8 +1755,8 @@ def _testFBP(test_functions: list,
     # ### Test larger raster GPU processing
     if any(var in test_functions for var in ['raster_multiprocessing', 'all']):
         print('Testing larger raster GPU processing')
-        if not os.path.exists(os.path.join(output_folder, 'GPU_LargeRaster')):
-            os.mkdir(os.path.join(output_folder, 'GPU_LargeRaster'))
+        if not os.path.exists(os.path.join(output_folder, 'gpu_large_raster')):
+            os.mkdir(os.path.join(output_folder, 'gpu_large_raster'))
 
         # Get input dataset paths
         raster_paths = {
@@ -1768,8 +1768,8 @@ def _testFBP(test_functions: list,
             'aspect': os.path.join(multiprocess_folder, 'Aspect.tif'),
             'ws': os.path.join(multiprocess_folder, 'WS.tif'),
             # 'wd': os.path.join(multiprocess_folder, 'WD.tif'),
-            'ffmc': os.path.join(multiprocess_folder, 'FFMC.tif'),
-            'bui': os.path.join(multiprocess_folder, 'BUI.tif'),
+            # 'ffmc': os.path.join(multiprocess_folder, 'FFMC.tif'),
+            # 'bui': os.path.join(multiprocess_folder, 'BUI.tif'),
             'pc': os.path.join(multiprocess_folder, 'PC.tif'),
             'pdf': os.path.join(multiprocess_folder, 'PDF.tif'),
             'gfl': os.path.join(multiprocess_folder, 'GFL.tif'),
@@ -1800,10 +1800,10 @@ def _testFBP(test_functions: list,
             fuel_type=raster_data['fuel_type'], wx_date=wx_date,
             lat=raster_data['lat'], long=raster_data['long'], elevation=raster_data['elevation'],
             slope=raster_data['slope'], aspect=raster_data['aspect'],
-            ws=raster_data['ws'], wd=wd, ffmc=raster_data['ffmc'],
-            bui=raster_data['bui'], pc=raster_data['pc'], pdf=raster_data['pdf'],
+            ws=raster_data['ws'], wd=wd, ffmc=ffmc,
+            bui=bui, pc=raster_data['pc'], pdf=raster_data['pdf'],
             gfl=raster_data['gfl'], gcf=getSeasonGrassCuring(season='summer', province='BC'),
-            d0=_d0, dj=_dj,
+            d0=d0, dj=dj,
             out_request=out_request,
             convert_fuel_type_codes=True
         )
@@ -1811,7 +1811,7 @@ def _testFBP(test_functions: list,
 
         # Get output dataset paths
         output_rasters = [
-            os.path.join(output_folder, 'GPU_LargeRaster', name + '.tif')
+            os.path.join(output_folder, 'gpu_large_raster', name + '.tif')
             for name in out_request
         ]
 
@@ -1832,7 +1832,7 @@ def _testFBP(test_functions: list,
 
 if __name__ == '__main__':
     # _test_functions options: ['all', 'numeric', 'array', 'raster', 'raster_multiprocessing']
-    _test_functions = ['numeric']
+    _test_functions = ['all']
     _wx_date = 20160516
     _lat = 62.245533
     _long = -133.840363
