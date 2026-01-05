@@ -12,7 +12,7 @@ from datetime import datetime as dt
 from typing import Union, Optional
 
 # Get input folder
-input_folder = os.path.join(os.path.dirname(__file__), 'Test_Data', 'Inputs')
+input_folder = os.path.join(os.path.dirname(__file__), 'tests', 'cffbps', 'data', 'inputs')
 
 # Get input dataset paths
 fuel_type_path = os.path.join(input_folder, 'FuelType.tif')
