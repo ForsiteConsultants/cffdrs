@@ -1099,13 +1099,15 @@ class FBP:
             )
 
             # Compute BE and clip
-            raw_be = mask.where(self.bui == 0,
-                              0.0,
-                              mask.where(self.bui0 == 0,
-                                       1,
-                                       np.exp(50 * np.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))
-                                       )
-                              )
+            raw_be = mask.where(
+                (self.bui == 0) | ~np.isfinite(self.bui),
+                0.0,
+                mask.where(
+                    (self.bui0 == 0) | ~np.isfinite(self.bui0),
+                    1,
+                    np.exp(50 * np.log(self.q) * ((1 / self.bui) - (1 / self.bui0)))
+                )
+            )
             self.be = mask.clip(raw_be, 0, self.be_max)
         return
 
