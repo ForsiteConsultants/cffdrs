@@ -125,7 +125,9 @@ def diurnalFFMC_lawson(
     # Return the requested hourly FFMC value using the Lawson method
     ffmc_out = hourly_ffmc_lawson_vectorized(ffmc=ffmc_1200, rh=rh_1200, hour=forecast_hour, minute=forecast_minute)
     if return_array:
-        return np.asarray(ffmc_out, dtype=float)
+        result = np.asarray(ffmc_out, dtype=float)
+        nan_mask = np.ma.getmaskarray(ffmc_1200) | np.ma.getmaskarray(rh_1200)
+        return np.where(nan_mask, np.nan, result)
     return float(np.atleast_1d(ffmc_out)[0])
 
 
@@ -215,18 +217,18 @@ def hourlyFFMC(
     # ### RAINFALL PHASE
     # Rainfall Effectiveness (delta_mrf)
     with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
-        delta_mrf = np.where(
+        delta_mrf = np.ma.where(
             precip == 0,
             0.0,
             42.5 * precip * np.exp(-100 / (251 - mo)) * (1 - np.exp(-6.93 / precip))
         )
-        mr = np.where(
+        mr = np.ma.where(
             mo > 150,
             mo + delta_mrf + 0.0015 * ((mo - 150) ** 2) * (precip ** 0.5),
             mo + delta_mrf
         )
     mr = np.ma.clip(mr, 0, 250)
-    mo = np.where(precip > 0.0, mr, mo)
+    mo = np.ma.where(precip > 0.0, mr, mo)
 
     # ### DRYING PHASE
     # Equilibrium Moisture Content (E)
@@ -257,8 +259,8 @@ def hourlyFFMC(
         md = ed + (mo - ed) * np.exp(-2.303 * kd * time_step)
         mw = ew - (ew - mo) * np.exp(-2.303 * kw * time_step)
     # Constraints
-    m = np.where(mo > ed, md, mw)
-    m = np.where((ed >= mo) & (mo >= ew), mo, m)
+    m = np.ma.where(mo > ed, md, mw)
+    m = np.ma.where((ed >= mo) & (mo >= ew), mo, m)
 
     # Cap m from 0 to 250 to reflect max moisture content of pine litter
     m = np.ma.clip(m, 0, 250)
@@ -267,17 +269,20 @@ def hourlyFFMC(
     # This equation has been revised from Van Wagner (1977) to match Van Wagner (1987)
     # Doing this uses the newer FF scale, over the old F scale (per Anderson 2009)
     ffmc = 59.5 * (250 - m) / (FFMC_COEFFICIENT + m)
-    ffmc = np.where(ffmc <= 0, 0, ffmc)
+    ffmc = np.ma.where(ffmc <= 0, 0, ffmc)
 
     # Restrict FFMC values to range between 0 and 101
     ffmc = np.ma.clip(ffmc, 0, 101)
 
     # Return
     if return_array:
-        if isinstance(ffmc, np.ma.MaskedArray):
-            return ffmc.filled(np.nan)
-        else:
-            return ffmc
+        result = ffmc.filled(np.nan) if isinstance(ffmc, np.ma.MaskedArray) else np.asarray(ffmc, dtype=float)
+        # Guard: np.where (used in intermediate steps) ignores masked-array masks, so cells with NaN
+        # weather inputs can produce bogus non-NaN hffmc in array context. Explicitly null them out.
+        nan_mask = (np.ma.getmaskarray(ffmc0) | np.ma.getmaskarray(temp) |
+                    np.ma.getmaskarray(rh)    | np.ma.getmaskarray(wind) |
+                    np.ma.getmaskarray(precip))
+        return np.where(nan_mask, np.nan, result)
     else:
         if isinstance(ffmc, np.ma.MaskedArray):
             return float(ffmc.filled(np.nan)[0])
@@ -410,7 +415,11 @@ def dailyFFMC(ffmc0: Union[int, float, np.ndarray],
     ffmc = np.ma.clip(ffmc, 0, 101)
 
     if return_array:
-        return ffmc.filled(np.nan)
+        result = ffmc.filled(np.nan)
+        nan_mask = (np.ma.getmaskarray(ffmc0) | np.ma.getmaskarray(temp) |
+                    np.ma.getmaskarray(rh)    | np.ma.getmaskarray(wind) |
+                    np.ma.getmaskarray(precip))
+        return np.where(nan_mask, np.nan, result)
     else:
         return float(ffmc.filled(np.nan)[0])
 
@@ -582,7 +591,10 @@ def dailyDMC(
         dmc = np.ma.clip(dmc, 0, None)
 
     if return_array:
-        return dmc.filled(np.nan)
+        result = dmc.filled(np.nan)
+        nan_mask = (np.ma.getmaskarray(dmc0)   | np.ma.getmaskarray(temp) |
+                    np.ma.getmaskarray(rh)     | np.ma.getmaskarray(precip))
+        return np.where(nan_mask, np.nan, result)
     else:
         return float(dmc.filled(np.nan)[0])
 
@@ -722,7 +734,10 @@ def dailyDC(
     dc = np.ma.clip(dc, 0, None)
 
     if return_array:
-        return dc.filled(np.nan)
+        result = dc.filled(np.nan)
+        nan_mask = (np.ma.getmaskarray(dc0)    | np.ma.getmaskarray(temp) |
+                    np.ma.getmaskarray(precip))
+        return np.where(nan_mask, np.nan, result)
     else:
         return float(dc.filled(np.nan)[0])
 
@@ -793,7 +808,9 @@ def dailyISI(
     isi = np.ma.clip(isi, 0, None)
 
     if return_array:
-        return isi.filled(np.nan)
+        result = isi.filled(np.nan)
+        nan_mask = np.ma.getmaskarray(wind) | np.ma.getmaskarray(ffmc)
+        return np.where(nan_mask, np.nan, result)
     else:
         return isi.filled(np.nan)[0]
 
@@ -847,7 +864,9 @@ def dailyBUI(
     bui = np.ma.clip(bui, 0, None)
 
     if return_array:
-        return bui.filled(np.nan)
+        result = bui.filled(np.nan)
+        nan_mask = np.ma.getmaskarray(dmc) | np.ma.getmaskarray(dc)
+        return np.where(nan_mask, np.nan, result)
     else:
         return float(bui.filled(np.nan)[0])
 
@@ -914,7 +933,9 @@ def dailyFWI(
     fwi = np.ma.clip(fwi, 0, None)
 
     if return_array:
-        return fwi.filled(np.nan)
+        result = fwi.filled(np.nan)
+        nan_mask = np.ma.getmaskarray(isi) | np.ma.getmaskarray(bui)
+        return np.where(nan_mask, np.nan, result)
     else:
         return float(fwi.filled(np.nan)[0])
 
@@ -952,7 +973,9 @@ def dailyDSR(fwi: Union[int, float, np.ndarray]) -> Union[float, np.ndarray]:
     dsr = np.ma.clip(dsr, 0, None)
 
     if return_array:
-        return dsr.filled(np.nan)
+        result = dsr.filled(np.nan)
+        nan_mask = np.ma.getmaskarray(fwi)
+        return np.where(nan_mask, np.nan, result)
     else:
         return float(dsr.filled(np.nan)[0])
 
@@ -1118,6 +1141,10 @@ def startupDC(
     dc_start[dc_start < 0] = 0
 
     if return_array:
-        return dc_start.filled(np.nan)
+        result = dc_start.filled(np.nan)
+        nan_mask = (np.ma.getmaskarray(dc_stop)    | np.ma.getmaskarray(moist_stop) |
+                    np.ma.getmaskarray(moist_start) | np.ma.getmaskarray(precip_ow)  |
+                    np.ma.getmaskarray(temp))
+        return np.where(nan_mask, np.nan, result)
     else:
         return float(dc_start.filled(np.nan)[0])
